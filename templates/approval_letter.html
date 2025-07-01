@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Letter of Lien</title>
+    <style>
+        body {
+            font-family: Garamond, serif;
+            margin: 20px;
+            font-size: 11px;
+            line-height: 1.3;
+        }
+        .letter {
+            max-width: 600px;
+            margin: auto;
+            padding: 10px;
+        }
+        .header {
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .header img {
+            max-height: 20px;
+            margin-bottom: 5px;
+            float: left;
+        }
+        .header h2 {
+            margin: 0;
+            font-size: 16px;
+            color: #333;
+        }
+        .date {
+            margin-bottom: 5px;
+            text-decoration: underline;
+        }
+        .branch {
+            margin: 5px 0;
+        }
+        .which-branch {
+            text-decoration: underline;
+        }
+        .title {
+            font-weight: bold;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+        p {
+            margin: 5px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 10px;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 4px;
+            text-align: left;
+        }
+        th {
+            font-weight: bold;
+        }
+        .signature-section {
+            margin-top: 15px;
+        }
+        .signature-section p {
+            font-weight: bold;
+            margin: 3px 0;
+        }
+        .signature-section img {
+            width: 40px;
+            height: 20px;
+            vertical-align: middle;
+        }
+        .letter-heading {
+            text-align: center;
+            text-decoration: underline;
+            margin-bottom: 10px;
+            margin-top: 25px;
+        }
+        @page {
+            size: A4;
+            margin: 0.5in;
+        }
+    </style>
+</head>
+<body>
+    <div class="letter">
+        <div class="header">
+            <img src="{{ logo_base64 }}" alt="HBL Logo" onerror="this.style.display='none';">
+        </div>
+        <h3 class="letter-heading">Letter of Lien</h3>
+        <span>Dated: <span class="date">{{ result.approved_date or '2025-06-22 15:22:00' }}</span></span>
+        <div class="branch">Branch Manager</div>
+        <p class="which-branch">AMINABAD HYDERABAD</p>
+        <div class="title">IRREVOCABLE AUTHORIZATION OF LIEN MARKING & ENCASHMENT OF ACCOUNT AS A COLLATERAL AGAINST LOANS AS PER FOLLOWING DETAILS</div>
+        <p>Dear Sir/Madam,</p>
+        <p>Kindly referred to Credit Guarantee Agreement signed off between RAINBOW HI TECH-KHUSHALI FOUNDATION TRUST and HBL MfB, I, being an authorized signatory of RAINBOW HI TECH-KHUSHALI FOUNDATION TRUST, hereby offer Account No-0401012363330016 as collateral against the following loan arrangements:</p>
+        <table>
+            <tr>
+                <th>Sr#</th>
+                <th>Borrower Name</th>
+                <th>S/o/D/o/W/o</th>
+                <th>CNIC No.</th>
+                <th>Loan Amount to be disbursed</th>
+            </tr>
+            <tr>
+                <td>1</td>
+                <td>{{ result.Borrower_Name or 'N/A' }}</td>
+                <td>{{ result.Father_Husband_Name or 'N/A' }}</td>
+                <td>{{ result.CNIC or 'N/A' }}</td>
+                <td>{{ '{:,.0f}'.format(result.Loan_Amount|int) if result.Loan_Amount else 'N/A' }}</td>
+            </tr>
+        </table>
+        <p>I also hereby authorize HBL Microfinance Bank Ltd. to en-cash the proceeds of above instrument towards settlement of complete liability (principal and services charges) as against borrowers mentioned in above table directly in case of loan default.</p>
+        <p>This authorization of marking lien on the account is irrevocable until the entire liability owed by the above borrowers is satisfactorily paid off to HBL Microfinance Bank Ltd.</p>
+        <p>I also declare that this lien marking instructions shall be communicated to HBL MfB branch via email which may be considered as valid as physically submitted.</p>
+        <div class="signature-section">
+            <span>Customer/Guarantor's Name(s): <span>{{ result.Borrower_Name or 'N/A' }}</span></span>
+            <p>Authorized Signatures: {% if sign_base64 %}<img src="data:image/jpeg;base64,{{ sign_base64 }}" alt="signature" onerror="this.style.display='none';">{% endif %}</p>
+        </div>
+    </div>
+</body>
+</html>

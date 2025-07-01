@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    {% include 'head.html' %}
+</head>
+<body>
+    {% include 'navbar.html' %}
+
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url":'', "label":'Dashboard'}]) }}
+
+    <div class="mt-3">
+        {% include 'message_box.html' %}
+    </div>
+
+    <div class="container my-4">
+    <div class="row row-cols-3 row-cols-md-4 row-cols-lg-3 g-4">
+      <!-- Users Card -->
+      {% if result.is_admin %}
+        <div class="col">
+          <div class="card h-100 text-center">
+            <div class="card-body">
+              <i class="fas fa-users fa-3x mb-3"></i>
+              <h5 class="card-title">Users</h5>
+              <p class="card-text">Manage and track your users' activity, permissions, and interactions within the system for better oversight and control.</p>
+              <a href="{{url_for('manage_users')}}" class="btn btn-primary">View User Data</a>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- Budget Card -->
+        <div class="col">
+          <div class="card h-100 text-center">
+            <div class="card-body">
+              <i class="fas fa-wallet fa-3x mb-3"></i>
+              <h5 class="card-title">Budget</h5>
+              <p class="card-text">Track your organization's budget, expenditures, and financial allocations to ensure proper resource management.</p>
+              <a href="{{url_for('manage_budget')}}" class="btn btn-primary">Manage Budget</a>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- Branches Card -->
+        <div class="col">
+          <div class="card h-100 text-center">
+            <div class="card-body">
+              <i class="fas fa-sitemap fa-3x mb-3"></i>
+              <h5 class="card-title">Branches</h5>
+              <p class="card-text">Manage and monitor the operations of various branches or locations within your organization to streamline operations.</p>
+              <a href="{{url_for('manage_branches')}}" class="btn btn-primary">View Branch Info</a>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+      <!-- PreDisbursement Card -->
+      <div class="col">
+        <div class="card h-100 text-center">
+          <div class="card-body">
+            <i class="fas fa-money-check-alt fa-3x mb-3"></i>
+            <h5 class="card-title">PreDisbursement</h5>
+            <p class="card-text">Track and manage all the necessary steps before disbursements are made, including approvals and verifications.</p>
+            <a href="{{url_for('manage_pre_disbursement')}}" class="btn btn-primary">Prepare Disbursement</a>
+          </div>
+        </div>
+      </div>
+
+      {% if result.is_admin %}
+        <!-- PostDisbursement Card -->
+        <div class="col">
+          <div class="card h-100 text-center">
+            <div class="card-body">
+              <i class="fas fa-money-bill-wave fa-3x mb-3"></i>
+              <h5 class="card-title">PostDisbursement</h5>
+              <p class="card-text">Manage the processes and reports after disbursements, including tracking, reconciliation, and auditing steps.</p>
+              <a href="{{url_for('manage_post_disbursement')}}" class="btn btn-primary">Review Disbursement</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- File Uploading/Validation Card -->
+        <div class="col">
+          <div class="card h-100 text-center">
+            <div class="card-body">
+              <i class="fa-solid fa-upload fa-3x mb-3"></i>
+              <h5 class="card-title">File Uploading/Validation</h5>
+              <p class="card-text">Manage file validation and uploading. Prevents from duplicate/discrepancies records, as well as get the summary report for duplicate/discrepancies</p>
+              <a href="{{url_for('manage_file')}}" class="btn btn-primary">Upload/Validate</a>
+            </div>
+          </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>User Profile</title>
+  {% include 'head.html' %}
+  <style>
+    .profile-card {
+      max-width: 800px;
+      margin: 50px auto;
+      border-radius: 12px;
+      background: #fff;
+      padding: 30px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    .profile-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 15px;
+    }
+    .profile-header img {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .profile-header .info {
+      margin-left: 15px;
+    }
+    .profile-header .info h5 {
+      margin: 0;
+      font-weight: bold;
+    }
+    .profile-section {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .profile-label {
+      font-weight: 500;
+      color: #444;
+    }
+    .profile-value {
+      color: #666;
+      flex: 1;
+      margin-left: 30px;
+    }
+    .btn-save {
+      background-color: #0d6efd;
+      color: white;
+      border: none;
+    }
+    .image-preview {
+      margin-top: 10px;
+    }
+    .image-preview img {
+      max-width: 100px;
+      max-height: 100px;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body class="bg-body-tertiary">
+  {% include 'navbar.html' %}
+
+  {% import 'breadcrumbs.html' as brd %}
+  {{ brd.render_Breadcrumbs([{"url":'', "label":'Profile'}]) }}
+
+  <div class="container">
+    <div class="profile-card">
+      <div class="profile-header">
+        <div class="d-flex align-items-center">
+            <img src="/static/images/profile_icon.png" alt="Avatar">
+          <div class="info">
+            <h5>{{ user.name }}</h5>
+            <small>{{ user.email }}</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close d-none" aria-label="Close"></button>
+      </div>
+
+      <form method="POST" class="mt-3" action="{{url_for('profile')}}" enctype="multipart/form-data">
+        <div class="profile-section">
+          <div class="profile-label">Name</div>
+          <div class="profile-value">
+            <input type="text" class="form-control" name="name" value="{{ user.name }}" required>
+          </div>
+        </div>
+
+        <div class="profile-section">
+          <div class="profile-label">Email</div>
+          <div class="profile-value">{{ user.email }}</div>
+        </div>
+
+        <div class="profile-section">
+          <div class="profile-label">New Password</div>
+          <div class="profile-value">
+            <input type="password" class="form-control" name="password" placeholder="Leave blank to keep current password">
+          </div>
+        </div>
+
+        <div class="profile-section">
+          <div class="profile-label">Signature Image</div>
+          <div class="profile-value">
+            <input type="file" class="form-control" name="image" accept="image/*">
+            {% if image_base64 %}
+              <div class="image-preview">
+                <img src="data:image/jpeg;base64,{{ image_base64 }}" alt="Current Profile Image">
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="mt-4 text-end">
+          <button type="submit" class="btn btn-save">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

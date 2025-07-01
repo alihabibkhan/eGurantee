@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    {% include 'head.html' %}
+    <style>
+    .login-container {
+            height: 100vh;
+        }
+        .login-card {
+            max-width: 900px;
+            border: none;
+            border-radius: 12px;
+            overflow: hidden;
+            height: 500px;
+        }
+        .left-side {
+            background: linear-gradient(to bottom right, #9b2ab8, #662d91);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            padding: 40px;
+            border-top-left-radius: 12px;
+            border-bottom-left-radius: 12px;
+            height: 133%;
+        }
+        .left-side h3 {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .right-side {
+            padding: 40px;
+            background-color: #fff;
+        }
+        .btn-warning {
+            font-weight: bold;
+            padding: 8px 24px;
+            border-radius: 6px;
+        }
+        .btn-dark {
+            padding: 10px;
+        }
+    </style>
+
+</head>
+<body class="bg-dark">
+    <div class="container login-container d-flex justify-content-center align-items-center">
+      <div class="card login-card w-100 shadow-lg">
+        <div class="row g-0">
+          <!-- Left Panel -->
+          <div class="col-md-6 left-side text-center">
+            <h3 class="mb-3">🚀 <strong>WELCOME!</strong></h3>
+            <p>Manage and track loans with ease — built to support individuals and communities in need.</p>
+          </div>
+
+          <!-- Right Panel -->
+          <div class="col-md-6 right-side mt-2">
+            <h4 class="text-center mb-4">Login</h4>
+
+            {% include 'message_box.html' %}
+
+            <form method="POST" action="login">
+              <div class="mb-3">
+                <label>Email</label>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                  <input type="email" class="form-control" name="email" autocomplete="new-email" required>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label>Password</label>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                  <input type="password" class="form-control" name="password" id="passwordInput" autocomplete="new-password" required>
+                  <span class="input-group-text bg-white" style="cursor: pointer;" onclick="togglePassword()">
+                    <i class="bi bi-eye" id="toggleIcon"></i>
+                  </span>
+                </div>
+              </div>
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input" id="remember">
+                  <label class="form-check-label" for="remember">Remember me</label>
+                </div>
+                <a href="#" class="text-decoration-none small">Forgot Password?</a>
+              </div>
+              <div class="d-grid">
+                <button type="submit" class="btn btn-dark">LOG IN</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+</body>
+</html>
+
+<script>
+  function togglePassword() {
+    const input = document.getElementById('passwordInput');
+    const icon = document.getElementById('toggleIcon');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.classList.remove('bi-eye');
+      icon.classList.add('bi-eye-slash');
+    } else {
+      input.type = 'password';
+      icon.classList.remove('bi-eye-slash');
+      icon.classList.add('bi-eye');
+    }
+  }
+</script>
