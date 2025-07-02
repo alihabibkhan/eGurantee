@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request, session, flash, redirect, url_for, make_response, g, Response, jsonify, send_from_directory, abort, send_file, after_this_request, current_app
-from flask_mail import Mail, Message
 from xhtml2pdf import pisa
 from io import BytesIO
 from datetime import datetime, timedelta, date
