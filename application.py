@@ -1,4 +1,5 @@
 from imports import *
+from flask_mail import Mail, Message
 
 application = Flask(__name__)
 application.config['SECRET_KEY'] = "Your_secret_string"
