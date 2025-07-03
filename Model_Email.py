@@ -1,5 +1,5 @@
-#from imports import *
-from application import mail, Message
+# from imports import *
+from application import Message, mail
 
 
 # Reusable email sending method

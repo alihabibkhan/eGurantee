@@ -15,10 +15,15 @@ def send_email():
             return jsonify({'success': False, 'error': 'Invalid application number or email'}), 400
 
         # Fetch record
+        # query = f"""
+        #     SELECT Borrower_Name, Application_No, Loan_Amount, ApplicationDate, Father_Husband_Name, CNIC, approved_date
+        #     FROM tbl_pre_disbursement_temp
+        #     WHERE pre_disb_temp_id = '{str(pre_disb_temp_id)}' AND status = '2'
+        # """
         query = f"""
-            SELECT Borrower_Name, Application_No, Loan_Amount, ApplicationDate, Father_Husband_Name, CNIC, approved_date 
+            SELECT "Borrower_Name", "Application_No", "Loan_Amount", "ApplicationDate", "Father_Husband_Name", "CNIC", "approved_date" 
             FROM tbl_pre_disbursement_temp 
-            WHERE pre_disb_temp_id = '{str(pre_disb_temp_id)}' AND status = '2'
+            WHERE "pre_disb_temp_id" = '{str(pre_disb_temp_id)}' AND "status" = '2'
         """
         record = fetch_records(query)
 

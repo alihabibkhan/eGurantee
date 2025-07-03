@@ -7,8 +7,7 @@ def manage_pre_disbursement():
     try:
         if is_login():
             content = {
-                'get_temp_pre_disbursement': get_all_pre_disbursement_temp(),
-                'get_main_pre_disbursement': get_all_pre_disbursement_main()
+                'get_temp_pre_disbursement': get_all_pre_disbursement_temp()
             }
             return render_template('manage_pre_disbursement.html', result=content)
     except Exception as e:
@@ -49,7 +48,10 @@ def update_pre_disbursement_temp():
                WHERE pre_disb_temp_id = '{str(pre_disb_temp_id)}'
             """
             count_result = fetch_records(check_query)
-            count = int(count_result[0]['COUNT(*)']) if count_result else 0
+            print('printing count result')
+            print(count_result)
+            # count = int(count_result[0]['COUNT(*)']) if count_result else 0
+            count = int(count_result[0]['count']) if count_result else 0
 
 
             if count == 0:
@@ -119,10 +121,16 @@ def update_pre_disbursement_temp():
 def approval_letter(app_no):
     # print('app_no:- ', app_no)
     try:
+        # query = f"""
+        #     SELECT Borrower_Name, Application_No, Loan_Amount, ApplicationDate, Father_Husband_Name, CNIC, approved_date
+        #     FROM tbl_pre_disbursement_temp
+        #     WHERE pre_disb_temp_id = '{str(app_no)}' AND status = '2'
+        # """
+
         query = f"""
-            SELECT Borrower_Name, Application_No, Loan_Amount, ApplicationDate, Father_Husband_Name, CNIC, approved_date 
+            SELECT "Borrower_Name", "Application_No", "Loan_Amount", "ApplicationDate", "Father_Husband_Name", "CNIC", "approved_date" 
             FROM tbl_pre_disbursement_temp 
-            WHERE pre_disb_temp_id = '{str(app_no)}' AND status = '2'
+            WHERE "pre_disb_temp_id" = '{str(app_no)}' AND "status" = '2'
         """
         record = fetch_records(query)
         print(record)
