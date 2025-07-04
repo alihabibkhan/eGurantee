@@ -66,12 +66,13 @@
                         <!-- Upload Form View -->
                         <div class="view-section {% if view == 'upload' %}active{% endif %}">
                             <form method="POST" action="{{ url_for('manage_file') }}" enctype="multipart/form-data">
+                                <input type="hidden" name="action_type" id="validate" value="validate">
                                 <div class="mb-3">
                                     <label for="file" class="form-label">Select Excel File (.xlsx only)</label>
                                     <input class="form-control" type="file" id="file" name="file" accept=".xlsx" required>
                                 </div>
                                 <div class="d-grid gap-2">
-                                    <button type="submit" name="validate" class="btn btn-primary">Validate File</button>
+                                    <button type="submit" class="btn btn-primary" onclick="$('#validate').val('validate')">Validate File</button>
                                 </div>
                             </form>
                         </div>
@@ -98,7 +99,8 @@
 
                             <form method="POST" action="{{ url_for('manage_file') }}">
                                 <div class="d-grid gap-2">
-                                    <button type="submit" name="upload" class="btn btn-success">Upload Valid Data</button>
+                                    <input type="hidden" name="action_type" id="upload" value="upload">
+                                    <button type="submit" name="upload" class="btn btn-success" onclick="$('#upload').val('upload')">Upload Valid Data</button>
                                     <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
                                 </div>
                             </form>
