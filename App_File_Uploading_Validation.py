@@ -6,12 +6,12 @@ from application import allowed_file
 @application.route('/manage-file', methods=['GET', 'POST'])
 def manage_file():
     if request.method == 'POST':
-        if 'validate' in request.form:
+        action_type = request.form.get('action_type')
+        if action_type == 'validate':
             return handle_validation()
-        elif 'upload' in request.form:
+        elif action_type == 'upload':
             return handle_upload()
 
-    # Default GET request - show upload form
     return render_template('upload.html', view='upload')
 
 
@@ -194,7 +194,7 @@ def process_upload(filepath):
                 print(f'Processing sheet {sheet_name} as PreDisbursement')
 
                 # Fetch existing application numbers and their statuses
-                existing_records = fetch_records("SELECT Application_No, status FROM tbl_pre_disbursement_temp")
+                existing_records = fetch_records('SELECT "Application_No", "status" FROM tbl_pre_disbursement_temp')
                 print(existing_records)
                 existing_app_nos = {str(row['Application_No']): str(row['status']) for row in existing_records}
 
@@ -227,27 +227,39 @@ def process_upload(filepath):
 
                 # Insert new records into database
                 if len(new_records[sheet_name]) > 0:
+                    if 'ApplicationDate' in new_records[sheet_name].columns:
+                        new_records[sheet_name]['ApplicationDate'] = new_records[sheet_name]['ApplicationDate'].apply(parse_excel_date)
+
+                    if 'Bcc Approval Date' in new_records[sheet_name].columns:
+                        new_records[sheet_name]['Bcc Approval Date'] = new_records[sheet_name]['Bcc Approval Date'].apply(parse_excel_date)
+
+                    if 'Business Experiense (Since)' in new_records[sheet_name].columns:
+                        new_records[sheet_name]['Business Experiense (Since)'] = new_records[sheet_name]['Business Experiense (Since)'].apply(parse_excel_date)
+
+                    if 'Experiense Start Date' in new_records[sheet_name].columns:
+                        new_records[sheet_name]['Experiense Start Date'] = new_records[sheet_name]['Experiense Start Date'].apply(parse_excel_date)
+
                     records = new_records[sheet_name].to_dict('records')
                     print(f'No of records to insert for {sheet_name}: {len(records)}')
 
                     for rec in records:
                         query = f"""
                             INSERT INTO tbl_pre_disbursement_temp (
-                                Application_No, Annual_Business_Incomes, Annual_Disposable_Income,
-                                Annual_Expenses, ApplicationDate, Bcc_Approval_Date, Borrower_Name, 
-                                Branch_Area, Branch_Name, Business_Expense_Description, 
-                                Business_Experiense_Since, Business_Premises, CNIC, Collage_Univeristy,
-                                Collateral_Type, Contact_No, Credit_History_Ecib, Current_Residencial,
-                                Dbr, Education_Level, Enrollment_Status, Enterprise_Premises,
-                                Existing_Loan_Number, Existing_Loan_Limit, Existing_Loan_Status,
-                                Existing_Outstanding_Loan_Schedules, Experiense_Start_Date,
-                                Family_Monthly_Income, Father_Husband_Name, Gender, KF_Remarks,
-                                Loan_Amount, Loan_Cycle, LoanProductCode, Loan_Status,
-                                Monthly_Repayment_Capacity, Nature_Of_Business, No_Of_Family_Members,
-                                Permanent_Residencial, Premises, Purpose_Of_Loan, Requested_Loan_Amount,
-                                Residance_Type, Student_Name, Student_Co_Borrower_Gender, Student_Relation_With_Borrower,
-                                Tenor_Of_Month, Type_of_Business, annual_income, status, uploaded_by,
-                                uploaded_date
+                                "Application_No", "Annual_Business_Incomes", "Annual_Disposable_Income",
+                                "Annual_Expenses", "ApplicationDate", "Bcc_Approval_Date", "Borrower_Name", 
+                                "Branch_Area", "Branch_Name", "Business_Expense_Description", 
+                                "Business_Experiense_Since", "Business_Premises", "CNIC", "Collage_Univeristy",
+                                "Collateral_Type", "Contact_No", "Credit_History_Ecib", "Current_Residencial",
+                                "Dbr", "Education_Level", "Enrollment_Status", "Enterprise_Premises",
+                                "Existing_Loan_Number", "Existing_Loan_Limit", "Existing_Loan_Status",
+                                "Existing_Outstanding_Loan_Schedules", "Experiense_Start_Date",
+                                "Family_Monthly_Income", "Father_Husband_Name", "Gender", "KF_Remarks",
+                                "Loan_Amount", "Loan_Cycle", "LoanProductCode", "Loan_Status",
+                                "Monthly_Repayment_Capacity", "Nature_Of_Business", "No_Of_Family_Members",
+                                "Permanent_Residencial", "Premises", "Purpose_Of_Loan", "Requested_Loan_Amount",
+                                "Residance_Type", "Student_Name", "Student_Co_Borrower_Gender", "Student_Relation_With_Borrower",
+                                "Tenor_Of_Month", "Type_of_Business", "annual_income", "status", "uploaded_by",
+                                "uploaded_date"
                             ) VALUES (
                                 '{str(rec['Application_No'])}', '{rec['Annual Business Incomes']}', '{rec['Annual Disposable Income']}',
                                 '{rec['Annual Expenses']}', '{rec['ApplicationDate']}', '{rec['Bcc Approval Date']}', 
@@ -267,7 +279,7 @@ def process_upload(filepath):
                                 '{rec['annual_income']}', '1', '{str(get_current_user_id())}', '{str(datetime.now())}'
                             )
                             """
-                        execute_command(query)
+                        execute_command(query, is_print=True)
 
             # Check if sheet matches PostDisbursement headers
             elif all(header in df.columns for header in post_headers):
@@ -275,7 +287,7 @@ def process_upload(filepath):
 
                 # Fetch existing loan numbers
                 existing_loan_nos = set(
-                    row['loan_no'] for row in fetch_records("SELECT loan_no FROM tbl_post_disbursement"))
+                    row['loan_no'] for row in fetch_records('SELECT "loan_no" FROM tbl_post_disbursement'))
 
                 # Check for duplicates
                 duplicate_mask = df['Loan No'].isin(existing_loan_nos)
@@ -439,3 +451,24 @@ def download_summary():
 
     flash('Could not prepare the download. Please try again.', 'danger')
     return redirect(url_for('manage_file'))
+
+
+def parse_excel_date(date_str):
+    if pd.isnull(date_str):
+        return None
+
+    # Clean string: strip whitespace and control characters
+    clean_date = str(date_str).strip().replace('\r', '').replace('\n', '')
+
+    # Handle Excel date as datetime already
+    if isinstance(date_str, datetime):
+        return date_str.date()
+
+    for fmt in ("%m/%d/%Y", "%m-%d-%Y", "%Y/%m/%d", "%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y"):
+        try:
+            return datetime.strptime(clean_date, fmt).date()
+        except ValueError:
+            continue
+
+    # If all formats fail
+    raise ValueError(f"Unrecognized date format: {date_str}")
