@@ -2,6 +2,9 @@ import psycopg2
 from psycopg2 import Error
 import time
 from typing import List, Dict, Optional
+import os
+
+POSTGRES_CONNECTION = os.getenv('POSTGRES_CONNECTION')
 
 
 def db_connection():
@@ -23,7 +26,7 @@ def db_connection():
             # )
 
             connection = psycopg2.connect(
-                dsn='postgresql://neondb_owner:npg_3cqWiumCMK9O@ep-cool-mode-a8w2qohv-pooler.eastus2.azure.neon.tech/eguarantee_db?sslmode=require&channel_binding=require'
+                dsn=str(POSTGRES_CONNECTION)
             )
 
             if attempt == 1:
@@ -53,6 +56,7 @@ def fetch_records(query: str, is_print: bool = False) -> List[Dict]:
     try:
         if is_print:
             print(f"Connection start at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+            print(query)
 
         connection = db_connection()
         cursor = connection.cursor()
@@ -91,6 +95,7 @@ def execute_command(query: str, is_print: bool = False) -> Optional[int]:
     try:
         if is_print:
             print(f"Connection start at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+            print(query)
 
         connection = db_connection()
         cursor = connection.cursor()
