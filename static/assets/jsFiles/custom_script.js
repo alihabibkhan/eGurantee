@@ -11,11 +11,12 @@ $(document).on('submit', 'form', function (e) {
 });
 
 
-$(document).on('click', 'a[href^="/"]:not([data-no-process])', function (e) {
+$(document).on('click', 'a[href^="/"]:not([data-no-process]):not([class="breadcrumb-item"])', function (e) {
     const $element = $(this);
 
     $element
         .addClass('processing')
+        .prop('disabled', true)
         .html('Processing... <i class="fas fa-spinner fa-spin ml-2 ms-2"></i>');
 
     // Let the browser follow the link normally (no e.preventDefault)
