@@ -294,8 +294,22 @@ def process_upload(filepath):
                 duplicates[sheet_name] = df[duplicate_mask]
                 new_records[sheet_name] = df[~duplicate_mask]
 
-                # Insert new records into database
                 if len(new_records[sheet_name]) > 0:
+                    if 'MIS_DATE' in new_records[sheet_name].columns:
+                        new_records[sheet_name]['MIS_DATE'] = new_records[sheet_name]['MIS_DATE'].apply(parse_excel_date)
+
+                    if 'Booked On' in new_records[sheet_name].columns:
+                        new_records[sheet_name]['Booked On'] = new_records[sheet_name][
+                            'Booked On'].apply(parse_excel_date)
+
+                    if 'Loan Closed On' in new_records[sheet_name].columns:
+                        new_records[sheet_name]['Loan Closed On'] = new_records[sheet_name][
+                            'Loan Closed On'].apply(parse_excel_date)
+
+
+                    records = new_records[sheet_name].to_dict('records')
+                    print(f'No of records to insert for {sheet_name}: {len(records)}')
+
                     records = new_records[sheet_name].to_dict('records')
                     print(f'No of records to insert for {sheet_name}: {len(records)}')
 
@@ -464,11 +478,11 @@ def parse_excel_date(date_str):
     if isinstance(date_str, datetime):
         return date_str.date()
 
-    for fmt in ("%m/%d/%Y", "%m-%d-%Y", "%Y/%m/%d", "%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y"):
+    for fmt in (
+        "%m/%d/%Y", "%m-%d-%Y", "%Y/%m/%d", "%Y-%m-%d",
+        "%d/%m/%Y", "%d-%m-%Y", "%d-%b-%Y"
+    ):
         try:
             return datetime.strptime(clean_date, fmt).date()
         except ValueError:
             continue
-
-    # If all formats fail
-    raise ValueError(f"Unrecognized date format: {date_str}")
