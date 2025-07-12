@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Upload</title>
+    {% include 'head.html' %}
+    <style>
+        .view-section {
+            display: none;
+        }
+        .view-section.active {
+            display: block;
+        }
+        /* Add this to your CSS file */
+        .progress {
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+
+        /* Animation for the download button */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        #downloadSummaryBtn {
+            transition: all 0.3s ease;
+            animation: pulse 2s infinite;
+        }
+
+        #downloadSummaryBtn:hover {
+            animation: none;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    {% include 'navbar.html' %}
+
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url":'', "label":'File Uploading & Validation'}]) }}
+
+    <div class="mt-3">
+        {% include 'message_box.html' %}
+    </div>
+
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="text-center">
+                            {% if view == 'upload' %}File Uploading & Validation{% endif %}
+                            {% if view == 'validation_result' %}Validation Results - {{ filename }}{% endif %}
+                            {% if view == 'upload_result' %}Data Upload Results{% endif %}
+                        </h3>
+                    </div>
+                    <div class="card-body">
+
+                        <!-- Upload Form View -->
+                        <div class="view-section {% if view == 'upload' %}active{% endif %}">
+                            <form method="POST" action="{{ url_for('manage_file') }}" enctype="multipart/form-data">
+                                <input type="hidden" name="action_type" id="validate" value="validate">
+                                <div class="mb-3">
+                                    <label for="file" class="form-label">Select Excel File (.xlsx only)</label>
+                                    <input class="form-control" type="file" id="file" name="file" accept=".xlsx" required>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-primary" onclick="$('#validate').val('validate')">Validate File</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Validation Result View -->
+                        <div class="view-section {% if view == 'validation_result' %}active{% endif %}">
+                            <h4>Sheets Found:</h4>
+                            <ul class="list-group mb-4">
+                                {% for sheet in sheets %}
+                                    <li class="list-group-item">
+                                        {{ sheet }} - {{ counts.get(sheet, 0) }} records
+                                        {% if sheet %}
+                                            <span class="badge bg-success">Valid</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Ignored</span>
+                                        {% endif %}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+
+                            <div class="flash-alert alert alert-info">
+                                File validation successful. You can now upload the data.
+                            </div>
+
+                            <form method="POST" action="{{ url_for('manage_file') }}">
+                                <div class="d-grid gap-2">
+                                    <input type="hidden" name="action_type" id="upload" value="upload">
+                                    <button type="submit" name="upload" class="btn btn-success" onclick="$('#upload').val('upload')">Upload Valid Data</button>
+                                    <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Upload Result View -->
+                        <div class="view-section {% if view == 'upload_result' %}active{% endif %}">
+                            <h4>Records Processed:</h4>
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="card bg-light">
+                                        <div class="card-body">
+                                            {% if new_records %}
+                                                <h5 class="card-title">New Records Added</h5>
+                                                {% for sheet, count in new_records.items() %}
+                                                    <p class="card-text">{{ sheet }}: {{ count }}</p>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card bg-light">
+                                        <div class="card-body">
+                                            {% if duplicates %}
+                                                <h5 class="card-title">Duplicate Records Found</h5>
+                                                {% for sheet, count in duplicates.items() %}
+                                                    <p class="card-text">{{ sheet }}: {{ count }}</p>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {% if has_summary %}
+                                <div class="alert alert-warning" id="download-summary-block">
+                                    <h5>Duplicate Records Summary</h5>
+                                    <p>Some records were identified as duplicates and were not uploaded. You can download the summary file below.</p>
+                                    <a href="{{ url_for('download_summary') }}" class="btn btn-warning" id="downloadSummaryBtn">
+                                        <i class="bi bi-download"></i> Download Duplicates Summary
+                                    </a>
+                                    <div class="progress mt-2 d-none" id="downloadProgress">
+                                        <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            <div class="d-grid gap-2">
+                                <a href="{{ url_for('manage_file') }}" class="btn btn-primary">Upload Another File</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+
+{% if has_summary %}
+    <script>
+        document.getElementById('downloadSummaryBtn').addEventListener('click', function() {
+            const downloadSummaryBlock = document.getElementById('download-summary-block');
+            const progressBar = document.getElementById('downloadProgress');
+            const progressBarInner = progressBar.querySelector('.progress-bar');
+
+            let progress = 0;
+            progressBar.classList.remove('d-none');
+
+            const interval = setInterval(() => {
+                progress += 5;
+                progressBarInner.style.width = `${Math.min(progress, 90)}%`;
+                if (progress >= 90){
+                    clearInterval(interval);
+                    progressBar.classList.add('d-none');
+                    progress = 0;
+                    downloadSummaryBlock.classList.add('d-none');
+                }
+            }, 100);
+        });
+    </script>
+{% endif %}

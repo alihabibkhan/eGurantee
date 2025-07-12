@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>404 - Page not found</title>
+  <style>
+    body {
+      background-color: #1e1e1e;
+      color: #666;
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      padding-top: 10%;
+    }
+    .emoji {
+      font-size: 100px;
+    }
+    h1 {
+      font-size: 60px;
+      color: #333;
+    }
+    p {
+      font-size: 18px;
+      color: #aaa;
+    }
+    a {
+      color: #3498db;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="emoji">😞</div>
+  <h1>404</h1>
+  <p>Page not found</p>
+  <p>The page you're looking for doesn't exist or has been moved.</p>
+  <p><a href="{{ url_for('index') }}">← Go back to home</a></p>
+</body>
+</html>

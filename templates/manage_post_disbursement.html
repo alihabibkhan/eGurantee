@@ -97,7 +97,7 @@
                 <tbody>
                     {% for disbursement in result.get_all_post_disbursement_info %}
                     <tr>
-                        <td>{{disbursement['mis_date']|format_date}}</td>
+                        <td class="{{disbursement['mis_date']}}">{{disbursement['mis_date']|format_date if disbursement['mis_date']|string != '1900-01-01' else 'N/A'}}</td>
                         <td>{{disbursement['branch_code']}} - {{disbursement['branch_name']}}</td>
                         <td>{{disbursement['loan_no']}}</td>
                         <td>{{disbursement['loan_title']}}<br><small>{{disbursement['cnic']}}</small></td>
@@ -109,14 +109,14 @@
                             </span>
                         </td>
                         <td>
-                            {% if disbursement['overdue_days'] > 0 %}
+                            {% if disbursement['overdue_days']|int > 0 %}
                             <span class="text-danger">{{disbursement['overdue_days']}} days</span>
                             {% else %}
                             <span class="text-success">Current</span>
                             {% endif %}
                         </td>
                         <td class="action-btns">
-                            <button class="btn btn-sm btn-info view-btn" data-id="{{disbursement['post_disb_id']}}">
+                            <button class="btn btn-sm btn-info view-btn" data-id="{{disbursement['id']}}">
                                 <i class="fas fa-eye"></i>
                             </button>
                         </td>

@@ -63,19 +63,10 @@
                                 <input type="hidden" name="action_type" id="action_type" value="validate">
                                 <div class="mb-3">
                                     <label for="file_type" class="form-label">Select File Type</label>
-                                    <select class="form-control form-select" id="file_type" name="file_type" required>
+                                    <select class="form-control" id="file_type" name="file_type" required>
                                         <option value="" disabled selected>Select an option</option>
                                         <option value="pre_disbursement">Pre disbursement</option>
                                         <option value="post_disbursement">Post disbursement</option>
-                                    </select>
-                                </div>
-                                <div class="mb-3" id="category_div" style="display: none;">
-                                    <label for="category" class="form-label">Select Category</label>
-                                    <select class="form-control form-select" id="category" name="category" required disabled>
-                                        <option value="" disabled selected>Select an option</option>
-                                        <option value="los">LOS</option>
-                                        <option value="mis">MIS</option>
-                                        <option value="both">Both</option>
                                     </select>
                                 </div>
                                 <div class="mb-3">
@@ -91,7 +82,7 @@
 
                         <!-- Validation Result View -->
                         <div class="view-section {% if view == 'validation_result' %}active{% endif %}">
-                            <h4>Sheets Found (Category: {{ category }}):</h4>
+                            <h4>Sheets Found:</h4>
                             <ul class="list-group mb-4">
                                 {% for sheet in sheets %}
                                     <li class="list-group-item">
@@ -112,7 +103,6 @@
                             <form method="POST" action="{{ url_for('manage_file') }}">
                                 <input type="hidden" name="action_type" value="upload">
                                 <input type="hidden" name="file_type" value="{{ file_type }}">
-                                <input type="hidden" name="category" value="{{ category }}">
                                 <div class="d-grid gap-2">
                                     <button type="submit" class="btn btn-success">Upload Valid Data</button>
                                     <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
@@ -127,13 +117,11 @@
                                 <div class="col-md-6">
                                     <div class="card bg-light">
                                         <div class="card-body">
-                                            <h5 class="card-title">New Records Added</h5>
                                             {% if new_records %}
+                                                <h5 class="card-title">New Records Added</h5>
                                                 {% for sheet, count in new_records.items() %}
                                                     <p class="card-text">{{ sheet }}: {{ count }}</p>
                                                 {% endfor %}
-                                            {% else %}
-                                                <p class="card-text">0 new record(s) have been found!</p>
                                             {% endif %}
                                         </div>
                                     </div>
@@ -141,13 +129,11 @@
                                 <div class="col-md-6">
                                     <div class="card bg-light">
                                         <div class="card-body">
-                                            <h5 class="card-title">Duplicate Records Found</h5>
                                             {% if duplicates %}
+                                                <h5 class="card-title">Duplicate Records Found</h5>
                                                 {% for sheet, count in duplicates.items() %}
                                                     <p class="card-text">{{ sheet }}: {{ count }}</p>
                                                 {% endfor %}
-                                            {% else %}
-                                                <p class="card-text">0 new duplicate(s) have been found!</p>
                                             {% endif %}
                                         </div>
                                     </div>
@@ -181,69 +167,32 @@
         document.getElementById('file_type').addEventListener('change', function() {
             const fileInput = document.getElementById('file');
             const fileHelp = document.getElementById('fileHelp');
-            const categoryDiv = document.getElementById('category_div');
-            const categorySelect = document.getElementById('category');
 
             if (this.value === 'pre_disbursement') {
                 fileInput.removeAttribute('multiple');
                 fileInput.setAttribute('accept', '.xlsx');
                 fileInput.removeAttribute('disabled');
                 fileHelp.textContent = 'Select 1 file for Pre Disbursement.';
-                categoryDiv.style.display = 'none';
-                categorySelect.setAttribute('disabled', 'disabled');
-                categorySelect.value = '';
             } else if (this.value === 'post_disbursement') {
+                fileInput.setAttribute('multiple', 'multiple');
                 fileInput.setAttribute('accept', '.xlsx');
                 fileInput.removeAttribute('disabled');
-                categoryDiv.style.display = 'block';
-                categorySelect.removeAttribute('disabled');
-                fileHelp.textContent = 'Select a category first.';
+                fileHelp.textContent = 'Select exactly 1 or 2 files for Post Disbursement.';
             } else {
                 fileInput.removeAttribute('multiple');
                 fileInput.setAttribute('disabled', 'disabled');
                 fileHelp.textContent = 'Select a file type first.';
-                categoryDiv.style.display = 'none';
-                categorySelect.setAttribute('disabled', 'disabled');
-                categorySelect.value = '';
-            }
-        });
-
-        document.getElementById('category').addEventListener('change', function() {
-            const fileInput = document.getElementById('file');
-            const fileHelp = document.getElementById('fileHelp');
-
-            if (this.value === 'los' || this.value === 'mis') {
-                fileInput.removeAttribute('multiple');
-                fileHelp.textContent = `Select exactly 1 file for ${this.value.toUpperCase()}.`;
-            } else if (this.value === 'both') {
-                fileInput.setAttribute('multiple', 'multiple');
-                fileHelp.textContent = 'Select exactly 2 files for both LOS and MIS (first file LOS, second file MIS).';
-            } else {
-                fileInput.removeAttribute('multiple');
-                fileInput.setAttribute('disabled', 'disabled');
-                fileHelp.textContent = 'Select a category first.';
             }
         });
 
         document.getElementById('file').addEventListener('change', function() {
             const fileType = document.getElementById('file_type').value;
-            const category = document.getElementById('category').value;
             const fileInput = this;
 
-            if (fileType === 'post_disbursement') {
-                if (category === 'los' || category === 'mis') {
-                    if (fileInput.files.length !== 1) {
-                        alert(`You must upload exactly 1 file for ${category.toUpperCase()}.`);
-                        fileInput.value = '';
-                        return;
-                    }
-                } else if (category === 'both') {
-                    if (fileInput.files.length !== 2) {
-                        alert('You must upload exactly 2 files for both LOS and MIS.');
-                        fileInput.value = '';
-                        return;
-                    }
-                }
+            if (fileType === 'post_disbursement' && (fileInput.files.length !== 1 && fileInput.files.length !== 2)) {
+                alert('You must upload exactly 1 or 2 files for Post Disbursement.');
+                fileInput.value = '';
+                return;
             } else if (fileType === 'pre_disbursement' && fileInput.files.length > 1) {
                 alert('You can only upload 1 file for Pre Disbursement.');
                 fileInput.value = '';
@@ -255,30 +204,13 @@
 
         document.getElementById('uploadForm').addEventListener('submit', function(e) {
             const fileType = document.getElementById('file_type').value;
-            const category = document.getElementById('category').value;
             const fileInput = document.getElementById('file');
 
-            if (fileType === 'post_disbursement') {
-                if (!category) {
-                    e.preventDefault();
-                    alert('Please select a category.');
-                    return;
-                }
-                if (category === 'los' || category === 'mis') {
-                    if (fileInput.files.length !== 1) {
-                        e.preventDefault();
-                        alert(`You must upload exactly 1 file for ${category.toUpperCase()}.`);
-                        fileInput.value = '';
-                        return;
-                    }
-                } else if (category == 'both') {
-                    if (fileInput.files.length !== 2) {
-                        e.preventDefault();
-                        alert('You must upload exactly 2 files for both LOS and MIS.');
-                        fileInput.value = '';
-                        return;
-                    }
-                }
+            if (fileType === 'post_disbursement' && (fileInput.files.length !== 1 && fileInput.files.length !== 2)) {
+                e.preventDefault();
+                alert('You must upload exactly 1 or 2 files for Post Disbursement.');
+                fileInput.value = '';
+                return;
             } else if (fileType === 'pre_disbursement' && fileInput.files.length > 1) {
                 e.preventDefault();
                 alert('You can only upload 1 file for Pre Disbursement.');

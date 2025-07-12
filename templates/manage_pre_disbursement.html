@@ -137,8 +137,8 @@
                                 <th scope="col">Borrower Name</th>
                                 <th scope="col">Loan Amount</th>
                                 <th scope="col">Application Date</th>
-                                <th scope="col">Uploaded By</th>
-                                <th scope="col">Uploaded Date</th>
+                                <th scope="col">Approved By</th>
+                                <th scope="col">Approved Date</th>
                                 <th scope="col">Status</th>
                                 <th scope="col">Action</th>
                             </tr>
@@ -184,7 +184,9 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button id="send-email-btn" class="btn btn-success" style="display: none;" onclick="showEmailModal()">Send Email</button>
+                        {% if result.is_user_have_sign %}
+                            <button id="send-email-btn" class="btn btn-success" style="display: none;" onclick="showEmailModal()">Send Email</button>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -285,8 +287,15 @@
         function formatDate(dateStr) {
             if (!dateStr) return 'N/A';
             const date = new Date(dateStr);
-            return isNaN(date) ? dateStr : date.toLocaleDateString();
+
+            // Check for invalid date or default placeholder date
+            if (isNaN(date) || date.toLocaleDateString() === '1/1/1900') {
+                return 'N/A';
+            }
+
+            return date.toLocaleDateString();
         }
+
 
         // Apply filters
         function applyFilters() {
@@ -340,8 +349,8 @@
                     <td>${record['Borrower_Name'] || 'N/A'}</td>
                     <td>${record['Loan_Amount'] || 'N/A'}</td>
                     <td>${formatDate(record.ApplicationDate)}</td>
-                    <td>${record.uploaded_by || 'N/A'}</td>
-                    <td>${formatDate(record.uploaded_date)}</td>
+                    <td>${record.approved_by || 'N/A'}</td>
+                    <td>${formatDate(record.approved_date)}</td>
                     <td>${statusText}</td>
                     <td>
                         <button class="btn btn-sm btn-primary" onclick="viewRecord(${start + index})">View</button>

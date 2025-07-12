@@ -75,8 +75,8 @@
         <div class="d-flex align-items-center">
             <img src="/static/images/profile_icon.png" alt="Avatar">
           <div class="info">
-            <h5>{{ user.name }}</h5>
-            <small>{{ user.email }}</small>
+            <h5>{{ result.user.name }}</h5>
+            <small>{{ result.user.email }}</small>
           </div>
         </div>
         <button type="button" class="btn-close d-none" aria-label="Close"></button>
@@ -86,13 +86,13 @@
         <div class="profile-section">
           <div class="profile-label">Name</div>
           <div class="profile-value">
-            <input type="text" class="form-control" name="name" value="{{ user.name }}" required>
+            <input type="text" class="form-control" name="name" value="{{ result.user.name }}" required>
           </div>
         </div>
 
         <div class="profile-section">
           <div class="profile-label">Email</div>
-          <div class="profile-value">{{ user.email }}</div>
+          <div class="profile-value">{{ result.user.email }}</div>
         </div>
 
         <div class="profile-section">
@@ -102,18 +102,19 @@
           </div>
         </div>
 
-        <div class="profile-section">
-          <div class="profile-label">Signature Image</div>
-          <div class="profile-value">
-            <input type="file" class="form-control" name="image" accept="image/*">
-            {% if image_base64 %}
-              <div class="image-preview">
-                <img src="data:image/jpeg;base64,{{ image_base64 }}" alt="Current Profile Image">
-              </div>
-            {% endif %}
+        {% if result.is_user_have_sign %}
+          <div class="profile-section">
+            <div class="profile-label">Signature Image</div>
+            <div class="profile-value">
+              <input type="file" class="form-control" name="image" accept="image/*">
+              {% if result.image_base64 %}
+                <div class="image-preview">
+                  <img src="data:image/jpeg;base64,{{ result.image_base64 }}" alt="Current Profile Image">
+                </div>
+              {% endif %}
+            </div>
           </div>
-        </div>
-
+        {% endif %}
         <div class="mt-4 text-end">
           <button type="submit" class="btn btn-save">Save Changes</button>
         </div>

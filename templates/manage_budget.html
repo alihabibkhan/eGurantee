@@ -44,10 +44,9 @@
                         <thead class="table-light">
                             <tr>
                                 <th scope="col">MIS Date</th>
-                                <th scope="col">Branch Code</th>
+                                <th scope="col">Role</th>
+                                <th scope="col">Branch Name</th>
                                 <th scope="col">Amount</th>
-                                <th scope="col">Created By</th>
-                                <th scope="col">Created Date</th>
                             </tr>
                         </thead>
                         <tbody id="budget-table-body"></tbody>
@@ -93,10 +92,9 @@
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${formatDate(record.mis_date)}</td>
-                    <td>${record.branch_code || 'N/A'}</td>
-                    <td>${record.amount || 'N/A'}</td>
-                    <td>${record.createdby || 'N/A'}</td>
-                    <td>${formatDate(record.created_date)}</td>
+                    <td>${record.role || 'N/A'}</td>
+                    <td>${record.branch_name || 'N/A'}</td>
+                    <td>${record.amt || 'N/A'}</td>
                 `;
                 tbody.appendChild(row);
             });

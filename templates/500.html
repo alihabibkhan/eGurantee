@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>500 - Internal Server Error</title>
+  <style>
+    body {
+      background-color: #1e1e1e;
+      color: #ccc;
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      padding-top: 10%;
+    }
+    .emoji {
+      font-size: 100px;
+    }
+    h1 {
+      font-size: 60px;
+      color: #e74c3c;
+    }
+    p {
+      font-size: 18px;
+      color: #aaa;
+    }
+    a {
+      color: #3498db;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="emoji">💥</div>
+  <h1>500</h1>
+  <p>Internal Server Error</p>
+  <p>Something went wrong on our end. We're working on it!</p>
+  <p><a href="{{ url_for('index') }}">← Return to Home</a></p>
+</body>
+</html>
