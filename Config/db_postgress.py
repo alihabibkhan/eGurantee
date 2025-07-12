@@ -2,9 +2,10 @@ import psycopg2
 from psycopg2 import Error
 import time
 from typing import List, Dict, Optional
+import traceback
 import os
 
-POSTGRES_CONNECTION = os.getenv('POSTGRES_CONNECTION')
+POSTGRES_CONNECTION = "postgresql://egurantee_db_user:Z22iIvStQMvSetOU25xOQp3kH6eiFsV5@dpg-d1ll9kmr433s73ds2mjg-a.oregon-postgres.render.com/egurantee_db?sslmode=require" #os.getenv('POSTGRES_CONNECTION')
 
 
 def db_connection():
@@ -87,6 +88,47 @@ def fetch_records(query: str, is_print: bool = False) -> List[Dict]:
                 print(f"Connection closed at {time.strftime('%Y-%m-%d %H:%M:%S')}")
 
 
+# def execute_command(query: str, is_print: bool = False) -> Optional[int]:
+#     connection = None
+#     cursor = None
+#     last_insert_id = None
+#
+#     try:
+#         if is_print:
+#             print(f"Connection start at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+#             print(query)
+#
+#         connection = db_connection()
+#         cursor = connection.cursor()
+#
+#         cursor.execute(query)
+#         connection.commit()
+#
+#         # Try to get the last inserted ID if the query was an INSERT
+#         if query.strip().lower().startswith('insert'):
+#             cursor.execute("SELECT LASTVAL()")
+#             last_insert_id = cursor.fetchone()[0]
+#
+#         if is_print:
+#             print(f"Query execution completed at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+#
+#         return last_insert_id
+#
+#     except (Exception, Error) as error:
+#         print(f"Error while executing command: {error}")
+#         if connection:
+#             connection.rollback()
+#         return None
+#
+#     finally:
+#         if cursor:
+#             cursor.close()
+#         if connection:
+#             connection.close()
+#             if is_print:
+#                 print(f"Connection closed at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+
+
 def execute_command(query: str, is_print: bool = False) -> Optional[int]:
     connection = None
     cursor = None
@@ -95,6 +137,7 @@ def execute_command(query: str, is_print: bool = False) -> Optional[int]:
     try:
         if is_print:
             print(f"Connection start at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+            print("Executing query:")
             print(query)
 
         connection = db_connection()
@@ -103,7 +146,6 @@ def execute_command(query: str, is_print: bool = False) -> Optional[int]:
         cursor.execute(query)
         connection.commit()
 
-        # Try to get the last inserted ID if the query was an INSERT
         if query.strip().lower().startswith('insert'):
             cursor.execute("SELECT LASTVAL()")
             last_insert_id = cursor.fetchone()[0]
@@ -114,7 +156,17 @@ def execute_command(query: str, is_print: bool = False) -> Optional[int]:
         return last_insert_id
 
     except (Exception, Error) as error:
-        print(f"Error while executing command: {error}")
+        print("❌ Error while executing SQL command.")
+        print(f"  ➤ Error Message: {error}")
+        print("  ➤ Traceback:")
+        traceback.print_exc()
+
+        # Try to parse query for potential issue hint
+        print("  ➤ Query snippet for inspection:")
+        query_lines = query.strip().split(',')
+        for i, line in enumerate(query_lines):
+            print(f"    [{i+1}] {line.strip()}")
+
         if connection:
             connection.rollback()
         return None
