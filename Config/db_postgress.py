@@ -5,7 +5,7 @@ from typing import List, Dict, Optional
 import traceback
 import os
 
-POSTGRES_CONNECTION = "postgresql://egurantee_db_user:Z22iIvStQMvSetOU25xOQp3kH6eiFsV5@dpg-d1ll9kmr433s73ds2mjg-a.oregon-postgres.render.com/egurantee_db?sslmode=require" #os.getenv('POSTGRES_CONNECTION')
+POSTGRES_CONNECTION = os.getenv('POSTGRES_CONNECTION')
 
 
 def db_connection():
