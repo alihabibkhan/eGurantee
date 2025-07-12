@@ -563,6 +563,7 @@ def process_upload():
                             )
                         """
                         print(f"process_upload: Executing INSERT query for pre_disbursement, application_no={rec['application_no']}")
+                        execute_command(query, is_print=False)
                     else:
                         if rec['loan_no'].replace("'", '') not in ['', 'NaN', 'None']:
                             query = f"""
