@@ -1,6 +1,11 @@
 $(document).on('submit', 'form', function (e) {
     const $form = $(this);
-    const $submitBtn = $form.find('button[type="submit"]:focus');
+    let $submitBtn = $form.find('button[type="submit"]:focus');
+
+    // If no focused button (e.g. Enter key pressed), get the first submit button
+    if (!$submitBtn.length) {
+        $submitBtn = $form.find('button[type="submit"]').first();
+    }
 
     if ($submitBtn.length) {
         $submitBtn
