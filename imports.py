@@ -3,6 +3,7 @@ from flask import Flask, render_template, request, session, flash, redirect, url
 from xhtml2pdf import pisa
 from io import BytesIO
 from datetime import datetime, timedelta, date
+from dateutil.parser import parse
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import os

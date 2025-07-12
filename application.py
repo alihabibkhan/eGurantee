@@ -28,6 +28,7 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in application.config['ALLOWED_EXTENSIONS']
 
 
+# --- Custom Filters ---
 @application.template_filter('format_currency')
 def format_currency(value):
     if value is None:
@@ -42,8 +43,21 @@ def format_date(value):
     return value.strftime('%d-%b-%Y')
 
 
+# --- Custom Error Handlers ---
+@application.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
+
+
+@application.errorhandler(500)
+def internal_server_error(e):
+    return render_template('500.html'), 500
+
+
 @application.route('/')
+@application.route('/Index')
 @application.route('/index')
+@application.route('/Dashboard')
 @application.route('/dashboard')
 def index():
     try:
@@ -65,4 +79,4 @@ from App_File_Uploading_Validation import *
 from App_Email import *
 
 if __name__ == '__main__':
-    application.run(debug=True)
+    application.run(debug=True, port=8080)

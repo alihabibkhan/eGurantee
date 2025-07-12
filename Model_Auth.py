@@ -1,6 +1,22 @@
 from imports import *
 
 
+def get_all_user_data():
+    query = f"""
+        select u.user_id, u."name", u.email, u."role",
+        u.signature
+        from tbl_users u
+        where u.user_id = '{str(get_current_user_id())}'
+    """
+
+    result = fetch_records(query)
+
+    if result:
+        return result[0]
+
+    return None
+
+
 def set_user_session(user_data):
     """
     Set user session data after successful login
@@ -53,8 +69,24 @@ def get_current_user_id():
         return str(session['user_id'])
     return '-1'
 
+
 def get_current_user_role():
     if session['role']:
         return str(session['role'])
 
     return '-1'
+
+
+def is_user_have_sign():
+    user_data = get_all_user_data()
+    print('user_data')
+    print(user_data)
+
+    if user_data:
+        have_signature = True if str(user_data.get('signature')) == '1' else False
+        print('have_signature:- ', have_signature)
+
+        if have_signature:
+            return True
+
+    return False

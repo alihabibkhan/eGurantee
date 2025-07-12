@@ -8,12 +8,12 @@ def get_all_post_disbursement_info_by_id(id):
         sql_part = f"""
                 INNER JOIN tbl_branches b ON b.branch_code = p.branch_code AND b.live_branch = '1'
                 INNER JOIN tbl_users u ON u.role = b.role
-                WHERE u.role = '{str(get_current_user_role())}' AND p.post_disb_id = '{str(id)}'
+                WHERE u.role = '{str(get_current_user_role())}' AND p.id = '{str(id)}'
             """
 
     query = f"""
         SELECT 
-            p.post_disb_id,
+            p.id,
             p.mis_date,
             p.area,
             p.branch_code,
@@ -37,7 +37,7 @@ def get_all_post_disbursement_info_by_id(id):
             p.collateral_title
         FROM tbl_post_disbursement p
         WHERE
-        p.post_disb_id = '{str(id)}'
+        p.id = '{str(id)}'
     """
 
     result = fetch_records(query)
@@ -58,7 +58,7 @@ def get_all_post_disbursement_info():
 
     query = f"""
         SELECT 
-            p.post_disb_id,
+            p.id,
             p.mis_date,
             p.area,
             p.branch_code,
@@ -81,7 +81,7 @@ def get_all_post_disbursement_info():
             p.loan_closed_on,
             p.collateral_title
         FROM tbl_post_disbursement p
-        {sql_part if get_current_user_id() != 'ADMIN' else f'WHERE p.post_disb_id = "{str(id)}" '}
+        {sql_part if get_current_user_id() != 'ADMIN' else f'WHERE p.id = "{str(id)}" '}
     """
     print(query)
 

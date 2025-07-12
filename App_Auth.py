@@ -102,12 +102,19 @@ def profile():
             if user['scan_sign']:
                 image_base64 = base64.b64encode(user['scan_sign']).decode('utf-8')
 
-            return render_template('profile.html', user=user, image_base64=image_base64)
+            content = {
+                'is_user_have_sign': is_user_have_sign(),
+                'user': user,
+                'image_base64': image_base64,
+            }
+
+            return render_template('profile.html', result=content)
     except Exception as e:
         print('profile page exception:- ', str(e))
     return redirect(url_for('login'))
 
 
+@application.route('/Logout')
 @application.route('/logout')
 def logout():
     clear_user_session()

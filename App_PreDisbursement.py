@@ -7,7 +7,8 @@ def manage_pre_disbursement():
     try:
         if is_login():
             content = {
-                'get_temp_pre_disbursement': get_all_pre_disbursement_temp()
+                'get_temp_pre_disbursement': get_all_pre_disbursement_temp(),
+                'is_user_have_sign': is_user_have_sign()
             }
             return render_template('manage_pre_disbursement.html', result=content)
     except Exception as e:

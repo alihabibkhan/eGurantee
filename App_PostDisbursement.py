@@ -6,9 +6,11 @@ from application import application
 def manage_post_disbursement():
     try:
         if is_login():
+            # print('record fetch post disbursement:- ', len(get_all_post_disbursement_info()))
             content = {'get_all_post_disbursement_info': get_all_post_disbursement_info()}
             return render_template('manage_post_disbursement.html', result=content)
     except Exception as e:
+        print(e)
         print('manage post disbursement exception:- ', str(e.__dict__))
     return redirect(url_for('login'))
 

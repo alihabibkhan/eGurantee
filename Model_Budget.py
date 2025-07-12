@@ -11,3 +11,16 @@ def get_all_budget_info():
     result = fetch_records(query)
     # print(result)
     return result
+
+
+def get_all_budget_info_grouped_by_branch():
+    query = """
+        select b.mis_date ,z."role", Z.branch_name , sum(b.amount) AMT
+        from public.tbl_budget b 
+        inner join public.tbl_branches z on b.branch_code = z.branch_code
+        group by b.mis_date ,z."role",  Z.branch_name
+        order by 1 ASC
+    """
+    result = fetch_records(query)
+    # print(result)
+    return result
