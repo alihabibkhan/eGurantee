@@ -65,8 +65,11 @@ def handle_validation(file_type):
             return redirect(url_for('manage_file'))
 
     saved_files = []
+
     all_sheets = []
     all_counts = {}
+    sheet_info_list = []
+
     has_pre = False
     has_post = False
     print("handle_validation: Initialized variables for file processing")
@@ -103,6 +106,18 @@ def handle_validation(file_type):
         print(f"handle_validation: Extended all_sheets with {result['sheets_available']}")
         all_counts.update(result['record_counts'])
         print(f"handle_validation: Updated all_counts with {result['record_counts']}")
+
+        print('===========')
+        print('all_sheets:- ', all_sheets)
+        print('all_counts:- ', all_counts)
+        print('===========')
+
+        if result['sheet_info_list']:
+            sheet_info_list.extend(result['sheet_info_list'])
+
+        print('sheet_info_list:- ', sheet_info_list)
+        print('===========')
+
         has_pre = has_pre or result['has_pre']
         print(f"handle_validation: has_pre={has_pre}")
         has_post = has_post or result['has_post']
@@ -121,6 +136,7 @@ def handle_validation(file_type):
     print(f"handle_validation: Rendering upload.html with view='validation_result', files={len(saved_files)}")
     return render_template('upload.html',
                            view='validation_result',
+                           sheet_info_list=sheet_info_list,
                            filename=', '.join([os.path.basename(f) for f in saved_files]),
                            sheets=all_sheets,
                            counts=all_counts,
@@ -197,34 +213,61 @@ def validate_excel(filepath, file_type, category=None, file_idx=0):
         sheets = [o for o in sheets if o != 'GVMetadata']
         print(f"validate_excel: Filtered sheets (excluding GVMetadata): {sheets}")
         record_counts = {}
+        sheet_info_list = []
         has_pre = file_type == 'pre_disbursement'
         has_post = file_type == 'post_disbursement'
         print(f"validate_excel: has_pre={has_pre}, has_post={has_post}")
 
+        import uuid  # Move this to top of your Python file
+
         for sheet_name in sheets:
             print(f"validate_excel: Processing sheet '{sheet_name}'")
-            df = pd.read_excel(xls, sheet_name=sheet_name, dtype={'Branch Code': str, 'Application_No': str, 'loan_number': str, 'loanno': str}).fillna('')
+
+            df = pd.read_excel(
+                xls,
+                sheet_name=sheet_name,
+                dtype={
+                    'Branch Code': str,
+                    'Application_No': str,
+                    'loan_number': str,
+                    'loanno': str
+                }
+            ).fillna('')
+
             print(f"validate_excel: Loaded DataFrame for sheet '{sheet_name}' with {len(df)} rows")
+
             if df.columns.duplicated().any():
-                print(f"validate_excel: Found duplicate columns in sheet '{sheet_name}': {df.columns[df.columns.duplicated()].tolist()}")
-                return False, f"Duplicate column names found in sheet {sheet_name}: {df.columns[df.columns.duplicated()].tolist()}"
+                duplicates = df.columns[df.columns.duplicated()].tolist()
+                print(f"validate_excel: Found duplicate columns in sheet '{sheet_name}': {duplicates}")
+                return False, f"Duplicate column names found in sheet {sheet_name}: {duplicates}"
 
             missing_headers = [h for h in expected_headers if h not in df.columns]
             print(f"validate_excel: Missing headers in sheet '{sheet_name}': {missing_headers}")
+
             if missing_headers:
-                # flash(f"Sheet '{sheet_name}' is missing headers: {', '.join(missing_headers)}. Adding as blanks.", 'warning')
                 print(f"validate_excel: Adding missing headers as blanks: {missing_headers}")
                 for col in missing_headers:
                     df[col] = ''
                     print(f"validate_excel: Added column '{col}' with empty strings")
 
-            record_counts[sheet_name] = len(df)
-            print(f"validate_excel: Recorded {record_counts[sheet_name]} rows for sheet '{sheet_name}'")
+            unique_id = uuid.uuid4().hex
+            row_count = len(df)
+
+            record_counts[f"{sheet_name}_{unique_id}"] = row_count
+
+            sheet_info_list.append({
+                'sheet_name': sheet_name,
+                'uuid': unique_id,
+                'record_count': row_count
+            })
+
+            print(f"validate_excel: Recorded {row_count} rows for sheet '{sheet_name}' with UUID '{unique_id}'")
 
         print("validate_excel: Validation completed successfully")
         return True, {
             'sheets_available': sheets,
             'record_counts': record_counts,
+            'sheet_info_list': sheet_info_list,
             'has_pre': has_pre,
             'has_post': has_post
         }
@@ -406,7 +449,7 @@ def process_upload():
             for sheet_name in sheet_names:
                 print(f"process_upload: Processing sheet '{sheet_name}'")
                 df = pd.read_excel(filepath, sheet_name=sheet_name,
-                                   dtype={'Branch Code': str, 'Application_No': str, 'loan_number': str, 'loanno': str}).fillna('')
+                                   dtype=str).fillna('')
                 print(f"process_upload: Loaded DataFrame for sheet '{sheet_name}' with {len(df)} rows")
                 df.columns = [col.strip().lower().replace('/', '_').replace(' ', '_') for col in df.columns]
                 print(f"process_upload: Normalized column names: {list(df.columns)}")
@@ -523,82 +566,188 @@ def process_upload():
                         df[col] = df[col].apply(parse_excel_date)
                         print(f"process_upload: Parsed dates for column '{col}'")
 
+                # for rec in df.to_dict('records'):
+                #     print(f"process_upload: Processing record in DataFrame '{df_key}'")
+                #     if file_type == 'pre_disbursement' and str(rec['application_no']) not in ['', 'NaN', 'None']:
+                #         query = f"""
+                #             INSERT INTO tbl_pre_disbursement_temp (
+                #                 "Application_No", "Annual_Business_Incomes", "Annual_Disposable_Income",
+                #                 "Annual_Expenses", "ApplicationDate", "Bcc_Approval_Date", "Borrower_Name",
+                #                 "Branch_Area", "Branch_Name", "Business_Expense_Description",
+                #                 "Business_Experiense_Since", "Business_Premises", "CNIC", "Collage_Univeristy",
+                #                 "Collateral_Type", "Contact_No", "Credit_History_Ecib", "Current_Residencial",
+                #                 "Dbr", "Education_Level", "Enrollment_Status", "Enterprise_Premises",
+                #                 "Existing_Loan_Number", "Existing_Loan_Limit", "Existing_Loan_Status",
+                #                 "Existing_Outstanding_Loan_Schedules", "Experiense_Start_Date",
+                #                 "Family_Monthly_Income", "Father_Husband_Name", "Gender", "KF_Remarks",
+                #                 "Loan_Amount", "Loan_Cycle", "LoanProductCode", "Loan_Status",
+                #                 "Monthly_Repayment_Capacity", "Nature_Of_Business", "No_Of_Family_Members",
+                #                 "Permanent_Residencial", "Premises", "Purpose_Of_Loan", "Requested_Loan_Amount",
+                #                 "Residance_Type", "Student_Name", "Student_Co_Borrower_Gender",
+                #                 "Student_Relation_With_Borrower", "Tenor_Of_Month", "Type_of_Business",
+                #                 "annual_income", "status", "uploaded_by", "uploaded_date"
+                #             ) VALUES (
+                #                 '{rec['application_no']}', '{rec['annual_business_incomes']}', '{rec['annual_disposable_income']}',
+                #                 '{rec['annual_expenses']}', '{rec['applicationdate']}', '{rec['bcc_approval_date']}',
+                #                 '{rec['borrower_name']}', '{rec['branch_area']}', '{rec['branch_name']}',
+                #                 '{rec['business_expense_description']}', '{rec['business_experiense_(since)']}',
+                #                 '{rec['business_premises']}', '{rec['cnic']}', '{rec['collage_univeristy']}', '{rec['collateral_type']}',
+                #                 '{rec['contact_no']}', '{rec['credit_history_ecib']}', '{rec['current_residencial']}', '{rec['dbr']}',
+                #                 '{rec['education_level']}', '{rec['enrollment_status']}', '{rec['enterprise_premises']}', '{rec['existing_loan_number']}',
+                #                 '{rec['existing_loan_limit']}', '{rec['existing_loan_status']}', '{rec['existing_outstanding_loan_schedules']}',
+                #                 '{rec['experiense_start_date']}', '{rec['family_monthly_income']}', '{rec['father_husband_name']}',
+                #                 '{rec['gender']}', '{rec['kf_remarks']}', '{rec['loan_amount']}', '{rec['loan_cycle']}',
+                #                 '{rec['loanproductcode']}', '{rec['loan_status']}', '{rec['monthly_repayment_capacity']}',
+                #                 '{rec['nature_of_business']}', '{rec['no_of_family_members']}', '{rec['permanent_residencial']}',
+                #                 '{rec['premises']}', '{rec['purpose_of_loan']}', '{rec['requested_loan_amount']}',
+                #                 '{rec['residance_type']}', '{rec['student_name']}', '{rec['student_co_borrower_gender']}',
+                #                 '{rec['student_relation_with_borrower']}', '{rec['tenor_of_month']}', '{rec['type_of_business']}',
+                #                 '{rec['annual_income']}', '1', '{str(get_current_user_id())}', '{str(datetime.now())}'
+                #             )
+                #         """
+                #         print(f"process_upload: Executing INSERT query for pre_disbursement, application_no={rec['application_no']}")
+                #         execute_command(query, is_print=False)
+                #     else:
+                #         if rec['loan_no'].replace("'", '') not in ['', 'NaN', 'None']:
+                #             query = f"""
+                #                         INSERT INTO tbl_post_disbursement (
+                #                             mis_date, area, sector_code, branch_code, branch_name, cnic, gender,
+                #                             address, mobile_no, loan_title, rt, loan_no, product_code, booked_on,
+                #                             disbursed_amount, repayment_type, sector, purpose, loan_status, loan_closed_on,
+                #                             act_clo, colloanno, coll_id, lrno, collat, coll_stat, collateral_value,
+                #                             collateral_title, overdue_days, principal_outstanding, total_outstand_other,
+                #                             markup_outstanding, lo, fc_los, dtf, dtt, customer_id, application_num,
+                #                             clo_on, liab_id, pool_id, account_number, created_by, created_date
+                #                         ) VALUES (
+                #                             '{rec.get('mis_date', '1900-01-01')}', '{rec.get('area', '')}', '{rec.get('sector_code', '')}',
+                #                             '{rec.get('branch_code', '')}', '{rec.get('branch_name', '')}', '{rec.get('cnic', '')}',
+                #                             '{rec.get('gender', '')}', '{rec.get('address', '')}', '{rec.get('mobile_no', '')}',
+                #                             '{rec.get('loan_title', '')}', '{rec.get('rt', '')}', '{rec.get('loan_no', '')}',
+                #                             '{rec.get('product_code', '')}', '{rec.get('booked_on', '1900-01-01')}',
+                #                             '{rec.get('disbursed_amount', '')}', '{rec.get('repayment_type', '')}',
+                #                             '{rec.get('sector', '')}', '{rec.get('purpose', '')}', '{rec.get('loan_status', '')}',
+                #                             '{rec.get('loan_closed_on', '1900-01-01')}', '{rec.get('act_clo', '')}',
+                #                             '{rec.get('colloanno', '')}', '{rec.get('coll_id', '')}', '{rec.get('lrno', '')}',
+                #                             '{rec.get('collat', '')}', '{rec.get('coll_stat', '')}', '{rec.get('collateral_value', '')}',
+                #                             '{rec.get('collateral_title', '')}', '{rec.get('overdue_days', '')}',
+                #                             '{rec.get('principal_outstanding', '')}', '{rec.get('total_outstand_other', '')}',
+                #                             '{rec.get('markup_outstanding', '')}', '{rec.get('lo', '')}', '{rec.get('fc_los', '')}',
+                #                             '{rec.get('dtf', '')}', '{rec.get('dtt', '')}', '{rec.get('customer_id', '')}',
+                #                             '{rec.get('application_num', '')}', '{rec.get('clo_on', '1900-01-01')}',
+                #                             '{rec.get('liab_id', '')}', '{rec.get('pool_id', '')}', '{rec.get('account_number', '')}',
+                #                             '{str(get_current_user_id())}', '{str(datetime.now())}'
+                #                         )
+                #                     """
+                #             print(
+                #                 f"process_upload: Executing INSERT query for {'pre_disbursement' if file_type == 'pre_disbursement' else 'post_disbursement'}, {'application_no' if file_type == 'pre_disbursement' else 'loan_no'}={rec.get('application_no' if file_type == 'pre_disbursement' else 'loan_no', '')}")
+                #             execute_command(query, is_print=False)
+                #             print("process_upload: Executed INSERT query")
+                pre_disbursement_queries = []
+                post_disbursement_queries = []
                 for rec in df.to_dict('records'):
                     print(f"process_upload: Processing record in DataFrame '{df_key}'")
                     if file_type == 'pre_disbursement' and str(rec['application_no']) not in ['', 'NaN', 'None']:
                         query = f"""
-                            INSERT INTO tbl_pre_disbursement_temp (
-                                "Application_No", "Annual_Business_Incomes", "Annual_Disposable_Income",
-                                "Annual_Expenses", "ApplicationDate", "Bcc_Approval_Date", "Borrower_Name", 
-                                "Branch_Area", "Branch_Name", "Business_Expense_Description", 
-                                "Business_Experiense_Since", "Business_Premises", "CNIC", "Collage_Univeristy",
-                                "Collateral_Type", "Contact_No", "Credit_History_Ecib", "Current_Residencial",
-                                "Dbr", "Education_Level", "Enrollment_Status", "Enterprise_Premises",
-                                "Existing_Loan_Number", "Existing_Loan_Limit", "Existing_Loan_Status",
-                                "Existing_Outstanding_Loan_Schedules", "Experiense_Start_Date",
-                                "Family_Monthly_Income", "Father_Husband_Name", "Gender", "KF_Remarks",
-                                "Loan_Amount", "Loan_Cycle", "LoanProductCode", "Loan_Status",
-                                "Monthly_Repayment_Capacity", "Nature_Of_Business", "No_Of_Family_Members",
-                                "Permanent_Residencial", "Premises", "Purpose_Of_Loan", "Requested_Loan_Amount",
-                                "Residance_Type", "Student_Name", "Student_Co_Borrower_Gender", 
-                                "Student_Relation_With_Borrower", "Tenor_Of_Month", "Type_of_Business",
-                                "annual_income", "status", "uploaded_by", "uploaded_date"
-                            ) VALUES (
-                                '{rec['application_no']}', '{rec['annual_business_incomes']}', '{rec['annual_disposable_income']}',
-                                '{rec['annual_expenses']}', '{rec['applicationdate']}', '{rec['bcc_approval_date']}', 
-                                '{rec['borrower_name']}', '{rec['branch_area']}', '{rec['branch_name']}', 
-                                '{rec['business_expense_description']}', '{rec['business_experiense_(since)']}',
-                                '{rec['business_premises']}', '{rec['cnic']}', '{rec['collage_univeristy']}', '{rec['collateral_type']}',
-                                '{rec['contact_no']}', '{rec['credit_history_ecib']}', '{rec['current_residencial']}', '{rec['dbr']}',
-                                '{rec['education_level']}', '{rec['enrollment_status']}', '{rec['enterprise_premises']}', '{rec['existing_loan_number']}',
-                                '{rec['existing_loan_limit']}', '{rec['existing_loan_status']}', '{rec['existing_outstanding_loan_schedules']}', 
-                                '{rec['experiense_start_date']}', '{rec['family_monthly_income']}', '{rec['father_husband_name']}',
-                                '{rec['gender']}', '{rec['kf_remarks']}', '{rec['loan_amount']}', '{rec['loan_cycle']}',
-                                '{rec['loanproductcode']}', '{rec['loan_status']}', '{rec['monthly_repayment_capacity']}', 
-                                '{rec['nature_of_business']}', '{rec['no_of_family_members']}', '{rec['permanent_residencial']}',
-                                '{rec['premises']}', '{rec['purpose_of_loan']}', '{rec['requested_loan_amount']}',
-                                '{rec['residance_type']}', '{rec['student_name']}', '{rec['student_co_borrower_gender']}',
-                                '{rec['student_relation_with_borrower']}', '{rec['tenor_of_month']}', '{rec['type_of_business']}',
-                                '{rec['annual_income']}', '1', '{str(get_current_user_id())}', '{str(datetime.now())}'
-                            )
-                        """
-                        print(f"process_upload: Executing INSERT query for pre_disbursement, application_no={rec['application_no']}")
-                        execute_command(query, is_print=False)
+                                INSERT INTO tbl_pre_disbursement_temp (
+                                    "Application_No", "Annual_Business_Incomes", "Annual_Disposable_Income",
+                                    "Annual_Expenses", "ApplicationDate", "Bcc_Approval_Date", "Borrower_Name", 
+                                    "Branch_Area", "Branch_Name", "Business_Expense_Description", 
+                                    "Business_Experiense_Since", "Business_Premises", "CNIC", "Collage_Univeristy",
+                                    "Collateral_Type", "Contact_No", "Credit_History_Ecib", "Current_Residencial",
+                                    "Dbr", "Education_Level", "Enrollment_Status", "Enterprise_Premises",
+                                    "Existing_Loan_Number", "Existing_Loan_Limit", "Existing_Loan_Status",
+                                    "Existing_Outstanding_Loan_Schedules", "Experiense_Start_Date",
+                                    "Family_Monthly_Income", "Father_Husband_Name", "Gender", "KF_Remarks",
+                                    "Loan_Amount", "Loan_Cycle", "LoanProductCode", "Loan_Status",
+                                    "Monthly_Repayment_Capacity", "Nature_Of_Business", "No_Of_Family_Members",
+                                    "Permanent_Residencial", "Premises", "Purpose_Of_Loan", "Requested_Loan_Amount",
+                                    "Residance_Type", "Student_Name", "Student_Co_Borrower_Gender", 
+                                    "Student_Relation_With_Borrower", "Tenor_Of_Month", "Type_of_Business",
+                                    "annual_income", "status", "uploaded_by", "uploaded_date"
+                                ) VALUES (
+                                    '{rec.get('application_no', '')}', '{rec.get('annual_business_incomes', '')}', '{rec.get('annual_disposable_income', '')}',
+                                    '{rec.get('annual_expenses', '')}', '{rec.get('applicationdate', '')}', '{rec.get('bcc_approval_date', '')}', 
+                                    '{rec.get('borrower_name', '')}', '{rec.get('branch_area', '')}', '{rec.get('branch_name', '')}', 
+                                    '{rec.get('business_expense_description', '')}', '{rec.get('business_experiense_(since)', '')}',
+                                    '{rec.get('business_premises', '')}', '{rec.get('cnic', '')}', '{rec.get('collage_univeristy', '')}', 
+                                    '{rec.get('collateral_type', '')}', '{rec.get('contact_no', '')}', '{rec.get('credit_history_ecib', '')}', 
+                                    '{rec.get('current_residencial', '')}', '{rec.get('dbr', '')}', '{rec.get('education_level', '')}', 
+                                    '{rec.get('enrollment_status', '')}', '{rec.get('enterprise_premises', '')}', '{rec.get('existing_loan_number', '')}',
+                                    '{rec.get('existing_loan_limit', '')}', '{rec.get('existing_loan_status', '')}', 
+                                    '{rec.get('existing_outstanding_loan_schedules', '')}', '{rec.get('experiense_start_date', '')}', 
+                                    '{rec.get('family_monthly_income', '')}', '{rec.get('father_husband_name', '')}', '{rec.get('gender', '')}', 
+                                    '{rec.get('kf_remarks', '')}', '{rec.get('loan_amount', '')}', '{rec.get('loan_cycle', '')}',
+                                    '{rec.get('loanproductcode', '')}', '{rec.get('loan_status', '')}', '{rec.get('monthly_repayment_capacity', '')}', 
+                                    '{rec.get('nature_of_business', '')}', '{rec.get('no_of_family_members', '')}', '{rec.get('permanent_residencial', '')}',
+                                    '{rec.get('premises', '')}', '{rec.get('purpose_of_loan', '')}', '{rec.get('requested_loan_amount', '')}',
+                                    '{rec.get('residance_type', '')}', '{rec.get('student_name', '')}', '{rec.get('student_co_borrower_gender', '')}',
+                                    '{rec.get('student_relation_with_borrower', '')}', '{rec.get('tenor_of_month', '')}', '{rec.get('type_of_business', '')}',
+                                    '{rec.get('annual_income', '')}', '1', '{str(get_current_user_id())}', '{str(datetime.now())}'
+                                )
+                            """
+                        pre_disbursement_queries.append(query)
+                        print(
+                            f"process_upload: Preparing INSERT query for pre_disbursement, application_no={rec.get('application_no', '')}")
                     else:
-                        if rec['loan_no'].replace("'", '') not in ['', 'NaN', 'None']:
+                        loan_no = rec.get('loan_no', '').replace("'", '')
+                        if loan_no not in ['', 'NaN', 'None']:
                             query = f"""
-                                        INSERT INTO tbl_post_disbursement (
-                                            mis_date, area, sector_code, branch_code, branch_name, cnic, gender,
-                                            address, mobile_no, loan_title, rt, loan_no, product_code, booked_on,
-                                            disbursed_amount, repayment_type, sector, purpose, loan_status, loan_closed_on,
-                                            act_clo, colloanno, coll_id, lrno, collat, coll_stat, collateral_value,
-                                            collateral_title, overdue_days, principal_outstanding, total_outstand_other,
-                                            markup_outstanding, lo, fc_los, dtf, dtt, customer_id, application_num,
-                                            clo_on, liab_id, pool_id, account_number, created_by, created_date
-                                        ) VALUES (
-                                            '{rec.get('mis_date', '1900-01-01')}', '{rec.get('area', '')}', '{rec.get('sector_code', '')}',
-                                            '{rec.get('branch_code', '')}', '{rec.get('branch_name', '')}', '{rec.get('cnic', '')}',
-                                            '{rec.get('gender', '')}', '{rec.get('address', '')}', '{rec.get('mobile_no', '')}',
-                                            '{rec.get('loan_title', '')}', '{rec.get('rt', '')}', '{rec.get('loan_no', '')}',
-                                            '{rec.get('product_code', '')}', '{rec.get('booked_on', '1900-01-01')}',
-                                            '{rec.get('disbursed_amount', '')}', '{rec.get('repayment_type', '')}',
-                                            '{rec.get('sector', '')}', '{rec.get('purpose', '')}', '{rec.get('loan_status', '')}',
-                                            '{rec.get('loan_closed_on', '1900-01-01')}', '{rec.get('act_clo', '')}',
-                                            '{rec.get('colloanno', '')}', '{rec.get('coll_id', '')}', '{rec.get('lrno', '')}',
-                                            '{rec.get('collat', '')}', '{rec.get('coll_stat', '')}', '{rec.get('collateral_value', '')}',
-                                            '{rec.get('collateral_title', '')}', '{rec.get('overdue_days', '')}',
-                                            '{rec.get('principal_outstanding', '')}', '{rec.get('total_outstand_other', '')}',
-                                            '{rec.get('markup_outstanding', '')}', '{rec.get('lo', '')}', '{rec.get('fc_los', '')}',
-                                            '{rec.get('dtf', '')}', '{rec.get('dtt', '')}', '{rec.get('customer_id', '')}',
-                                            '{rec.get('application_num', '')}', '{rec.get('clo_on', '1900-01-01')}',
-                                            '{rec.get('liab_id', '')}', '{rec.get('pool_id', '')}', '{rec.get('account_number', '')}',
-                                            '{str(get_current_user_id())}', '{str(datetime.now())}'
-                                        )
-                                    """
+                                    INSERT INTO tbl_post_disbursement (
+                                        mis_date, area, sector_code, branch_code, branch_name, cnic, gender,
+                                        address, mobile_no, loan_title, rt, loan_no, product_code, booked_on,
+                                        disbursed_amount, repayment_type, sector, purpose, loan_status, loan_closed_on,
+                                        act_clo, colloanno, coll_id, lrno, collat, coll_stat, collateral_value,
+                                        collateral_title, overdue_days, principal_outstanding, total_outstand_other,
+                                        markup_outstanding, lo, fc_los, dtf, dtt, customer_id, application_num,
+                                        clo_on, liab_id, pool_id, account_number, created_by, created_date
+                                    ) VALUES (
+                                        '{rec.get('mis_date', '1900-01-01')}', '{rec.get('area', '')}', '{rec.get('sector_code', '')}',
+                                        '{rec.get('branch_code', '')}', '{rec.get('branch_name', '')}', '{rec.get('cnic', '')}',
+                                        '{rec.get('gender', '')}', '{rec.get('address', '')}', '{rec.get('mobile_no', '')}',
+                                        '{rec.get('loan_title', '')}', '{rec.get('rt', '')}', '{loan_no}',
+                                        '{rec.get('product_code', '')}', '{rec.get('booked_on', '1900-01-01')}',
+                                        '{rec.get('disbursed_amount', '')}', '{rec.get('repayment_type', '')}',
+                                        '{rec.get('sector', '')}', '{rec.get('purpose', '')}', '{rec.get('loan_status', '')}',
+                                        '{rec.get('loan_closed_on', '1900-01-01')}', '{rec.get('act_clo', '')}',
+                                        '{rec.get('colloanno', '')}', '{rec.get('coll_id', '')}', '{rec.get('lrno', '')}',
+                                        '{rec.get('collat', '')}', '{rec.get('coll_stat', '')}', '{rec.get('collateral_value', '')}',
+                                        '{rec.get('collateral_title', '')}', '{rec.get('overdue_days', '')}',
+                                        '{rec.get('principal_outstanding', '')}', '{rec.get('total_outstand_other', '')}',
+                                        '{rec.get('markup_outstanding', '')}', '{rec.get('lo', '')}', '{rec.get('fc_los', '')}',
+                                        '{rec.get('dtf', '')}', '{rec.get('dtt', '')}', '{rec.get('customer_id', '')}',
+                                        '{rec.get('application_num', '')}', '{rec.get('clo_on', '1900-01-01')}',
+                                        '{rec.get('liab_id', '')}', '{rec.get('pool_id', '')}', '{rec.get('account_number', '')}',
+                                        '{str(get_current_user_id())}', '{str(datetime.now())}'
+                                    )
+                                """
+                            post_disbursement_queries.append(query)
                             print(
-                                f"process_upload: Executing INSERT query for {'pre_disbursement' if file_type == 'pre_disbursement' else 'post_disbursement'}, {'application_no' if file_type == 'pre_disbursement' else 'loan_no'}={rec.get('application_no' if file_type == 'pre_disbursement' else 'loan_no', '')}")
-                            execute_command(query, is_print=False)
-                            print("process_upload: Executed INSERT query")
+                                f"process_upload: Preparing INSERT query for {'pre_disbursement' if file_type == 'pre_disbursement' else 'post_disbursement'}, "
+                                f"{'application_no' if file_type == 'pre_disbursement' else 'loan_no'}={rec.get('application_no' if file_type == 'pre_disbursement' else 'loan_no', '')}"
+                            )
+
+                    # Execute pre_disbursement batch
+                if pre_disbursement_queries:
+                    batch_query = ";".join(pre_disbursement_queries)
+                    print(
+                        f"process_upload: Executing batch INSERT query for {len(pre_disbursement_queries)} pre_disbursement records")
+                    execute_command(batch_query, is_print=False)
+                    print("process_upload: Executed batch INSERT query for pre_disbursement")
+
+                    # Execute post_disbursement batch
+                if post_disbursement_queries:
+                    batch_query = ";".join(post_disbursement_queries)
+                    print(
+                        f"process_upload: Executing batch INSERT query for {len(post_disbursement_queries)} post_disbursement records")
+                    execute_command(batch_query, is_print=False)
+
+                    # with open('post_disbursement_queries.sql', 'w') as f:
+                    #     f.write(batch_query)
+
+                    print("process_upload: Executed batch INSERT query for post_disbursement")
+
+                if not pre_disbursement_queries and not post_disbursement_queries:
+                    print("process_upload: No valid records to insert")
 
         if any(len(duplicates[sheet]) > 0 for sheet in duplicates):
             print("process_upload: Found duplicates, generating summary file")

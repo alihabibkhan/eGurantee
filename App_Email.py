@@ -30,6 +30,13 @@ def send_email():
         if not record:
             return jsonify({'success': False, 'error': 'Approved record not found'}), 404
 
+        query = f"""
+                    UPDATE tbl_pre_disbursement_temp
+                    SET email_status = 2
+                    WHERE pre_disb_temp_id = '{str(pre_disb_temp_id)}';
+                """
+        execute_command(query, is_print=True)
+
         # Convert image to base64
         image_path = os.path.join(application.root_path, 'static', 'images', 'hbl_logo-removebg-preview.png')
         with open(image_path, 'rb') as image_file:

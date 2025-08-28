@@ -16,18 +16,14 @@
             padding: 10px;
         }
         .header {
+            text-align: left;
             margin-bottom: 10px;
-            text-align: center;
         }
         .header img {
-            max-height: 20px;
-            margin-bottom: 5px;
-            float: left;
-        }
-        .header h2 {
-            margin: 0;
-            font-size: 16px;
-            color: #333;
+            width: 100px;
+            height: 20px;
+            display: block;
+            object-fit: contain;
         }
         .date {
             margin-bottom: 5px;
@@ -49,17 +45,20 @@
         }
         table {
             width: 100%;
+            max-width: 600px;
             border-collapse: collapse;
-            margin: 10px 0;
-            font-size: 10px;
+            margin: 10px auto;
+            font-size: 11px;
+            font-family: Garamond, serif;
         }
         th, td {
             border: 1px solid #000;
-            padding: 4px;
+            padding: 3px 5px;
             text-align: left;
         }
         th {
             font-weight: bold;
+            background-color: #f5f5f5;
         }
         .signature-section {
             margin-top: 15px;
@@ -84,6 +83,23 @@
             margin: 0.5in;
         }
     </style>
+    {% if result.email_status|string == '2' %}
+        <style>
+            body::before {
+                content: "APPROVED";
+                position: fixed;
+                top: 30%;
+                left: 50%;
+                transform: translate(-50%, -50%) rotate(-30deg);
+                font-size: 80px;
+                color: green;
+                opacity: 0.6;
+                z-index: 9999;
+                pointer-events: none;
+                white-space: nowrap;
+            }
+        </style>
+    {% endif %}
 </head>
 <body>
     <div class="letter">
@@ -91,7 +107,7 @@
             <img src="{{ logo_base64 }}" alt="HBL Logo" onerror="this.style.display='none';">
         </div>
         <h3 class="letter-heading">Letter of Lien</h3>
-        <span>Dated: <span class="date">{{ result.approved_date or '2025-06-22 15:22:00' }}</span></span>
+        <span>Dated: <span class="date">{{ result.approved_date|format_date or '2025-06-22 15:22:00' }}</span></span>
         <div class="branch">Branch Manager</div>
         <p class="which-branch">AMINABAD HYDERABAD</p>
         <div class="title">IRREVOCABLE AUTHORIZATION OF LIEN MARKING & ENCASHMENT OF ACCOUNT AS A COLLATERAL AGAINST LOANS AS PER FOLLOWING DETAILS</div>

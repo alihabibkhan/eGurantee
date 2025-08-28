@@ -158,6 +158,7 @@ def get_all_pre_disbursement_temp():
             pdt."status",
             pdt."uploaded_date",
             pdt."approved_date",
+            pdt."email_status",
             u1."name" AS uploaded_by,
             u2."name" AS approved_by
         FROM 

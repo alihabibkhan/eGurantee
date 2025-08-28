@@ -128,11 +128,11 @@ def get_on_going_loan_details():
 
         # Query to fetch on-going loan details
         query = f"""
-            SELECT loan_no, cnic, loan_closed_on, mis_date, disbursed_amount,
+            SELECT loan_no, cnic, loan_closed_on, mis_date, disbursed_amount, product_code,
             booked_on, markup_outstanding, principal_outstanding, loan_closed_on, overdue_days,
             loan_status, purpose
             FROM tbl_post_disbursement
-            WHERE CNIC = '{cnic}' ORDER BY mis_date DESC LIMIT 5
+            WHERE CNIC = '{cnic}' ORDER BY mis_date DESC LIMIT 3
         """
         result = fetch_records(query)
         print(result)
@@ -150,7 +150,8 @@ def get_on_going_loan_details():
                 'loan_status': row['loan_status'],
                 'overdue_days': row['overdue_days'],
                 'loan_closed_on': row['loan_closed_on'],
-                'mis_date': row['mis_date'].strftime('%Y-%m-%d %H:%M:%S') if row['mis_date'] else None
+                'mis_date': row['mis_date'].strftime('%Y-%m-%d %H:%M:%S') if row['mis_date'] else None,
+                'product_code': row['product_code']
             }
             records.append(record)
 

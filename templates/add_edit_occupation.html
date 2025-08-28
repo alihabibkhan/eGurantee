@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% include 'head.html' %}
+    <title>{{ 'Edit Occupation' if result.occupation else 'Add Occupation' }}</title>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url": 'manage_loan_metrics', "label": "Manage Loan Metrics"}, {"url": "", "label": 'Edit Occupation' if result.occupation else 'Add Occupation' }]) }}
+
+    <div class="container mt-4">
+        {% include 'message_box.html' %}
+
+        <div class="card">
+            <div class="card-header">
+                <h2>{{ 'Edit Occupation' if result.occupation else 'Add Occupation' }}</h2>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="form-group mb-3">
+                        <label for="name">Name</label>
+                        <input type="text" name="name" class="form-control" value="{{ result.occupation.name if result.occupation else '' }}" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">{{ 'Update Occupation' if result.occupation else 'Add Occupation' }}</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

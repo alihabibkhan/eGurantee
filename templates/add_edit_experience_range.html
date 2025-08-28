@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% include 'head.html' %}
+    <title>{{ 'Edit Experience Range' if result.experience_range else 'Add Experience Range' }}</title>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url": 'manage_loan_metrics', "label": "Manage Loan Metrics"}, {"url": "", "label": 'Edit Experience Range' if result.experience_range else 'Add Experience Range' }]) }}
+
+    <div class="container mt-4">
+        {% include 'message_box.html' %}
+
+        <div class="card">
+            <div class="card-header">
+                <h2>{{ 'Edit Experience Range' if result.experience_range else 'Add Experience Range' }}</h2>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="form-group mb-3">
+                        <label for="label">Label</label>
+                        <input type="text" name="label" class="form-control" value="{{ result.experience_range.label if result.experience_range else '' }}" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="min_years">Min Years</label>
+                        <input type="number" name="min_years" class="form-control" value="{{ result.experience_range.min_years if result.experience_range else '' }}" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="max_years">Max Years</label>
+                        <input type="number" name="max_years" class="form-control" value="{{ result.experience_range.max_years if result.experience_range else '' }}" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">{{ 'Update Experience Range' if result.experience_range else 'Add Experience Range' }}</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

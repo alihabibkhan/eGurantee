@@ -8,7 +8,9 @@ def manage_pre_disbursement():
         if is_login():
             content = {
                 'get_temp_pre_disbursement': get_all_pre_disbursement_temp(),
-                'is_user_have_sign': is_user_have_sign()
+                'is_user_have_sign': is_user_have_sign(),
+                'occupation_list': get_all_occupations(),
+                'experience_ranges_list': get_all_experience_ranges()
             }
             return render_template('manage_pre_disbursement.html', result=content)
     except Exception as e:
@@ -73,17 +75,17 @@ def update_pre_disbursement_temp():
                     print('record has been inserted.')
             else:
                 print('record exists in main, updating the existing record.')
-                query = f"""
-                    update tbl_pre_disbursement_main pdm
-                    set
-                        pdm.status = '{str(status)}',
-                        pdm.notes = '{str(notes)}',
-                        pdm.approved_by = '{str(approved_by)}',
-                        pdm.approved_date = '{str(approved_date)}'
-                    where
-                        pdm.pre_disb_temp_id = '{str(pre_disb_temp_id)}'
-                """
-                execute_command(query)
+                # query = f"""
+                #     update tbl_pre_disbursement_main pdm
+                #     set
+                #         pdm.status = '{str(status)}',
+                #         pdm.notes = '{str(notes)}',
+                #         pdm.approved_by = '{str(approved_by)}',
+                #         pdm.approved_date = '{str(approved_date)}'
+                #     where
+                #         pdm.pre_disb_temp_id = '{str(pre_disb_temp_id)}'
+                # """
+                # execute_command(query)
 
         elif status == '3':
             # Send rejection email
@@ -120,7 +122,7 @@ def update_pre_disbursement_temp():
 
 @application.route('/approval-letter/<app_no>')
 def approval_letter(app_no):
-    # print('app_no:- ', app_no)
+    print('app_no:- ', app_no)
     try:
         # query = f"""
         #     SELECT Borrower_Name, Application_No, Loan_Amount, ApplicationDate, Father_Husband_Name, CNIC, approved_date
@@ -129,7 +131,7 @@ def approval_letter(app_no):
         # """
 
         query = f"""
-            SELECT "Borrower_Name", "Application_No", "Loan_Amount", "ApplicationDate", "Father_Husband_Name", "CNIC", "approved_date" 
+            SELECT "Borrower_Name", "Application_No", "Loan_Amount", "ApplicationDate", "Father_Husband_Name", "CNIC", "approved_date", "email_status" 
             FROM tbl_pre_disbursement_temp 
             WHERE "pre_disb_temp_id" = '{str(app_no)}' AND "status" = '2'
         """
@@ -138,6 +140,8 @@ def approval_letter(app_no):
 
         if not record:
             abort(404, description="Approved record not found")
+
+
 
         # Convert logo image to base64
         image_path = os.path.join(application.root_path, 'static', 'images', 'hbl_logo-removebg-preview.png')

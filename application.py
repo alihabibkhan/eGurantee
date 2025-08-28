@@ -14,7 +14,7 @@ application.config['MAIL_PORT'] = 587
 application.config['MAIL_USE_TLS'] = True
 application.config['MAIL_USE_SSL'] = False
 application.config['MAIL_USERNAME'] = 'alihabib202299@gmail.com'  # Replace with your email
-application.config['MAIL_PASSWORD'] = 'fxtu icbh xaut bcfq'     # Use App Password for Gmail with 2FA
+application.config['MAIL_PASSWORD'] = 'yaly ftoq rdtg syno'     # Use App Password for Gmail with 2FA
 application.config['MAIL_DEFAULT_SENDER'] = 'zali9261@gmail.com'
 
 mail = Mail(application)
@@ -40,7 +40,7 @@ def format_currency(value):
 def format_date(value):
     if value is None:
         return ""
-    return value.strftime('%d-%b-%Y')
+    return value.strftime('%d-%m-%Y')
 
 
 # --- Custom Error Handlers ---
@@ -77,6 +77,10 @@ from App_PreDisbursement import *
 from App_PostDisbursement import *
 from App_File_Uploading_Validation import *
 from App_Email import *
+from App_LoanProducts import *
+from App_Occupations import *
+from App_ExperienceRanges import *
+from App_LoanMetrics import *
 
 if __name__ == '__main__':
     application.run(debug=True, port=8080)

@@ -93,10 +93,10 @@
                         <div class="view-section {% if view == 'validation_result' %}active{% endif %}">
                             <h4>Sheets Found (Category: {{ category }}):</h4>
                             <ul class="list-group mb-4">
-                                {% for sheet in sheets %}
+                                {% for sheet in sheet_info_list %}
                                     <li class="list-group-item">
-                                        {{ sheet }} - {{ counts.get(sheet, 0) }} records
-                                        {% if sheet %}
+                                        {{ sheet.sheet_name }} - {{ sheet.record_count }} records
+                                        {% if sheet.sheet_name %}
                                             <span class="badge bg-success">Valid</span>
                                         {% else %}
                                             <span class="badge bg-secondary">Ignored</span>
