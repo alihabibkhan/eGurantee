@@ -10,7 +10,8 @@ def manage_pre_disbursement():
                 'get_temp_pre_disbursement': get_all_pre_disbursement_temp(),
                 'is_user_have_sign': is_user_have_sign(),
                 'occupation_list': get_all_occupations(),
-                'experience_ranges_list': get_all_experience_ranges()
+                'experience_ranges_list': get_all_experience_ranges(),
+                'is_reviewer': is_reviewer()
             }
             return render_template('manage_pre_disbursement.html', result=content)
     except Exception as e:

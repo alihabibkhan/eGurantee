@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ 'Edit User' if result.user_id else 'Add User' }}</title>
+    {% include 'head.html' %}
+    <style>
+        .card {
+            max-width: 1200px;
+            margin: 50px auto;
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .card-header {
+            background-color: #fff;
+            border-bottom: 1px solid #dee2e6;
+            border-radius: 12px 12px 0 0;
+            text-align: center;
+            padding: 20px;
+        }
+        .card-body {
+            padding: 0;
+        }
+        .tab-content {
+            padding: 30px;
+            background-color: #fff;
+        }
+        .btn-dark {
+            background-color: #212529;
+            border-color: #212529;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+        .btn-dark:hover {
+            background-color: #343a40;
+            border-color: #343a40;
+        }
+
+        .btn-warning {
+            background-color: #ffc107;
+            border-color: #ffc107;
+            color: #212529;
+        }
+        .btn-warning:hover {
+            background-color: #e0a800;
+            border-color: #e0a800;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            border-color: #dc3545;
+        }
+        .btn-danger:hover {
+            background-color: #c82333;
+            border-color: #c82333;
+        }
+        .form-control, .form-select {
+            border-radius: 6px;
+        }
+        .input-group-text {
+            border-radius: 6px 0 0 6px;
+        }
+        .current-sign-img {
+            max-width: 150px;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .form-row .mb-3 {
+            flex: 1 1 45%;
+            min-width: 200px;
+        }
+        .nav-tabs .nav-link {
+            border-radius: 6px 6px 0 0;
+            font-weight: 500;
+        }
+        .nav-tabs .nav-link.active {
+            background-color: #fff;
+            border-color: #dee2e6 #dee2e6 #fff;
+        }
+        .table-responsive {
+            overflow-x: auto;
+        }
+        .table {
+            margin-bottom: 0;
+        }
+        .table th {
+            background-color: #f1f3f5;
+            color: #212529;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            padding: 15px;
+        }
+        .table td {
+            vertical-align: middle;
+            padding: 15px;
+            font-size: 0.95rem;
+            color: #343a40;
+        }
+        .table tr:hover {
+            background-color: #f8f9fa;
+        }
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url": 'manage_users', "label": "Manage Users"}, {"url": "", "label": 'Edit User' if result.user_id else 'Add User' }]) }}
+
+    <div class="container">
+        {% include 'message_box.html' %}
+
+        <div class="card">
+            <div class="card-body">
+                <ul class="nav nav-tabs nav-tabs-solid nav-justified" id="userTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="user-info-tab" data-bs-toggle="tab" data-bs-target="#user-info" type="button" role="tab" aria-controls="user-info" aria-selected="true">User Info</button>
+                    </li>
+                    {% if result.user_id %}
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="user-privileges-tab" data-bs-toggle="tab" data-bs-target="#user-privileges" type="button" role="tab" aria-controls="user-privileges" aria-selected="false">User Roles & Responsibilities</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="user-service-terms-tab" data-bs-toggle="tab" data-bs-target="#user-service-terms" type="button" role="tab" aria-controls="user-service-terms" aria-selected="false">User Service Terms</button>
+                    </li>
+                    {% endif %}
+                </ul>
+                <div class="tab-content" id="userTabsContent">
+                    <!-- User Info Tab -->
+                    <div class="tab-pane fade show active" id="user-info" role="tabpanel" aria-labelledby="user-info-tab">
+                        <form method="POST" action="{{ url_for('add_edit_user', user_id=result.user_id) if result.user_id else url_for('add_edit_user') }}" enctype="multipart/form-data">
+                            <div class="form-row">
+                                <div class="mb-3">
+                                    <label class="form-label">Name{{ result.user.name if result.user else '' }}</label>
+                                    <input type="text" class="form-control" name="name" value="{{ result.user.name if result.user else '' }}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Email</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                        <input type="email" class="form-control" name="email" value="{{ result.user.email if result.user else '' }}" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="mb-3">
+                                    <label class="form-label">Rights</label>
+                                    <select class="form-select" name="rights" id="rights" required>
+                                        <option value="" disabled {{ 'selected' if not result.user else '' }}>[Select...]</option>
+                                        <option value="1" {{ 'selected' if result.user and result.user.rights == 1 else '' }}>Reviewer</option>
+                                        <option value="2" {{ 'selected' if result.user and result.user.rights == 2 else '' }}>Approver</option>
+                                        <option value="3" {{ 'selected' if result.user and result.user.rights == 3 else '' }}>Executive Approver</option>
+                                        <option value="4" {{ 'selected' if result.user and result.user.rights == 4 else '' }}>Administrator</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Gender</label>
+                                    <select class="form-select" name="gender">
+                                        <option value="" {{ 'selected' if not result.user or not result.user.gender else '' }}>[Select...]</option>
+                                        <option value="Male" {{ 'selected' if result.user and result.user.gender == 'Male' else '' }}>Male</option>
+                                        <option value="Female" {{ 'selected' if result.user and result.user.gender == 'Female' else '' }}>Female</option>
+                                        <option value="Other" {{ 'selected' if result.user and result.user.gender == 'Other' else '' }}>Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="mb-3">
+                                    <label class="form-label">Date of Birth</label>
+                                    <input type="date" class="form-control" name="dob" value="{{ result.user.dob if result.user else '' }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Phone</label>
+                                    <input type="tel" class="form-control" name="phone" value="{{ result.user.phone if result.user else '' }}" placeholder="e.g., +1234567890">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="mb-3">
+                                    <label class="form-label">Country of Residence</label>
+                                    <input type="text" class="form-control" name="country_of_residence" value="{{ result.user.country_of_residence if result.user else '' }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Date of Joining</label>
+                                    <input type="date" class="form-control" name="date_of_joining" value="{{ result.user.date_of_joining if result.user else '' }}">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="mb-3">
+                                    <label class="form-label">Orientation Completed On</label>
+                                    <input type="date" class="form-control" name="orientation_completed_on" value="{{ result.user.orientation_completed_on if result.user else '' }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Manager</label>
+                                    <select class="form-select" name="manager_id" id="manager_id">
+                                        <option value="" {{ 'selected' if not result.user or not result.user.manager_id else '' }}>[Select...]</option>
+                                        {% for user in result.get_all_user_data %}
+                                            {% if user['user_id'] != result.user_id %}
+                                                <option value="{{ user['volunteer_id'] }}" {{ 'selected' if result.user and result.user.manager_id|int == user['volunteer_id']|int else '' }}>{{ user['volunteer_id'] }} - {{ user['name'] }}</option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="mb-3">
+                                    <label class="form-label">Assigned Branch</label>
+                                    <select class="form-select" name="assigned_branch">
+                                        <option value="" {{ 'selected' if not result.user or not result.user.assigned_branch else '' }}>[Select...]</option>
+                                        {% for branch in result.get_all_branches_info %}
+                                            <option value="{{ branch['branch_id'] }}" {{ 'selected' if result.user and result.user.assigned_branch == branch['branch_id'] else '' }}>{{ branch['branch_name'] }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Volunteer ID</label>
+                                    <input type="text" class="form-control" name="volunteer_id" value="{{ result.user.volunteer_id if result.user else 'Auto-generated' }}" readonly>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="mb-3">
+                                    <label class="form-label">Signature</label>
+                                    <select class="form-select" name="signature" required>
+                                        <option value="1" {{ 'selected' if result.user and result.user.signature == '1' else '' }}>Yes</option>
+                                        <option value="0" {{ 'selected' if result.user and result.user.signature == '0' else '' }}>No</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Scan Sign</label>
+                                    <input type="file" class="form-control" name="scan_sign" accept="image/*">
+                                    {% if result.user and result.user.scan_sign %}
+                                        <small class="form-text text-muted">Current signature:</small><br>
+                                        <img src="{{ url_for('get_user_signature', user_id=result.user_id) }}" alt="Current Signature" class="current-sign-img">
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="mb-3">
+                                    <label class="form-label">Active</label>
+                                    <select class="form-select" name="active" id="ddl_active" required>
+                                        <option value="1" {{ 'selected' if result.user and result.user.active == 1 else '' }}>Yes</option>
+                                        <option value="0" {{ 'selected' if result.user and result.user.active == 0 else '' }}>No</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row div-dor-and-reason {{ 'd-none' if result.user and result.user.active == '1' else '' }}">
+                                <div class="mb-3">
+                                    <label class="form-label">Date of Retirement</label>
+                                    <input type="date" class="form-control" id="date_of_retirement" name="date_of_retirement" value="{{ result.user.date_of_retirement or '' }}" {{ 'required' if result.user and result.user.active == '0' else '' }}>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Reason</label>
+                                    <textarea class="form-control" id="reason" name="reason" {{ 'required' if result.user and result.user.active == '0' else '' }}>{{ result.user.reason or '' }}</textarea>
+                                </div>
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-dark">{{ 'Update User' if result.user_id else 'Add User' }}</button>
+                            </div>
+                        </form>
+                    </div>
+                    <!-- User Roles & Responsibilities Tab -->
+                    {% if result.user_id %}
+                    <div class="tab-pane fade" id="user-privileges" role="tabpanel" aria-labelledby="user-privileges-tab">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0">User Roles & Responsibilities</h5>
+                            <a href="{{ url_for('add_edit_user_privilege', user_id=result.user_id) }}" class="btn btn-primary">Add New User Privilege</a>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Role</th>
+                                        <th>Responsibility</th>
+                                        <th>Committee</th>
+                                        <th>Status</th>
+                                        <th>Modified By</th>
+                                        <th>Modified Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for privilege in result.get_all_user_privileges if privilege.user_id == result.user_id %}
+                                    <tr>
+                                        <td>{{ privilege.role or '-' }}</td>
+                                        <td>{{ privilege.responsibility or '-' }}</td>
+                                        <td>{{ privilege.committee or '-' }}</td>
+                                        <td>{{ 'Active' if privilege.status == 1 else 'Inactive' }}</td>
+                                        <td>{{ privilege.modified_by_name or '-' }}</td>
+                                        <td>{{ privilege.modified_date or '-' }}</td>
+                                        <td>
+                                            <a href="{{ url_for('add_edit_user_privilege', privilege_id=privilege.id, user_id=result.user_id) }}" class="action-link edit text-dark">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a class="action-link delete text-dark" onclick="confirmDeletePrivilege('{{ privilege.id }}', '{{ result.user_id }}')">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="7" class="text-center">No privileges found for this user.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- User Service Terms Tab -->
+                    <div class="tab-pane fade" id="user-service-terms" role="tabpanel" aria-labelledby="user-service-terms-tab">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0">User Service Terms</h5>
+                            <a href="{{ url_for('add_edit_user_service_term', user_id=result.user_id) }}" class="btn btn-primary">Add New User Service Term</a>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Term</th>
+                                        <th>From Date</th>
+                                        <th>To Date</th>
+                                        <th>Status</th>
+                                        <th>Modified By</th>
+                                        <th>Modified Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for term in result.get_all_user_service_terms if term.user_id == result.user_id %}
+                                    <tr>
+                                        <td>{{ term.term or '-' }}</td>
+                                        <td>{{ term.from_date or '-' }}</td>
+                                        <td>{{ term.to_date or '-' }}</td>
+                                        <td>{{ 'Active' if term.status == 1 else 'Inactive' }}</td>
+                                        <td>{{ term.modified_by_name or '-' }}</td>
+                                        <td>{{ term.modified_date or '-' }}</td>
+                                        <td>
+                                            <a href="{{ url_for('add_edit_user_service_term', term_id=term.id, user_id=result.user_id) }}" class="action-link edit text-dark">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a href="#" class="action-link delete text-dark" onclick="confirmDeleteServiceTerm('{{ term.id }}', '{{ result.user_id }}')">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="7" class="text-center">No service terms found for this user.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Toggle 'required' attribute for manager_id based on rights selection
+        document.getElementById('rights').addEventListener('change', function() {
+            const managerIdSelect = document.getElementById('manager_id');
+            if (this.value === '1') { // Reviewer
+                managerIdSelect.setAttribute('required', 'required');
+            } else {
+                managerIdSelect.removeAttribute('required');
+            }
+        });
+
+        // Set initial state on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const rightsSelect = document.getElementById('rights');
+            const managerIdSelect = document.getElementById('manager_id');
+            if (rightsSelect.value === '1') {
+                managerIdSelect.setAttribute('required', 'required');
+            } else {
+                managerIdSelect.removeAttribute('required');
+            }
+        });
+
+        // Confirm deletion of user privilege
+        function confirmDeletePrivilege(privilegeId, userId) {
+            if (confirm('Are you sure you want to delete this user privilege?')) {
+                window.location.href = '{{ url_for("delete_user_privilege") }}?privilege_id=' + privilegeId + '&user_id='+ userId;
+            }
+        }
+
+        // Confirm deletion of user service term
+        function confirmDeleteServiceTerm(termId, userId) {
+            if (confirm('Are you sure you want to delete this user service term?')) {
+                window.location.href = '{{ url_for("delete_user_service_term") }}?term_id=' + termId + '&user_id='+ userId;;
+            }
+        }
+    </script>
+    <script>
+        // Toggle date_of_retirement and reason fields based on active status
+        $(document).ready(function(){
+            $('#ddl_active').change(function(){
+                let is_active = $(this).val() == '1' ? true : false;
+                if (!is_active) {
+                    $('.div-dor-and-reason').removeClass('d-none');
+                    $('#date_of_retirement').prop('required', true);
+                    $('#reason').prop('required', true);
+                } else {
+                    $('.div-dor-and-reason').addClass('d-none');
+                    $('#date_of_retirement').prop('required', false);
+                    $('#reason').prop('required', false);
+                }
+            }).change();
+        });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // Activate tab if URL contains hash
+      let hash = window.location.hash;
+      if (hash) {
+        let triggerEl = document.querySelector(`[data-bs-target="${hash}"]`);
+        if (triggerEl) {
+          let tab = new bootstrap.Tab(triggerEl);
+          tab.show();
+        }
+      }
+
+      // Update hash when tab is changed
+      let tabLinks = document.querySelectorAll('button[data-bs-toggle="tab"]');
+      tabLinks.forEach(function (el) {
+        el.addEventListener("shown.bs.tab", function (event) {
+          let target = event.target.getAttribute("data-bs-target");
+          history.replaceState(null, null, target); // updates URL hash
+        });
+      });
+    });
+    </script>
+</body>
+</html>

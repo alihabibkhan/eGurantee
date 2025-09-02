@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ 'Edit Term' if result.term_id else 'Add Term' }}</title>
+    {% include 'head.html' %}
+    <style>
+        .card {
+            max-width: 800px;
+            margin: 50px auto;
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .card-header {
+            background-color: #fff;
+            border-bottom: 1px solid #dee2e6;
+            border-radius: 12px 12px 0 0;
+            text-align: center;
+            padding: 20px;
+        }
+        .card-body {
+            padding: 30px;
+            background-color: #fff;
+        }
+        .btn-dark {
+            background-color: #212529;
+            border-color: #212529;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+        .btn-dark:hover {
+            background-color: #343a40;
+            border-color: #343a40;
+        }
+        .form-control, .form-select {
+            border-radius: 6px;
+        }
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .form-row .mb-3 {
+            flex: 1 1 45%;
+            min-width: 200px;
+        }
+    </style>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url": "manage_users", "label": "Manage Users"}, {"url": "", "label": 'Edit Term' if result.term_id else 'Add Term'}]) }}
+
+    <div class="container">
+        {% include 'message_box.html' %}
+
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">{{ 'Edit Term' if result.term_id else 'Add Term' }}</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_edit_user_service_term', privilege_id=result.privilege_id) if result.privilege_id else url_for('add_edit_user_service_term') }}">
+                    <div class="form-row">
+                        <div class="mb-3">
+                            <label class="form-label">Term</label>
+                            <select class="form-select" name="term" required>
+                                <option value="" disabled {{ 'selected' if not result.term else '' }}>[Select...]</option>
+                                <option value="First Term" {{ 'selected' if result.term and result.term.term == 'First Term' else '' }}>First Term</option>
+                                <option value="Second Term" {{ 'selected' if result.term and result.term.term == 'Second Term' else '' }}>Second Term</option>
+                                <option value="Third Term" {{ 'selected' if result.term and result.term.term == 'Third Term' else '' }}>Third Term</option>
+                                <option value="Additional Term" {{ 'selected' if result.term and result.term.term == 'Additional Term' else '' }}>Additional Term</option>
+                                <option value="Life Time" {{ 'selected' if result.term and result.term.term == 'Life Time' else '' }}>Life Time</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="mb-3">
+                            <label class="form-label">From Date</label>
+                            <input type="date" class="form-control" name="from_date" value="{{ result.term.from_date if result.term and result.term.from_date else '' }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">To Date</label>
+                            <input type="date" class="form-control" name="to_date" value="{{ result.term.to_date if result.term and result.term.to_date else '' }}">
+                        </div>
+                    </div>
+                    <div class="d-grid">
+                        <input type="hidden" name="hdn_user_id" value="{{ result.hdn_user_id }}">
+                        <button type="submit" class="btn btn-dark">{{ 'Update Term' if result.term_id else 'Add Term' }}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% include 'head.html' %}
+    <title>Manage Loan Metrics</title>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url": "", "label": "Manage Loan Metrics"}]) }}
+
+    <div class="container mt-4">
+        {% include 'message_box.html' %}
+
+        <div class="card">
+            <div class="card-header">
+                <h2>Manage Loan Metrics</h2>
+            </div>
+            <div class="card-body">
+                <ul class="nav nav-tabs" id="loanMetricsTabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="loan-products-tab" data-bs-toggle="tab" href="#loan-products" role="tab" aria-controls="loan-products" aria-selected="true">Loan Products</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="occupations-tab" data-bs-toggle="tab" href="#occupations" role="tab" aria-controls="occupations" aria-selected="false">Occupations</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="experience-ranges-tab" data-bs-toggle="tab" href="#experience-ranges" role="tab" aria-controls="experience-ranges" aria-selected="false">Experience Ranges</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="loan-metrics-tab" data-bs-toggle="tab" href="#loan-metrics" role="tab" aria-controls="loan-metrics" aria-selected="false">Loan Metrics</a>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="loanMetricsTabContent">
+                    <!-- Loan Products Tab -->
+                    <div class="tab-pane fade show active" id="loan-products" role="tabpanel" aria-labelledby="loan-products-tab">
+                        <h3 class="mt-3">Loan Products</h3>
+                        <a href="{{ url_for('add_edit_loan_product') }}" class="btn btn-primary mb-3">Add Loan Product</a>
+                        <table class="table text-center table-hover table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Product Name</th>
+                                    <th>Product Code</th>
+                                    <th>Description</th>
+                                    <th>Created Date</th>
+                                    <th>Created By</th>
+                                    <th>Modified Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in result.get_all_loan_products %}
+                                <tr>
+                                    <td>{{ product.name }}</td>
+                                    <td>{{ product.product_code or '' }}</td>
+                                    <td class="text-truncate" style="max-width: 150px;">{{ product.description }}</td>
+                                    <td>{{ product.created_by }}</td>
+                                    <td>{{ product.modified_by }}</td>
+                                    <td>{{ product.modified_date|format_date }}</td>
+                                    <td>
+                                        <a href="{{ url_for('add_edit_loan_product', product_id=product.product_id) }}" class="btn btn-sm btn-warning">Edit</a>
+                                        <a href="{{ url_for('delete_loan_product', product_id=product.product_id) }}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">Delete</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Occupations Tab -->
+                    <div class="tab-pane fade" id="occupations" role="tabpanel" aria-labelledby="occupations-tab">
+                        <h3 class="mt-3">Occupations</h3>
+                        <a href="{{ url_for('add_edit_occupation') }}" class="btn btn-primary mb-3">Add Occupation</a>
+                        <table class="table text-center table-hover table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Created By</th>
+                                    <th>Modified By</th>
+                                    <th>Modified Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for occupation in result.get_all_occupations %}
+                                <tr>
+                                    <td>{{ occupation.name }}</td>
+                                    <td>{{ occupation.created_by }}</td>
+                                    <td>{{ occupation.modified_by }}</td>
+                                    <td>{{ occupation.modified_date|format_date }}</td>
+                                    <td>
+                                        <a href="{{ url_for('add_edit_occupation', occupation_id=occupation.occupation_id) }}" class="btn btn-sm btn-warning">Edit</a>
+                                        <a href="{{ url_for('delete_occupation', occupation_id=occupation.occupation_id) }}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">Delete</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Experience Ranges Tab -->
+                    <div class="tab-pane fade" id="experience-ranges" role="tabpanel" aria-labelledby="experience-ranges-tab">
+                        <h3 class="mt-3">Experience Ranges</h3>
+                        <a href="{{ url_for('add_edit_experience_range') }}" class="btn btn-primary mb-3">Add Experience Range</a>
+                        <table class="table text-center table-hover table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Label</th>
+                                    <th>Min Years</th>
+                                    <th>Max Years</th>
+                                    <th>Created By</th>
+                                    <th>Modified By</th>
+                                    <th>Modified Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for range in result.get_all_experience_ranges %}
+                                <tr>
+                                    <td>{{ range.label }}</td>
+                                    <td>{{ range.min_years }}</td>
+                                    <td>{{ range.max_years }}</td>>
+                                    <td>{{ range.created_by }}</td>
+                                    <td>{{ range.modified_by }}</td>
+                                    <td>{{ range.modified_date|format_date }}</td>
+                                    <td>
+                                        <a href="{{ url_for('add_edit_experience_range', experience_range_id=range.experience_range_id) }}" class="btn btn-sm btn-warning">Edit</a>
+                                        <a href="{{ url_for('delete_experience_range', experience_range_id=range.experience_range_id) }}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">Delete</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Loan Metrics Tab -->
+                    <div class="tab-pane fade" id="loan-metrics" role="tabpanel" aria-labelledby="loan-metrics-tab">
+                        <h3 class="mt-3">Loan Metrics</h3>
+                        <a href="{{ url_for('add_edit_loan_metric') }}" class="btn btn-primary mb-3">Add Loan Metric</a>
+                        <table class="table text-center table-hover table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Branch</th>
+                                    <th>Product Name</th>
+                                    <th>Occupation</th>
+                                    <th>Experience</th>
+                                    <th>Global Loan Ceiling</th>
+                                    <th>Repeat Increment</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for metric in result.get_all_loan_metrics %}
+                                <tr>
+                                    <td class="text-truncate" style="max-width:150px;" title="{{ metric.branch_name }}">{{ metric.branch_name }}</td>
+                                    <td class="text-truncate" style="max-width:150px;" title="{{ metric.product_name }}">{{ metric.product_name }}</td>
+                                    <td class="text-truncate" style="max-width:150px;" title="{{ metric.occupation_name }}">{{ metric.occupation_name }}</td>
+                                    <td class="text-truncate" style="max-width:150px;" title="{{ metric.experience_label }}">{{ metric.experience_label }}</td>
+                                    <td class="text-truncate" style="max-width:150px;" title="{{ metric.global_loan_ceiling }}">{{ metric.global_loan_ceiling }}</td>
+                                    <td class="text-truncate" style="max-width:150px;" title="{{ metric.repeat_increment }}">{{ metric.repeat_increment }}</td>
+                                    <td>
+                                        <a href="{{ url_for('add_edit_loan_metric', loan_metric_id=metric.loan_metric_id) }}" class="btn btn-sm btn-warning">Edit</a>
+                                        <a href="{{ url_for('delete_loan_metric', loan_metric_id=metric.loan_metric_id) }}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">Delete</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

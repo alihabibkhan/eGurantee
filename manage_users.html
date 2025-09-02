@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Users</title>
+    {% include 'head.html' %}
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .container {
+            max-width: 1200px;
+            margin-top: 30px;
+        }
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: transform 0.2s ease-in-out;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card-header {
+            background-color: #fff;
+            border-bottom: 1px solid #dee2e6;
+            padding: 20px;
+            border-radius: 12px 12px 0 0;
+        }
+        .card-header h2 {
+            margin: 0;
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #212529;
+        }
+        .card-body {
+            padding: 0;
+        }
+        .table-responsive {
+            overflow-x: auto;
+        }
+        .table {
+            margin-bottom: 0;
+        }
+        .table th {
+            background-color: #f1f3f5;
+            color: #212529;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            padding: 15px;
+        }
+        .table td {
+            vertical-align: middle;
+            padding: 15px;
+            font-size: 0.95rem;
+            color: #343a40;
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .table tr {
+            transition: background-color 0.2s ease-in-out;
+        }
+        .table tr:hover {
+            background-color: #f8f9fa;
+        }
+        .btn-primary {
+            background-color: #f1f3f5;
+            border-color: #f1f3f5;
+            color: #212529;
+            border-radius: 6px;
+            padding: 8px 20px;
+            font-weight: 500;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .btn-primary:hover {
+            background-color: #e0e2e5;
+            border-color: #e0e2e5;
+        }
+        .action-link {
+            color: #212529;
+            text-decoration: none;
+            font-size: 0.85rem;
+            margin-right: 10px;
+        }
+        .action-link.edit {
+            color: #ffc107;
+        }
+        .action-link.edit:hover {
+            color: #e0a800;
+        }
+        .action-link.delete {
+            color: #dc3545;
+        }
+        .action-link.delete:hover {
+            color: #c82333;
+        }
+        .modal-content {
+            border-radius: 12px;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        .modal-header {
+            background-color: #fff;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        .modal-body {
+            background-color: #fff;
+            padding: 20px;
+        }
+        .modal-body .row {
+            margin-bottom: 10px;
+        }
+        .modal-body dt {
+            font-weight: 600;
+            color: #212529;
+            margin-top: 10px;
+        }
+        .modal-body dd {
+            color: #343a40;
+            margin-bottom: 10px;
+        }
+        .modal-footer {
+            border-top: 1px solid #dee2e6;
+        }
+        .details-link {
+            color: #17a2b8;
+            text-decoration: none;
+            font-size: 0.85rem;
+        }
+        .details-link:hover {
+            color: #138496;
+            text-decoration: none;
+        }
+        @media (max-width: 576px) {
+            .card {
+                margin: 20px 10px;
+            }
+            .card-header h2 {
+                font-size: 1.5rem;
+            }
+            .table th, .table td {
+                font-size: 0.85rem;
+                padding: 10px;
+            }
+            .action-link {
+                margin-right: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url":"", "label":"Manage Users"}]) }}
+
+    <div class="container">
+        {% include 'message_box.html' %}
+
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3 p-3">
+                    <div>
+                        <h2>Manage Users</h2>
+                    </div>
+                    <div>
+                        <a href="{{ url_for('add_edit_user') }}" class="btn btn-primary">Add User</a>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Rights</th>
+                                <th>Volunteer ID</th>
+                                <th>Created By</th>
+                                <th>Created Date</th>
+                                <th>More Details</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in result.get_all_user_data %}
+                            <tr>
+                                <td title="{{ user.name or '-' }}">{{ user.name or '-' }}</td>
+                                <td title="{{ user.email or '-' }}">{{ user.email or '-' }}</td>
+                                <td title="{% if user.rights == 1 %}Reviewer{% elif user.rights == 2 %}Approver{% elif user.rights == 3 %}Executive Approver{% elif user.rights == 4 %}Administrator{% else %}Unknown{% endif %}">
+                                    {% if user.rights == 1 %}Reviewer
+                                    {% elif user.rights == 2 %}Approver
+                                    {% elif user.rights == 3 %}Executive Approver
+                                    {% elif user.rights == 4 %}Administrator
+                                    {% else %}Unknown
+                                    {% endif %}
+                                </td>
+                                <td title="{{ user.volunteer_id or '-' }}">{{ user.volunteer_id or '-' }}</td>
+                                <td title="{{ user.createdBy or '-' }}">{{ user.createdBy or '-' }}</td>
+                                <td title="{{ user.created_date or '-' }}">{{ user.created_date or '-' }}</td>
+                                <td>
+                                    <a href="#" class="details-link"
+                                       data-bs-toggle="modal"
+                                       data-bs-target="#userDetailsModal"
+                                       data-user-id="{{ user.user_id or '-' }}"
+                                       data-name="{{ user.name or '-' }}"
+                                       data-email="{{ user.email or '-' }}"
+                                       data-rights="{% if user.rights == 1 %}Reviewer{% elif user.rights == 2 %}Approver{% elif user.rights == 3 %}Executive Approver{% elif user.rights == 4 %}Administrator{% else %}Unknown{% endif %}"
+                                       data-volunteer-id="{{ user.volunteer_id or '-' }}"
+                                       data-gender="{{ user.gender or '-' }}"
+                                       data-dob="{{ user.dob or '-' }}"
+                                       data-phone="{{ user.phone or '-' }}"
+                                       data-country="{{ user.country_of_residence or '-' }}"
+                                       data-date-joined="{{ user.date_of_joining or '-' }}"
+                                       data-orientation="{{ user.orientation_completed_on or '-' }}"
+                                       data-manager-id="{{ user.manager_id or '-' }}"
+                                       data-branch="{{ user.assigned_branch or '-' }}"
+                                       data-active="{{ 'Yes' if user.active == '1' else 'No' }}"
+                                       data-created-by="{{ user.createdBy or '-' }}"
+                                       data-created-date="{{ user.created_date or '-' }}"
+                                       data-date-of-retirement="{{ user.date_of_retirement or '-' }}"
+                                       data-reason="{{ user.reason or '-' }}">
+                                        Details
+                                    </a>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('add_edit_user', user_id=user.user_id) }}" class="action-link edit text-dark" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="#" class="action-link delete text-dark" onclick="confirmDelete('{{ user.user_id }}')" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Single Modal for User Details -->
+        <div class="modal fade" id="userDetailsModal" tabindex="-1" aria-labelledby="userDetailsModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="userDetailsModalLabel">User Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <dl>
+                                    <dt>User ID</dt>
+                                    <dd id="modal-user-id"></dd>
+                                    <dt>Name</dt>
+                                    <dd id="modal-name"></dd>
+                                    <dt>Email</dt>
+                                    <dd id="modal-email"></dd>
+                                    <dt>Rights</dt>
+                                    <dd id="modal-rights"></dd>
+                                    <dt>Volunteer ID</dt>
+                                    <dd id="modal-volunteer-id"></dd>
+                                </dl>
+                            </div>
+                            <div class="col-md-4">
+                                <dl>
+                                    <dt>Gender</dt>
+                                    <dd id="modal-gender"></dd>
+                                    <dt>Date of Birth</dt>
+                                    <dd id="modal-dob"></dd>
+                                    <dt>Phone</dt>
+                                    <dd id="modal-phone"></dd>
+                                    <dt>Country of Residence</dt>
+                                    <dd id="modal-country"></dd>
+                                    <dt>Date of Joining</dt>
+                                    <dd id="modal-date-joined"></dd>
+                                </dl>
+                            </div>
+                            <div class="col-md-4">
+                                <dl>
+                                    <dt>Orientation Completed On</dt>
+                                    <dd id="modal-orientation"></dd>
+                                    <dt>Manager ID</dt>
+                                    <dd id="modal-manager-id"></dd>
+                                    <dt>Assigned Branch</dt>
+                                    <dt>Active</dt>
+                                    <dd id="modal-active"></dd>
+                                    <dt>Created By</dt>
+                                    <dd id="modal-created-by"></dd>
+                                    <dt>Created Date</dt>
+                                    <dd id="modal-created-date"></dd>
+                                </dl>
+                            </div>
+                            <div class="col-md-4">
+                                <dl>
+                                    <dt>Date Of Retirement</dt>
+                                    <dd id="modal-date-of-retirement"></dd>
+                                    <dt>Reason</dt>
+                                    <dd id="modal-reason"></dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function confirmDelete(userId) {
+            if (confirm('Are you sure you want to delete this user?')) {
+                window.location.href = '{{ url_for("delete_user") }}?user_id=' + userId;
+            }
+        }
+
+        function confirmDeletePrivilege(privilegeId) {
+            if (confirm('Are you sure you want to delete this user privilege?')) {
+                window.location.href = '{{ url_for("delete_user_privilege") }}?privilege_id=' + privilegeId;
+            }
+        }
+
+        // Populate modal with user details on click
+        document.querySelectorAll('.details-link').forEach(link => {
+            link.addEventListener('click', function() {
+                document.getElementById('modal-user-id').textContent = "***";
+                document.getElementById('modal-name').textContent = this.dataset.name;
+                document.getElementById('modal-email').textContent = this.dataset.email;
+                document.getElementById('modal-rights').textContent = this.dataset.rights;
+                document.getElementById('modal-volunteer-id').textContent = this.dataset.volunteerId;
+                document.getElementById('modal-gender').textContent = this.dataset.gender;
+                document.getElementById('modal-dob').textContent = this.dataset.dob;
+                document.getElementById('modal-phone').textContent = this.dataset.phone;
+                document.getElementById('modal-country').textContent = this.dataset.country;
+                document.getElementById('modal-date-joined').textContent = this.dataset.dateJoined;
+                document.getElementById('modal-orientation').textContent = this.dataset.orientation;
+                document.getElementById('modal-manager-id').textContent = this.dataset.managerId;
+                document.getElementById('modal-branch').textContent = this.dataset.branch;
+                document.getElementById('modal-active').textContent = this.dataset.active;
+                document.getElementById('modal-created-by').textContent = this.dataset.createdBy;
+                document.getElementById('modal-created-date').textContent = this.dataset.createdDate;
+                document.getElementById('modal-date-of-retirement').textContent = this.dataset.dateOfRetirement;
+                document.getElementById('modal-reason').textContent = this.dataset.reason;
+                document.getElementById('userDetailsModalLabel').textContent = `User Details: ${this.dataset.name}`;
+            });
+        });
+    </script>
+</body>
+</html>
