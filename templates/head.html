@@ -15,3 +15,37 @@
 
 <script src="{{url_for('static',filename='assets/jsFiles/custom_script.js',v=3)}}"></script>
 <script src="{{ url_for('static', filename='assets/jsFiles/showToast.js', v=1) }}"></script>
+
+<style>
+    .btn-primary {
+        background-color: #f1f3f5;
+        border-color: #f1f3f5;
+        color: #212529;
+        border-radius: 6px;
+        padding: 8px 20px;
+        font-weight: 500;
+        transition: background-color 0.2s ease-in-out;
+    }
+    .btn-primary:hover {
+        background-color: #e0e2e5;
+        border-color: #e0e2e5;
+    }
+    .action-link {
+        color: #212529;
+        text-decoration: none;
+        font-size: 0.85rem;
+        margin-right: 10px;
+    }
+    .action-link.edit {
+        color: #ffc107;
+    }
+    .action-link.edit:hover {
+        color: #e0a800;
+    }
+    .action-link.delete {
+        color: #dc3545;
+    }
+    .action-link.delete:hover {
+        color: #c82333;
+    }
+</style>

@@ -108,10 +108,13 @@
                         <div class="form-group">
                             <label for="status-filter" class="form-label">Status</label>
                             <select class="form-select form-select-sm" id="status-filter">
-                                <option value="all">All</option>
-                                <option value="1" selected>Pending</option>
-                                <option value="2">Approved</option>
-                                <option value="3">Rejected</option>
+                                <option value="all" selected>All</option>
+                                <option value="1">Pending</option>
+                                {% if result.is_reviewer == False %}
+                                    <option value="2">Approved</option>
+                                    <option value="3">Rejected</option>
+                                {% endif %}
+                                <option value="4">Reviewed</option>
                             </select>
                         </div>
                     </div>
@@ -173,7 +176,7 @@
                     <div class="modal-body" id="temp-modal-body"></div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="button" class="btn btn-info" id="ongoing-loan-btn" onclick="viewOngoingLoan(event)">View On-going Loan</button>
+                        <!--<button type="button" class="btn btn-info" id="ongoing-loan-btn" onclick="viewOngoingLoan(event)">View On-going Loan</button>-->
                         <button type="button" class="btn btn-primary" id="temp-save-btn">Save</button>
                     </div>
                 </div>
@@ -194,7 +197,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        {% if result.is_user_have_sign %}
+                        {% if result.is_user_have_sign and result.is_reviewer == False %}
                             <button id="send-email-btn" class="btn btn-success" style="display: none;" onclick="showEmailModal()">Send Email</button>
                         {% endif %}
                     </div>
@@ -274,7 +277,8 @@
         const statusMap = {
             '1': 'Pending',
             '2': 'Approved',
-            '3': 'Rejected'
+            '3': 'Rejected',
+            '4': 'Reviewed'
         };
 
         // All possible fields for display
@@ -361,7 +365,9 @@
                         } else if (record.email_status === 3) {
                             badge = '<span class="badge badge-rejected">Email Rejected</span>';
                         }
-                        letterButton = `<button class="btn btn-sm btn-info" onclick="viewLetter('${record.pre_disb_temp_id}', '${record.email_status}')"><i class="bi bi-envelope"></i>${badge}</button>`;
+                        {% if result.is_reviewer == False %}
+                            letterButton = `<button class="btn btn-sm btn-info" onclick="viewLetter('${record.pre_disb_temp_id}', '${record.email_status}')"><i class="bi bi-envelope"></i>${badge}</button>`;
+                        {% endif %}
                     }
                 {% endif %}
                 row.innerHTML = `
@@ -470,24 +476,22 @@
     tableContainer.innerHTML = `
         <div class="col-md-6">
             <table class="table table-sm">
-                <tr><th>Bank Application / Reference #:</th><td>${record.Application_No || 'N/A'}</td></tr>
-                <tr><th>Name of Lender / Bank:</th><td>N/A</td></tr>
-                <tr><th>Bank Branch:</th><td>${record.Branch_Name || 'N/A'}</td></tr>
+                <tr><th>Application No:</th><td>${record.Application_No || 'N/A'}</td></tr>
                 <tr><th>Bank Loan Officer:</th><td>N/A</td></tr>
                 <tr><th>Borrower Name:</th><td>${record.Borrower_Name || 'N/A'}</td></tr>
                 <tr><th>CNIC #:</th><td>${record.CNIC || 'N/A'}</td></tr>
-                <tr><th>Student Name / Co-Borrower:</th><td>${record.Student_Name || 'N/A'}</td></tr>
+                <tr><th>Borrower Date of Birth / Age:</th><td>N/A</td></tr>
+                <tr><th>Borrower - Gender:</th><td>${record.Gender || 'N/A'}</td></tr>
             </table>
         </div>
         <div class="col-md-6">
             <table class="table table-sm">
-                <tr><th>Beneficiary Applied On:</th><td>${formatDate(record.ApplicationDate) || 'N/A'}</td></tr>
-                <tr><th>Bank Credit Risk Verified on:</th><td>N/A</td></tr>
-                <tr><th>Bank BCC Approved on:</th><td>${formatDate(record['Bcc Approval_Date']) || 'N/A'}</td></tr>
-                <tr><th>Lender Processed on:</th><td>${formatDate(record.approved_date) || 'N/A'}</td></tr>
-                <tr><th>Borrower - Gender:</th><td>${record.Gender || 'N/A'}</td></tr>
-                <tr><th>Loan Cycle:</th><td>${record.Loan_Cycle || 'N/A'}</td></tr>
-                <tr><th>Relation with Borrower:</th><td>${record.Student_Relation_With_Borrower || 'N/A'}</td></tr>
+                <tr><th>Bank Name:</th><td>N/A</td></tr>
+                <tr><th>Branch Name:</th><td>${record.Branch_Name || 'N/A'}</td></tr>
+                <tr><th>Student Name/Co-Borrower:</th><td>${record.Student_Name || 'N/A'}</td></tr>
+                <tr><th>Student Relation with Borrower:</th><td>${record.Student_Relation_With_Borrower || 'N/A'}</td></tr>
+                <tr><th>Student Co-Borrower DOB / Age:</th><td>N/A</td></tr>
+                <tr><th>Student Co-Borrower Gender:</th><td>${record.Student_Co_Borrower_Gender || 'N/A'}</td></tr>
             </table>
         </div>
     `;
@@ -631,8 +635,9 @@
                         {% endfor %}
                     </select>
                 </td></tr>
-                <tr><th>Business Premises:</th><td>${record.Business_Premises || 'N/A'}</td><td></td></tr>
-                <tr><th>Experience:</th><td>${record['Business Experiense'] || 'N/A'}</td><td>
+                <tr><th>Purpose of the Loan:</th><td>${record.Purpose_Of_Loan || 'N/A'}</td><td></td></tr>
+                <tr><th>Enterprise Premises:</th><td>${record.Enterprise_Premises || 'N/A'}</td><td></td></tr>
+                <tr><th>Experience Start Date:</th><td>${record.Business_Experiense_Since || 'N/A'}</td><td>
                     <select class="form-select form-select-sm" id="experience">
                         <option value="">Select</option>
                         {% for item in result.experience_ranges_list %}
@@ -643,10 +648,11 @@
                     </select>
                 </td></tr>
                 <tr><th>Credit History ECIB:</th><td>${record.Credit_History_Ecib || 'N/A'}</td><td></td></tr>
-                <tr><th>Annual Business Income:</th><td>${record['Annual Business Incomes'] || 'N/A'}</td><td></td></tr>
-                <tr><th>Annual Disposable Income:</th><td>${record['Annual Disposable Income'] || 'N/A'}</td><td></td></tr>
+                <tr><th>Annual Business Income:</th><td>${record.Annual_Business_Incomes || 'N/A'}</td><td></td></tr>
+                <tr><th>Annual Expenses:</th><td>${record.Annual_Expenses || 'N/A'}</td><td></td></tr>
+                <tr><th>Annual Disposable Income:</th><td>${record.Annual_Disposable_Income || 'N/A'}</td><td></td></tr>
                 <tr><th>Monthly Repayment Capacity:</th><td>${record.Monthly_Repayment_Capacity || 'N/A'}</td><td></td></tr>
-                <tr><th>Debt Burden Ratio DBR:</th><td>${record.Dbr || 'N/A'}</td><td></td></tr>
+                <tr><th>Debt Burden Ratio (DBR):</th><td>${record.Dbr || 'N/A'}</td><td></td></tr>
             </table>
         </div>
     `;
@@ -762,6 +768,7 @@
                         <option value="1" ${record.status === '1' ? 'selected' : ''}>Pending</option>
                         <option value="2" ${record.status === '2' ? 'selected' : ''}>Approved</option>
                         <option value="3" ${record.status === '3' ? 'selected' : ''}>Rejected</option>
+                        <option value="4" ${record.status === '4' ? 'selected' : ''}>Reviewed</option>
                     </select>
                 </td></tr>
                 <tr><th>Notes:</th><td>
