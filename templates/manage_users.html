@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Manage Users</title>
+    <title>Manage Volunteers</title>
     {% include 'head.html' %}
     <style>
         body {
@@ -160,7 +160,7 @@
 <body>
     {% include 'navbar.html' %}
     {% import 'breadcrumbs.html' as brd %}
-    {{ brd.render_Breadcrumbs([{"url":"", "label":"Manage Users"}]) }}
+    {{ brd.render_Breadcrumbs([{"url":"", "label":"Manage Volunteers"}]) }}
 
     <div class="container">
         {% include 'message_box.html' %}
@@ -169,10 +169,10 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3 p-3">
                     <div>
-                        <h2>Manage Users</h2>
+                        <h2>Manage Volunteers</h2>
                     </div>
                     <div>
-                        <a href="{{ url_for('add_edit_user') }}" class="btn btn-primary">Add User</a>
+                        <a href="{{ url_for('add_edit_user') }}" class="btn btn-primary">Add Volunteer</a>
                     </div>
                 </div>
                 <div class="table-responsive">
@@ -222,7 +222,7 @@
                                        data-orientation="{{ user.orientation_completed_on or '-' }}"
                                        data-manager-id="{{ user.manager_id or '-' }}"
                                        data-branch="{{ user.assigned_branch or '-' }}"
-                                       data-active="{{ 'Yes' if user.active == '1' else 'No' }}"
+                                       data-active="{{ 'Active' if user.active == '1' else 'In-Active' }}"
                                        data-created-by="{{ user.createdBy or '-' }}"
                                        data-created-date="{{ user.created_date or '-' }}"
                                        data-date-of-retirement="{{ user.date_of_retirement or '-' }}"
@@ -251,7 +251,7 @@
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="userDetailsModalLabel">User Details</h5>
+                        <h5 class="modal-title" id="userDetailsModalLabel">Volunteer Details</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
@@ -291,7 +291,7 @@
                                     <dt>Manager ID</dt>
                                     <dd id="modal-manager-id"></dd>
                                     <dt>Assigned Branch</dt>
-                                    <dt>Active</dt>
+                                    <dt>Status</dt>
                                     <dd id="modal-active"></dd>
                                     <dt>Created By</dt>
                                     <dd id="modal-created-by"></dd>
@@ -319,13 +319,13 @@
 
     <script>
         function confirmDelete(userId) {
-            if (confirm('Are you sure you want to delete this user?')) {
+            if (confirm('Are you sure you want to delete this Volunteer?')) {
                 window.location.href = '{{ url_for("delete_user") }}?user_id=' + userId;
             }
         }
 
         function confirmDeletePrivilege(privilegeId) {
-            if (confirm('Are you sure you want to delete this user privilege?')) {
+            if (confirm('Are you sure you want to delete this Volunteer privilege?')) {
                 window.location.href = '{{ url_for("delete_user_privilege") }}?privilege_id=' + privilegeId;
             }
         }

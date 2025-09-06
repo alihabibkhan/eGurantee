@@ -64,25 +64,46 @@
                 <form method="POST" action="{{ url_for('add_edit_user_service_term', privilege_id=result.privilege_id) if result.privilege_id else url_for('add_edit_user_service_term') }}">
                     <div class="form-row">
                         <div class="mb-3">
-                            <label class="form-label">Term</label>
+                            <label class="form-label">Service</label>
                             <select class="form-select" name="term" required>
                                 <option value="" disabled {{ 'selected' if not result.term else '' }}>[Select...]</option>
                                 <option value="First Term" {{ 'selected' if result.term and result.term.term == 'First Term' else '' }}>First Term</option>
                                 <option value="Second Term" {{ 'selected' if result.term and result.term.term == 'Second Term' else '' }}>Second Term</option>
                                 <option value="Third Term" {{ 'selected' if result.term and result.term.term == 'Third Term' else '' }}>Third Term</option>
                                 <option value="Additional Term" {{ 'selected' if result.term and result.term.term == 'Additional Term' else '' }}>Additional Term</option>
-                                <option value="Life Time" {{ 'selected' if result.term and result.term.term == 'Life Time' else '' }}>Life Time</option>
                             </select>
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="mb-3">
-                            <label class="form-label">From Date</label>
+                            <label class="form-label">Tenure Cap</label>
+                            <select class="form-select" name="tenure_cap" required>
+                                <option value="" disabled {{ 'selected' if not result.term else '' }}>[Select...]</option>
+                                <option value="1year" {{ 'selected' if result.term and result.term.tenure_cap == '1year' else '' }}>One Year</option>
+                                <option value="2years" {{ 'selected' if result.term and result.term.tenure_cap == '2years' else '' }}>Two Years</option>
+                                <option value="3years" {{ 'selected' if result.term and result.term.tenure_cap == '3years' else '' }}>Three Years</option>
+                                <option value="Lifetime" {{ 'selected' if result.term and result.term.tenure_cap == 'Lifetime' else '' }}>Life Time</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="mb-3">
+                            <label class="form-label">Start From</label>
                             <input type="date" class="form-control" name="from_date" value="{{ result.term.from_date if result.term and result.term.from_date else '' }}" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">To Date</label>
+                            <label class="form-label">Proposed End Date</label>
                             <input type="date" class="form-control" name="to_date" value="{{ result.term.to_date if result.term and result.term.to_date else '' }}">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="mb-3">
+                            <label class="form-label">Actual End Date</label>
+                            <input type="date" class="form-control" name="actual_end_date" value="{{ result.term.actual_end_date if result.term and result.term.actual_end_date else '' }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Month Served</label>
+                            <input type="text" class="form-control" name="month_served" value="{{ result.term.month_served if result.term and result.term.month_served else '' }}">
                         </div>
                     </div>
                     <div class="d-grid">
@@ -93,5 +114,77 @@
             </div>
         </div>
     </div>
+    <script>
+        function updateProposedEndDate() {
+            const fromDateInput = document.querySelector('input[name="from_date"]');
+            const tenureCapSelect = document.querySelector('select[name="tenure_cap"]');
+            const toDateInput = document.querySelector('input[name="to_date"]');
+
+            const fromDateValue = fromDateInput.value;
+            const tenureValue = tenureCapSelect.value;
+
+            if (fromDateValue && tenureValue) {
+                if (tenureValue === "Lifetime") {
+                    toDateInput.value = "";
+                } else {
+                    const years = parseInt(tenureValue.replace(/[^0-9]/g, ''));
+                    const startDate = new Date(fromDateValue);
+                    const endDate = new Date(startDate);
+                    endDate.setFullYear(startDate.getFullYear() + years);
+                    toDateInput.value = endDate.toISOString().split('T')[0];
+                }
+            }
+        }
+
+        function updateMonthsServed() {
+            const fromDateInput = document.querySelector('input[name="from_date"]');
+            const actualEndDateInput = document.querySelector('input[name="actual_end_date"]');
+            const monthServedInput = document.querySelector('input[name="month_served"]');
+
+            const fromDateValue = fromDateInput.value;
+            const actualEndDateValue = actualEndDateInput.value;
+
+            if (!fromDateValue) return;
+
+            const startDate = new Date(fromDateValue);
+            const currentDate = new Date(2025, 8, 5); // September 05, 2025 (month is 0-based)
+            let endDate;
+
+            if (actualEndDateValue) {
+                endDate = new Date(actualEndDateValue);
+            } else {
+                endDate = currentDate;
+            }
+
+            // If actual end date is in the future, use current date
+            if (endDate > currentDate) {
+                endDate = currentDate;
+            }
+
+            // Calculate inclusive months
+            if (endDate >= startDate) {
+                const yearDiff = endDate.getFullYear() - startDate.getFullYear();
+                const monthDiff = endDate.getMonth() - startDate.getMonth();
+                const months = (yearDiff * 12) + monthDiff + 1;
+                monthServedInput.value = months;
+            } else {
+                monthServedInput.value = 0;
+            }
+        }
+
+        // Add event listeners
+        document.querySelector('input[name="from_date"]').addEventListener('change', () => {
+            updateProposedEndDate();
+            updateMonthsServed();
+        });
+
+        document.querySelector('select[name="tenure_cap"]').addEventListener('change', updateProposedEndDate);
+
+        document.querySelector('input[name="actual_end_date"]').addEventListener('change', updateMonthsServed);
+
+        // Initial call in case of edit mode with pre-filled values
+        updateProposedEndDate();
+        updateMonthsServed();
+    </script>
 </body>
 </html>

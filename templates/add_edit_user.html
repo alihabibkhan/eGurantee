@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>{{ 'Edit User' if result.user_id else 'Add User' }}</title>
+    <title>{{ 'Edit Volunteer' if result.user_id else 'Add Volunteer' }}</title>
     {% include 'head.html' %}
     <style>
         .card {
@@ -115,7 +115,7 @@
 <body>
     {% include 'navbar.html' %}
     {% import 'breadcrumbs.html' as brd %}
-    {{ brd.render_Breadcrumbs([{"url": 'manage_users', "label": "Manage Users"}, {"url": "", "label": 'Edit User' if result.user_id else 'Add User' }]) }}
+    {{ brd.render_Breadcrumbs([{"url": 'manage_users', "label": "Manage Volunteer"}, {"url": "", "label": 'Edit Volunteer' if result.user_id else 'Add Volunteer' }]) }}
 
     <div class="container">
         {% include 'message_box.html' %}
@@ -124,14 +124,14 @@
             <div class="card-body">
                 <ul class="nav nav-tabs nav-tabs-solid nav-justified" id="userTabs" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="user-info-tab" data-bs-toggle="tab" data-bs-target="#user-info" type="button" role="tab" aria-controls="user-info" aria-selected="true">User Info</button>
+                        <button class="nav-link active" id="user-info-tab" data-bs-toggle="tab" data-bs-target="#user-info" type="button" role="tab" aria-controls="user-info" aria-selected="true">Volunteer Info</button>
                     </li>
                     {% if result.user_id %}
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="user-privileges-tab" data-bs-toggle="tab" data-bs-target="#user-privileges" type="button" role="tab" aria-controls="user-privileges" aria-selected="false">User Roles & Responsibilities</button>
+                        <button class="nav-link" id="user-privileges-tab" data-bs-toggle="tab" data-bs-target="#user-privileges" type="button" role="tab" aria-controls="user-privileges" aria-selected="false">Volunteer Roles & Responsibilities</button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="user-service-terms-tab" data-bs-toggle="tab" data-bs-target="#user-service-terms" type="button" role="tab" aria-controls="user-service-terms" aria-selected="false">User Service Terms</button>
+                        <button class="nav-link" id="user-service-terms-tab" data-bs-toggle="tab" data-bs-target="#user-service-terms" type="button" role="tab" aria-controls="user-service-terms" aria-selected="false">Volunteer Service Terms</button>
                     </li>
                     {% endif %}
                 </ul>
@@ -141,7 +141,7 @@
                         <form method="POST" action="{{ url_for('add_edit_user', user_id=result.user_id) if result.user_id else url_for('add_edit_user') }}" enctype="multipart/form-data">
                             <div class="form-row">
                                 <div class="mb-3">
-                                    <label class="form-label">Name{{ result.user.name if result.user else '' }}</label>
+                                    <label class="form-label">Name</label>
                                     <input type="text" class="form-control" name="name" value="{{ result.user.name if result.user else '' }}" required>
                                 </div>
                                 <div class="mb-3">
@@ -212,11 +212,11 @@
                             </div>
                             <div class="form-row">
                                 <div class="mb-3">
-                                    <label class="form-label">Assigned Branch</label>
+                                    <label class="form-label">Assigned Branch Role</label>
                                     <select class="form-select" name="assigned_branch">
                                         <option value="" {{ 'selected' if not result.user or not result.user.assigned_branch else '' }}>[Select...]</option>
                                         {% for branch in result.get_all_branches_info %}
-                                            <option value="{{ branch['branch_id'] }}" {{ 'selected' if result.user and result.user.assigned_branch == branch['branch_id'] else '' }}>{{ branch['branch_name'] }}</option>
+                                            <option value="{{ branch['role'] }}" {{ 'selected' if result.user and result.user.assigned_branch == branch['role'] else '' }}>{{ branch['branch_name'] }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>
@@ -231,6 +231,7 @@
                                     <select class="form-select" name="signature" required>
                                         <option value="1" {{ 'selected' if result.user and result.user.signature == '1' else '' }}>Yes</option>
                                         <option value="0" {{ 'selected' if result.user and result.user.signature == '0' else '' }}>No</option>
+
                                     </select>
                                 </div>
                                 <div class="mb-3">
@@ -248,6 +249,7 @@
                                     <select class="form-select" name="active" id="ddl_active" required>
                                         <option value="1" {{ 'selected' if result.user and result.user.active == 1 else '' }}>Yes</option>
                                         <option value="0" {{ 'selected' if result.user and result.user.active == 0 else '' }}>No</option>
+                                        <option value="2" {{ 'selected' if result.user and result.user.signature == '2' else '' }}>On Leave</option>
                                     </select>
                                 </div>
                             </div>
@@ -323,9 +325,9 @@
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
-                                        <th>Term</th>
-                                        <th>From Date</th>
-                                        <th>To Date</th>
+                                        <th>Service</th>
+                                        <th>Start From</th>
+                                        <th>Proposed End Date</th>
                                         <th>Status</th>
                                         <th>Modified By</th>
                                         <th>Modified Date</th>

@@ -141,7 +141,7 @@
                         <table class="table text-center table-hover table-striped">
                             <thead>
                                 <tr>
-                                    <th>Branch</th>
+                                    <!--<th>Branch</th>-->
                                     <th>Product Name</th>
                                     <th>Occupation</th>
                                     <th>Experience</th>
@@ -153,7 +153,6 @@
                             <tbody>
                                 {% for metric in result.get_all_loan_metrics %}
                                 <tr>
-                                    <td class="text-truncate" style="max-width:150px;" title="{{ metric.branch_name }}">{{ metric.branch_name }}</td>
                                     <td class="text-truncate" style="max-width:150px;" title="{{ metric.product_name }}">{{ metric.product_name }}</td>
                                     <td class="text-truncate" style="max-width:150px;" title="{{ metric.occupation_name }}">{{ metric.occupation_name }}</td>
                                     <td class="text-truncate" style="max-width:150px;" title="{{ metric.experience_label }}">{{ metric.experience_label }}</td>
