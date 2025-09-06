@@ -467,17 +467,25 @@
             const proposedLoanMetric = findMatchingLoanMetric(loanMetrics, productCode, applicantGender);
             console.log(proposedLoanMetric);
 
-            const interest_rate = proposedLoanMetric[0].interest_rate || 0;
-            console.log(interest_rate);
+            let interest_rate = 0;
+            let loanCeilingLoanMetrics = 0;
+            let requiredPaidOffPerLoanMetrics = 0;
+            let repeatIncrementPerLoanMetrics = 0;
 
-            const loanCeilingLoanMetrics = proposedLoanMetric[0].global_loan_ceiling || 0;
-            console.log(loanCeilingLoanMetrics);
+            if(proposedLoanMetric.length)
+            {
+                interest_rate = proposedLoanMetric[0].interest_rate || 0;
+                console.log(interest_rate);
 
-            requiredPaidOffPerLoanMetrics =  proposedLoanMetric[0].required_paid_off || 0;
-            console.log(requiredPaidOffPerLoanMetrics);
+                loanCeilingLoanMetrics = proposedLoanMetric[0].global_loan_ceiling || 0;
+                console.log(loanCeilingLoanMetrics);
 
-            const repeatIncrementPerLoanMetrics = proposedLoanMetric[0].repeat_increment || 0;
-            console.log(repeatIncrementPerLoanMetrics);
+                requiredPaidOffPerLoanMetrics =  proposedLoanMetric[0].required_paid_off || 0;
+                console.log(requiredPaidOffPerLoanMetrics);
+
+                repeatIncrementPerLoanMetrics = proposedLoanMetric[0].repeat_increment || 0;
+                console.log(repeatIncrementPerLoanMetrics);
+            }
 
             const modalBody = document.getElementById('temp-modal-body');
             modalBody.innerHTML = '';
