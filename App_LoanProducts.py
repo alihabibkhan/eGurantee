@@ -26,7 +26,7 @@ def add_edit_loan_product(product_id=None):
 
         if product_id:
             query = f"""
-                SELECT product_id, name, gender, description, status, created_by, created_date, modified_by, modified_date
+                SELECT product_id, product_code, name, gender, description, status, created_by, created_date, modified_by, modified_date
                 FROM tbl_loan_products 
                 WHERE product_id = '{product_id}' AND status = '1'
             """

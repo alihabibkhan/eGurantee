@@ -88,13 +88,13 @@ from imports import *
 def get_all_pre_disbursement_temp():
     sql_part_temp = ''
 
-    if get_current_user_role() != '4':
-        sql_part_temp = """
+    if get_current_user_role() == '1':
+        sql_part_temp = f"""
             INNER JOIN tbl_branches b on pdt."Branch_Name" LIKE CONCAT('%', b."branch_code", '%') AND b."live_branch" = '1'
-            INNER JOIN tbl_users u on u.assigned_branch = b.branch_id and u."active" = '1'
+            INNER JOIN tbl_users u on u.assigned_branch = b.role and u."active" = '1'
             LEFT JOIN tbl_users u1 ON u1."user_id" = pdt."uploaded_by"
             LEFT JOIN tbl_users u2 ON u2."user_id" = pdt."approved_by"
-            WHERE u.rights = '""" + str(get_current_user_role()) + """'
+            pdt.status in ('1', '4')
         """
     else:
         sql_part_temp = """
@@ -153,6 +153,9 @@ def get_all_pre_disbursement_temp():
             pdt."Student_Relation_With_Borrower",
             pdt."Tenor_Of_Month",
             pdt."Type_of_Business",
+            pdt.reviewed_date,
+            pdt.reviewed_by,
+            pdt.Existing_Loan_Exposure_Per_ECIB,
             pdt."annual_income",
             pdt."notes",
             pdt."status",

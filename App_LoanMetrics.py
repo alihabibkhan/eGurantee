@@ -31,7 +31,7 @@ def add_edit_loan_metric(loan_metric_id=None):
         if loan_metric_id:
             query = f"""
                 SELECT loan_metric_id, product_id, occupation_id, experience_id, branch_id,
-                       global_loan_ceiling, repeat_increment, is_active, status,
+                       global_loan_ceiling, repeat_increment, required_paid_off, interest_rate, is_active, status,
                        created_by, created_date, modified_by, modified_date
                 FROM tbl_loan_metrics 
                 WHERE loan_metric_id = '{loan_metric_id}' AND is_active = '1' AND status = '1'
@@ -50,6 +50,8 @@ def add_edit_loan_metric(loan_metric_id=None):
             branch_id = request.form.get('branch_id')
             global_loan_ceiling = request.form.get('global_loan_ceiling')
             repeat_increment = request.form.get('repeat_increment')
+            interest_rate = request.form.get('interest_rate')
+            required_paid_off = request.form.get('required_paid_off')
             is_active = request.form.get('is_active')
 
             current_user_id = str(get_current_user_id())
@@ -60,7 +62,7 @@ def add_edit_loan_metric(loan_metric_id=None):
                     UPDATE tbl_loan_metrics 
                     SET product_id = '{product_id}', occupation_id = '{occupation_id}', 
                         experience_id = '{experience_id}', branch_id = '{branch_id}', 
-                        global_loan_ceiling = '{global_loan_ceiling}', repeat_increment = '{repeat_increment}', 
+                        global_loan_ceiling = '{global_loan_ceiling}', repeat_increment = '{repeat_increment}', interest_rate = '{interest_rate}', required_paid_off = '{required_paid_off}', 
                         is_active = '{is_active}', status = '{str(1)}', 
                         modified_by = '{current_user_id}', modified_date = '{current_timestamp}'
                     WHERE loan_metric_id = '{loan_metric_id}'
@@ -71,11 +73,11 @@ def add_edit_loan_metric(loan_metric_id=None):
                 insert_query = f"""
                     INSERT INTO tbl_loan_metrics (
                         product_id, occupation_id, experience_id, branch_id, 
-                        global_loan_ceiling, repeat_increment, is_active, status, 
+                        global_loan_ceiling, repeat_increment, required_paid_off, interest_rate, is_active, status, 
                         created_by, created_date, modified_by, modified_date
                     ) VALUES (
                         '{product_id}', '{occupation_id}', '{experience_id}', '{branch_id}', 
-                        '{global_loan_ceiling}', '{repeat_increment}', '{is_active}', '{str(1)}', 
+                        '{global_loan_ceiling}', '{repeat_increment}', '{required_paid_off}', '{interest_rate}', '{is_active}', '{str(1)}', 
                         '{current_user_id}', '{current_timestamp}', '{current_user_id}', '{current_timestamp}'
                     )
                 """

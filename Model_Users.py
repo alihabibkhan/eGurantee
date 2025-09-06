@@ -72,7 +72,7 @@ def get_all_user_service_terms():
     """
     query = """
         SELECT DISTINCT 
-            t.id, t.user_id, t.term, t.from_date, t.to_date, t.status,
+            t.id, t.user_id, t.term, t.from_date, t.to_date, t.status, t.tenure_cap, t.actual_end_date, t.month_served,
             t.created_date, t.modified_date, u2.name AS modified_by_name
         FROM tbl_user_service_terms t
         INNER JOIN tbl_users u ON t.user_id = u.user_id
@@ -95,7 +95,7 @@ def get_all_user_service_terms_by_user_id(user_id):
     """
     query = f"""
         SELECT DISTINCT 
-            t.id, t.user_id, t.term, t.from_date, t.to_date, t.status,
+            t.id, t.user_id, t.term, t.from_date, t.to_date, t.status, t.tenure_cap, t.actual_end_date, t.month_served,
             t.created_date, t.modified_date, u2.name AS modified_by_name
         FROM tbl_user_service_terms t
         INNER JOIN tbl_users u ON t.user_id = u.user_id

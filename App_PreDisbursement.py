@@ -11,6 +11,7 @@ def manage_pre_disbursement():
                 'is_user_have_sign': is_user_have_sign(),
                 'occupation_list': get_all_occupations(),
                 'experience_ranges_list': get_all_experience_ranges(),
+                'get_all_loan_metrics': get_all_loan_metrics(),
                 'is_reviewer': is_reviewer()
             }
             return render_template('manage_pre_disbursement.html', result=content)
@@ -36,12 +37,23 @@ def update_pre_disbursement_temp():
         if not pre_disb_temp_id or not status:
             return jsonify({'success': False, 'error': 'Missing required fields'}), 400
 
-        query = f"""
-           UPDATE tbl_pre_disbursement_temp
-           SET status = '{str(status)}', Notes = '{str(notes)}',
-           approved_by = '{str(approved_by)}', approved_date = '{str(approved_date)}'
-           WHERE pre_disb_temp_id = '{str(pre_disb_temp_id)}'
-        """
+        query = ''
+
+        if status != '4':
+            query = f"""
+               UPDATE tbl_pre_disbursement_temp
+               SET status = '{str(status)}', Notes = '{str(notes)}',
+               approved_by = '{str(approved_by)}', approved_date = '{str(approved_date)}'
+               WHERE pre_disb_temp_id = '{str(pre_disb_temp_id)}'
+            """
+        else:
+            query = f"""
+               UPDATE tbl_pre_disbursement_temp
+               SET status = '{str(status)}', Notes = '{str(notes)}',
+               reviewed_by = '{str(approved_by)}', reviewed_date = '{str(approved_date)}'
+               WHERE pre_disb_temp_id = '{str(pre_disb_temp_id)}'
+            """
+
         execute_command(query)
 
         if status == '2':

@@ -293,6 +293,9 @@ def add_edit_user_service_term(term_id=None):
     if request.method == 'POST':
         user_id = request.form.get('hdn_user_id')
         term = request.form.get('term')
+        tenure_cap = request.form.get('tenure_cap')
+        actual_end_date = request.form.get('actual_end_date')
+        month_served = request.form.get('month_served')
         from_date = request.form.get('from_date')
         to_date = request.form.get('to_date')
         status = request.form.get('status', 1)  # Default to 1 if not provided
@@ -305,14 +308,14 @@ def add_edit_user_service_term(term_id=None):
                 UPDATE tbl_user_service_terms
                 SET user_id = '{user_id}', term = '{term}', from_date = '{from_date}',
                     to_date = {'NULL' if not to_date else f"'{to_date}'"}, status = {status},
-                    modified_by = '{modified_by}', modified_date = '{current_time}'
+                    modified_by = '{modified_by}', modified_date = '{current_time}', tenure_cap = '{tenure_cap}', actual_end_date = '{actual_end_date}', month_served = '{month_served}' 
                 WHERE id = '{term_id}'
             """
         else:
             query = f"""
-                INSERT INTO tbl_user_service_terms (user_id, term, from_date, to_date, status, created_by, created_date, modified_by, modified_date)
+                INSERT INTO tbl_user_service_terms (user_id, term, from_date, to_date, status, created_by, created_date, modified_by, modified_date, tenure_cap, actual_end_date, month_served)
                 VALUES ('{user_id}', '{term}', '{from_date}', {'NULL' if not to_date else f"'{to_date}'"},
-                        {status}, '{created_by}', '{current_time}', '{modified_by}', '{current_time}')
+                        {status}, '{created_by}', '{current_time}', '{modified_by}', '{current_time}', '{tenure_cap}', '{actual_end_date}', '{month_served}')
             """
         execute_command(query)
         flash('User service term saved successfully.', 'success')
