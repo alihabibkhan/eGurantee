@@ -52,7 +52,7 @@
                             <tbody>
                                 {% for product in result.get_all_loan_products %}
                                 <tr>
-                                    <td>{{ product.name }}</td>
+                                    <td>{{ product.name }} ({{product.gender}})</td>
                                     <td>{{ product.product_code or '' }}</td>
                                     <td class="text-truncate" style="max-width: 150px;">{{ product.description }}</td>
                                     <td>{{ product.created_by }}</td>
@@ -120,7 +120,7 @@
                                 <tr>
                                     <td>{{ range.label }}</td>
                                     <td>{{ range.min_years }}</td>
-                                    <td>{{ range.max_years }}</td>>
+                                    <td>{{ range.max_years }}</td>
                                     <td>{{ range.created_by }}</td>
                                     <td>{{ range.modified_by }}</td>
                                     <td>{{ range.modified_date|format_date }}</td>
@@ -153,7 +153,7 @@
                             <tbody>
                                 {% for metric in result.get_all_loan_metrics %}
                                 <tr>
-                                    <td class="text-truncate" style="max-width:150px;" title="{{ metric.product_name }}">{{ metric.product_name }}</td>
+                                    <td class="text-truncate" style="max-width:150px;" title="{{ metric.product_name }}">{{ metric.product_name }} ({{ metric.gender }})</td>
                                     <td class="text-truncate" style="max-width:150px;" title="{{ metric.occupation_name }}">{{ metric.occupation_name }}</td>
                                     <td class="text-truncate" style="max-width:150px;" title="{{ metric.experience_label }}">{{ metric.experience_label }}</td>
                                     <td class="text-truncate" style="max-width:150px;" title="{{ metric.global_loan_ceiling }}">{{ metric.global_loan_ceiling }}</td>

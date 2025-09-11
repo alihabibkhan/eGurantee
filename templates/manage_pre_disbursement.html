@@ -95,7 +95,7 @@
 
     <div class="mt-3">{% include 'message_box.html' %}</div>
     <div class="container py-4">
-        <h1 class="mb-3">Manage Pre-Disbursement</h1>
+        <h1 class="mb-3 text-muted">Manage Pre-Disbursement</h1>
 
         <!-- Filter Card -->
         <div class="card filter-card">
@@ -109,12 +109,19 @@
                             <label for="status-filter" class="form-label">Status</label>
                             <select class="form-select form-select-sm" id="status-filter">
                                 <option value="all" selected>All</option>
-                                <option value="1">Pending</option>
-                                {% if result.is_reviewer == False %}
-                                    <option value="2">Approved</option>
-                                    <option value="3">Rejected</option>
+                                {% if result.is_reviewer or result.is_approver or result.is_executive_approver or result.is_admin %}
+                                    <option value="1">Under Review</option>
                                 {% endif %}
-                                <option value="4">Reviewed</option>
+
+                                {% if result.is_approver or result.is_executive_approver or result.is_admin %}
+                                    <option value="2">Agreed</option>
+                                    <option value="3">Disagreed</option>
+                                {% endif %}
+
+                                {% if result.is_reviewer or result.is_admin %}
+                                    <option value="4">Recommended for Agreement</option>
+                                    <option value="5">Recommended for Disagreement</option>
+                                {% endif %}
                             </select>
                         </div>
                     </div>
@@ -301,16 +308,28 @@
 
         // Format date
         function formatDate(dateStr) {
-            if (!dateStr) return 'N/A';
-            const date = new Date(dateStr);
+          if (!dateStr) return 'Not Received';
+          const date = new Date(dateStr);
 
-            // Check for invalid date or default placeholder date
-            if (isNaN(date) || date.toLocaleDateString() === '1/1/1900' || date.toLocaleDateString() === '1900/1/1' || dateStr === '1900-01-01 00:00:00') {
-                return 'N/A';
-            }
+          // Check for invalid or placeholder dates
+          if (
+            isNaN(date) ||
+            date.toLocaleDateString() === '1/1/1900' ||
+            date.toLocaleDateString() === '1900/1/1' ||
+            dateStr === '1900-01-01 00:00:00'
+          ) {
+            return 'Not Received';
+          }
 
-            return date.toLocaleDateString();
+          // Format: Apr/21/2025
+          const options = { month: 'short', day: '2-digit', year: 'numeric' };
+          const formatted = date.toLocaleDateString('en-US', options);
+
+          // Replace comma with slash
+          console.log('formatted:- ', formatted)
+          return formatted.replace(', ', '/').replace(' ', '/');
         }
+
 
         // Apply filters
         function applyFilters() {
@@ -357,7 +376,7 @@
 
             pageData.forEach((record, index) => {
                 const row = document.createElement('tr');
-                const statusText = statusMap[record.status] || 'N/A';
+                const statusText = statusMap[record.status] || 'Not Received';
                 let letterButton = '';
                 {% if result.is_user_have_sign %}
                     if (record.status === '2') {
@@ -373,11 +392,11 @@
                     }
                 {% endif %}
                 row.innerHTML = `
-                    <td>${record.Application_No || 'N/A'}</td>
-                    <td>${record['Borrower Name'] || 'N/A'}</td>
-                    <td>${record['Loan_Amount'] || 'N/A'}</td>
+                    <td>${record.Application_No || 'Not Received'}</td>
+                    <td>${record['Borrower Name'] || 'Not Received'}</td>
+                    <td>${record['Loan_Amount'] || 'Not Received'}</td>
                     <td>${formatDate(record.ApplicationDate)}</td>
-                    <td>${record.approved_by || 'N/A'}</td>
+                    <td>${record.approved_by || 'Not Received'}</td>
                     <td title='${record.approved_date}'>${formatDate(record.approved_date)}</td>
                     <td>${statusText}</td>
                     <td>
@@ -459,12 +478,14 @@
         // View record in modal
         function viewRecord(index) {
             const record = filteredData[index];
+            console.log(record)
             const productCode = record.LoanProductCode;
             const applicantGender = record.Gender;
 
             console.log(productCode, applicantGender)
 
             const proposedLoanMetric = findMatchingLoanMetric(loanMetrics, productCode, applicantGender);
+            console.log('proposedLoanMetric:-');
             console.log(proposedLoanMetric);
 
             let interest_rate = 0;
@@ -472,19 +493,19 @@
             let requiredPaidOffPerLoanMetrics = 0;
             let repeatIncrementPerLoanMetrics = 0;
 
-            if(proposedLoanMetric.length)
+            if(proposedLoanMetric)
             {
-                interest_rate = proposedLoanMetric[0].interest_rate || 0;
-                console.log(interest_rate);
+                interest_rate = proposedLoanMetric.interest_rate || 0;
+                console.log('interest_rate:- ', interest_rate);
 
-                loanCeilingLoanMetrics = proposedLoanMetric[0].global_loan_ceiling || 0;
-                console.log(loanCeilingLoanMetrics);
+                loanCeilingLoanMetrics = proposedLoanMetric.global_loan_ceiling || 0;
+                console.log('loanCeilingLoanMetrics:- ', loanCeilingLoanMetrics);
 
-                requiredPaidOffPerLoanMetrics =  proposedLoanMetric[0].required_paid_off || 0;
-                console.log(requiredPaidOffPerLoanMetrics);
+                requiredPaidOffPerLoanMetrics =  proposedLoanMetric.required_paid_off || 0;
+                console.log('requiredPaidOffPerLoanMetrics:- ', requiredPaidOffPerLoanMetrics);
 
-                repeatIncrementPerLoanMetrics = proposedLoanMetric[0].repeat_increment || 0;
-                console.log(repeatIncrementPerLoanMetrics);
+                repeatIncrementPerLoanMetrics = proposedLoanMetric.repeat_increment || 0;
+                console.log('repeatIncrementPerLoanMetrics:- ', repeatIncrementPerLoanMetrics);
             }
 
             const modalBody = document.getElementById('temp-modal-body');
@@ -495,7 +516,7 @@
             const heading = document.createElement('div');
             heading.innerHTML = `
                 <h4 class="bg-primary text-white p-3 mb-3 rounded" style="font-weight: bold; border-left: 5px solid #0052cc;">
-                    Lender & Borrower Information
+                    Bank & Borrower Information
                 </h4>
             `;
             modalBody.appendChild(heading);
@@ -506,22 +527,22 @@
             tableContainer.innerHTML = `
                 <div class="col-md-6">
                     <table class="table table-sm">
-                        <tr><th>Application No:</th><td>${record.Application_No || 'N/A'}</td></tr>
-                        <tr><th>Bank Loan Officer:</th><td>N/A</td></tr>
-                        <tr><th>Borrower Name:</th><td>${record.Borrower_Name || 'N/A'}</td></tr>
-                        <tr><th>CNIC #:</th><td>${record.CNIC || 'N/A'}</td></tr>
-                        <tr><th>Borrower Date of Birth / Age:</th><td>N/A</td></tr>
-                        <tr><th>Borrower - Gender:</th><td>${record.Gender || 'N/A'}</td></tr>
+                        <tr><th>Application No:</th><td>${record.Application_No || 'Not Received'}</td></tr>
+                        <tr><th>Bank Loan Officer:</th><td>Not Received</td></tr>
+                        <tr><th>Borrower Name:</th><td>${record.Borrower_Name || 'Not Received'}</td></tr>
+                        <tr><th>CNIC #:</th><td>${record.CNIC || 'Not Received'}</td></tr>
+                        <tr><th>Borrower Date of Birth / Age:</th><td>Not Received</td></tr>
+                        <tr><th>Borrower - Gender:</th><td>${record.Gender || 'Not Received'}</td></tr>
                     </table>
                 </div>
                 <div class="col-md-6">
                     <table class="table table-sm">
-                        <tr><th>Bank Name:</th><td>N/A</td></tr>
-                        <tr><th>Branch Name:</th><td>${record.Branch_Name || 'N/A'}</td></tr>
-                        <tr><th>Student Name/Co-Borrower:</th><td>${record.Student_Name || 'N/A'}</td></tr>
-                        <tr><th>Student Relation with Borrower:</th><td>${record.Student_Relation_With_Borrower || 'N/A'}</td></tr>
-                        <tr><th>Student Co-Borrower DOB / Age:</th><td>N/A</td></tr>
-                        <tr><th>Student Co-Borrower Gender:</th><td>${record.Student_Co_Borrower_Gender || 'N/A'}</td></tr>
+                        <tr><th>Bank Name:</th><td>Not Received</td></tr>
+                        <tr><th>Branch Name:</th><td>${record.Branch_Name || 'Not Received'}</td></tr>
+                        <tr><th>Student Name/Co-Borrower:</th><td>${record.Student_Name || 'Not Received'}</td></tr>
+                        <tr><th>Student Relation with Borrower:</th><td>${record.Student_Relation_With_Borrower || 'Not Received'}</td></tr>
+                        <tr><th>Student Co-Borrower DOB / Age:</th><td>Not Received</td></tr>
+                        <tr><th>Student Co-Borrower Gender:</th><td>${record.Student_Co_Borrower_Gender || 'Not Received'}</td></tr>
                     </table>
                 </div>
             `;
@@ -603,22 +624,22 @@
                                 let value = '';
                                 switch (heading) {
                                     case 'Product Name:':
-                                        value = record.product_code || 'N/A';
+                                        value = record.product_code || 'Not Received';
                                         break;
                                     case 'Date Disbursed On:':
-                                        value = formatDate(record.booked_on) || 'N/A';
+                                        value = formatDate(record.booked_on) || 'Not Received';
                                         break;
                                     case 'Date Loan Closed on / Last Payment Received on:':
-                                        value = formatDate(record.loan_closed_on) || 'N/A';
+                                        value = formatDate(record.loan_closed_on) || 'Not Received';
                                         break;
                                     case 'Loan Amount:':
-                                        value = record.disbursed_amount || 'N/A';
+                                        value = formatNumber(record.disbursed_amount) || 'Not Received';
                                         break;
                                     case 'Loan Balance (If any):':
-                                        value = record.principal_outstanding || 'N/A';
+                                        value = formatNumber(record.principal_outstanding) || 'Not Received';
                                         break;
                                     case 'NPL Reported (If any):':
-                                        value = record.overdue_days > 0 ? 'Yes' : 'No' || 'N/A';
+                                        value = record.overdue_days > 0 ? 'Yes' : 'No' || 'Not Received';
                                         break;
                                 }
                                 row.innerHTML += `<td>${value}</td>`;
@@ -654,8 +675,8 @@
                         Business Indicators
                     </h5>
                     <table class="table table-sm">
-                        <tr><th>Loan Product:</th><td>${record.LoanProductCode || 'N/A'}</td><td></td></tr>
-                        <tr><th>Nature of Business:</th><td>${record.Nature_Of_Business || 'N/A'}</td><td>
+                        <tr><th>Loan Product:</th><td>${record.LoanProductCode || 'Not Received'}</td><td></td></tr>
+                        <tr><th>Nature of Business:</th><td>${record.Nature_Of_Business || 'Not Received'}</td><td>
                             <select class="form-select form-select-sm" id="nature-of-business">
                                 <option value="">Select</option>
                                 {% for item in result.occupation_list %}
@@ -665,9 +686,9 @@
                                 {% endfor %}
                             </select>
                         </td></tr>
-                        <tr><th>Purpose of the Loan:</th><td>${record.Purpose_Of_Loan || 'N/A'}</td><td></td></tr>
-                        <tr><th>Enterprise Premises:</th><td>${record.Enterprise_Premises || 'N/A'}</td><td></td></tr>
-                        <tr><th>Experience Start Date:</th><td>${record.Business_Experiense_Since || 'N/A'}</td><td>
+                        <tr><th>Purpose of the Loan:</th><td>${record.Purpose_Of_Loan || 'Not Received'}</td><td></td></tr>
+                        <tr><th>Enterprise Premises:</th><td>${record.Enterprise_Premises || 'Not Received'}</td><td></td></tr>
+                        <tr><th>Experience Start Date:</th><td>${formatDate(record.Business_Experiense_Since) || 'Not Received'}</td><td>
                             <select class="form-select form-select-sm" id="experience">
                                 <option value="">Select</option>
                                 {% for item in result.experience_ranges_list %}
@@ -677,12 +698,12 @@
                                 {% endfor %}
                             </select>
                         </td></tr>
-                        <tr><th>Credit History ECIB:</th><td>${record.Credit_History_Ecib || 'N/A'}</td><td></td></tr>
-                        <tr><th>Annual Business Income:</th><td>${record.Annual_Business_Incomes || 'N/A'}</td><td></td></tr>
-                        <tr><th>Annual Expenses:</th><td>${record.Annual_Expenses || 'N/A'}</td><td></td></tr>
-                        <tr><th>Annual Disposable Income:</th><td>${record.Annual_Disposable_Income || 'N/A'}</td><td></td></tr>
-                        <tr><th>Monthly Repayment Capacity:</th><td>${record.Monthly_Repayment_Capacity || 'N/A'}</td><td></td></tr>
-                        <tr><th>Debt Burden Ratio (DBR):</th><td>${record.Dbr || 'N/A'}</td><td></td></tr>
+                        <tr><th>Credit History ECIB:</th><td>${record.Credit_History_Ecib || 'Not Received'}</td><td></td></tr>
+                        <tr><th>Annual Business Income:</th><td>${formatNumber(record.Annual_Business_Incomes) || 'Not Received'}</td><td></td></tr>
+                        <tr><th>Annual Expenses:</th><td>${formatNumber(record.Annual_Expenses)|| 'Not Received'}</td><td></td></tr>
+                        <tr><th>Annual Disposable Income:</th><td>${formatNumber(record.Annual_Disposable_Income) || 'Not Received'}</td><td></td></tr>
+                        <tr><th>Monthly Repayment Capacity:</th><td>${record.Monthly_Repayment_Capacity || 'Not Received'}</td><td></td></tr>
+                        <tr><th>Debt Burden Ratio (DBR):</th><td>${record.Dbr || 'Not Received'}</td><td></td></tr>
                     </table>
                 </div>
             `;
@@ -694,12 +715,12 @@
             familyInfo.innerHTML = `
                 <div class="col-md-12">
                     <h5 class="bg-success text-white p-2 mb-2 rounded" style="font-weight: bold; border-left: 4px solid #28a745;">
-                        Family Info
+                        Family Information
                     </h5>
                     <table class="table table-sm">
-                        <tr><th>Family Monthly Income:</th><td>${record.Family_Monthly_Income || 'N/A'}</td></tr>
-                        <tr><th>No of Family Members:</th><td>${record.No_Of_Family_Members || 'N/A'}</td></tr>
-                        <tr><th>Residence Type:</th><td>${record.Residance_Type || 'N/A'}</td></tr>
+                        <tr><th>Family Monthly Income:</th><td>${formatNumber(record.Family_Monthly_Income) || 'Not Received'}</td></tr>
+                        <tr><th>No of Family Members:</th><td>${record.No_Of_Family_Members || 'Not Received'}</td></tr>
+                        <tr><th>Residence Type:</th><td>${record.Residance_Type || 'Not Received'}</td></tr>
                     </table>
                 </div>
             `;
@@ -717,11 +738,11 @@
                     <table class="table table-sm">
                         <tr>
                             <th>Purpose of the Loan:</th>
-                            <td>${record.Purpose_Of_Loan || 'N/A'}</td>
+                            <td>${record.Purpose_Of_Loan || 'Not Received'}</td>
                         </tr>
-                        <tr><th>Borrower Requested Loan Amount:</th><td>${record.Requested_Loan_Amount || 'N/A'}</td></tr>
-                        <tr><th>BCC Approved Loan Amount:</th><td>${record.Loan_Amount || 'N/A'}</td></tr>
-                        <tr><th>Bank Tenur of Loan (In Months):</th><td>${record.Tenor_Of_Month || 'N/A'}</td></tr>
+                        <tr><th>Borrower Requested Loan Amount:</th><td>${record.Requested_Loan_Amount || 'Not Received'}</td></tr>
+                        <tr><th>BCC Approved Loan Amount:</th><td>${record.Loan_Amount || 'Not Received'}</td></tr>
+                        <tr><th>Bank Tenur of Loan (In Months):</th><td>${record.Tenor_Of_Month || 'Not Received'}</td></tr>
                         <tr><th>Bank Repayment Term (Monthly / Quarterly / Bullet):</th><td>Not Applicable</td></tr>
                     </table>
                 </div>
@@ -733,7 +754,7 @@
             const kftLoanHeading = document.createElement('div');
             kftLoanHeading.innerHTML = `
                 <h4 class="bg-primary text-white p-3 mb-3 mt-4 rounded" style="font-weight: bold; border-left: 5px solid #0052cc;">
-                    Loan Calculator & KFT Approved Loan Terms
+                    Loan Calculator & KFT Loan Matrix
                 </h4>
             `;
             modalBody.appendChild(kftLoanHeading);
@@ -744,35 +765,39 @@
             calculatorMathsPaidOff.innerHTML = `
                 <div class="col-md-12">
                     <h5 class="bg-info text-white p-2 mb-2 rounded" style="font-weight: bold; border-left: 4px solid #007bff;">
-                        Paid Off %
+                        KFT Required Paid off % for Repeat Loan
                     </h5>
-                    ${generateLoanStatusTable(record, requiredPaidOffPerLoanMetrics)}
+
+                    <table class="table table-sm" id="tableCalculatorMathsPaidOff">
+                    </table>
                 </div>
             `;
             modalBody.appendChild(calculatorMathsPaidOff);
 
-            // Table for Loan Ceiling
+            // Table for KFT Required Loan Exposure
             const calculatorMathsLoanCeiling = document.createElement('div');
             calculatorMathsLoanCeiling.className = 'row mt-3';
             calculatorMathsLoanCeiling.innerHTML = `
                 <div class="col-md-12">
                     <h5 class="bg-info text-white p-2 mb-2 rounded" style="font-weight: bold; border-left: 4px solid #007bff;">
-                        Loan Ceiling
+                        KFT Required Loan Exposure
                     </h5>
-                    ${generateLoanCeilingTable(record, loanCeilingLoanMetrics)}
+                    <table class="table table-sm" id="tableCalculatorMathsLoanCeiling">
+                    </table>
                 </div>
             `;
             modalBody.appendChild(calculatorMathsLoanCeiling);
 
-            // Table for Loan Limit
+            // Table for Loan Limit Per KFT Matrix
             const calculatorMathsLoanLimit = document.createElement('div');
             calculatorMathsLoanLimit.className = 'row mt-3';
             calculatorMathsLoanLimit.innerHTML = `
                 <div class="col-md-12">
                     <h5 class="bg-info text-white p-2 mb-2 rounded" style="font-weight: bold; border-left: 4px solid #007bff;">
-                        Loan Limit
+                        Loan Limit Per KFT Matrix
                     </h5>
-                    ${generateLoanLimitTable(record, repeatIncrementPerLoanMetrics)}
+                    <table class="table table-sm" id="tableCalculatorMathsLoanLimit">
+                    </table>
                 </div>
             `;
             modalBody.appendChild(calculatorMathsLoanLimit);
@@ -783,33 +808,40 @@
             kftAcceptedLoanTerms.innerHTML = `
                 <div class="col-md-12">
                     <h5 class="bg-success text-white p-2 mb-2 rounded" style="font-weight: bold; border-left: 4px solid #28a745;">
-                        KFT Approved Terms
+                        KFT Agreed Terms
                     </h5>
                     <table class="table table-sm">
                         <tr><th>KFT Approved Loan Limit:</th><td>
                             <div class="input-group">
-                                <input class="form-control form-control-sm" type="text" value="${record.Loan_Amount || ''}" id="amount-accepted">
-                                <button class="btn btn-success btn-sm" type="button" id="check-button" title="Check against Loan Metrics">
-                                    <i class="bi bi-check"></i>
-                                </button>
+                                <input class="form-control form-control-sm" type="text" value="${record.kft_approved_loan_limit !== null ? record.kft_approved_loan_limit : record.Loan_Amount}" id="amount-accepted">
+
                                 <button class="btn btn-danger btn-sm" type="button" id="reset-button" title="Reset">
                                     <i class="bi bi-arrow-counterclockwise"></i>
                                 </button>
                             </div>
                         </td></tr>
-                        <tr><th>Tenure (Tenure of Months):</th><td>${record.Tenor_Of_Month || 'N/A'}</td></tr>
-                        <tr><th>Collateral Type:</th><td>${record.Collateral_Type || 'N/A'}</td></tr>
-                        <tr><th>Bank Approved Interest Rate (Yet to Receive):</th><td>N/A</td></tr>
-                        <tr><th>KFT Subsidized Interest Rate:</th><td>${interest_rate}%</td></tr>
-                         <tr><th>Repayment Terms (Yet to Receive):</th><td>N/A</td></tr>
-                        <tr><th>Reviewed By (Reviewed Date):</th><td>${record.reviewed_by || 'N/A'} (${formatDate(record.reviewed_date)})</td></tr>
-                        <tr><th>Approved By (Approved Date):</th><td>${record.approved_by || 'N/A'} (${formatDate(record.approved_date)})</td></tr>
+                        <tr><th>Tenure (Tenure of Months):</th><td>${record.Tenor_Of_Month || 'Not Received'}</td></tr>
+                        <tr><th>Collateral Type:</th><td>${record.Collateral_Type || 'Not Received'}</td></tr>
+                        <tr><th>Bank Approved Interest Rate (Yet to Receive):</th><td>Not Received</td></tr>
+                        <tr><th>KFT Subsidized Interest Rate:</th><td id="td-interest-rate">${interest_rate}%</td></tr>
+                         <tr><th>Repayment Terms (Yet to Receive):</th><td>Not Received</td></tr>
+                        <tr><th>Reviewed By (Reviewed Date):</th><td>${record.reviewed_by || 'Not Received'} (${formatDate(record.reviewed_date)})</td></tr>
+                        <tr><th>Approved By (Approved Date):</th><td>${record.approved_by || 'Not Received'} (${formatDate(record.approved_date)})</td></tr>
                         <tr><th>Status:</th><td>
                             <select class="form-select form-select-sm" id="temp-status">
-                                <option value="1" ${record.status === '1' ? 'selected' : ''}>Pending</option>
-                                <option value="2" ${record.status === '2' ? 'selected' : ''}>Approved</option>
-                                <option value="3" ${record.status === '3' ? 'selected' : ''}>Rejected</option>
-                                <option value="4" ${record.status === '4' ? 'selected' : ''}>Reviewed</option>
+                                {% if result.is_reviewer or result.is_approver or result.is_executive_approver or result.is_admin %}
+                                    <option value="1" ${record.status === '1' ? 'selected' : ''}>Under Review</option>
+                                {% endif %}
+
+                                {% if result.is_approver or result.is_executive_approver or result.is_admin %}
+                                    <option value="2" ${record.status === '2' ? 'selected' : ''}>Agreed</option>
+                                    <option value="3" ${record.status === '3' ? 'selected' : ''}>Disagreed</option>
+                                {% endif %}
+
+                                {% if result.is_reviewer or result.is_admin %}
+                                    <option value="4" ${record.status === '5' ? 'selected' : ''}>Recommended for Agreement</option>
+                                    <option value="5" ${record.status === '6' ? 'selected' : ''}>Recommended for Disagreement</option>
+                                {% endif %}
                             </select>
                         </td></tr>
                         <tr>
@@ -857,15 +889,15 @@
             othersAvailableInfoTable.innerHTML = `
                 <div class="col-md-12">
                     <table class="table table-sm">
-                        <tr><th>Existing Loan Number:</th><td>${record.Existing_Loan_Number || 'N/A'}</td></tr>
-                        <tr><th>Fathers/Husband Name:</th><td>${record.Father_Husband_Name || 'N/A'}</td></tr>
-                        <tr><th>Borrower Contact Number:</th><td>${record.Contact_No || 'N/A'}</td></tr>
-                        <tr><th>Branch Area:</th><td>${record.Branch_Area || 'N/A'}</td></tr>
-                        <tr><th>Current Residential:</th><td>${record.Current_Residencial || 'N/A'}</td></tr>
-                        <tr><th>Permanent Residential:</th><td>${record.Permanent_Residencial || 'N/A'}</td></tr>
-                        <tr><th>Student Education Level:</th><td>${record.Education_Level || 'N/A'}</td></tr>
-                        <tr><th>Student College University:</th><td>${record.Collage_Univeristy || 'N/A'}</td></tr>
-                        <tr><th>Student Enrollment Status:</th><td>${record.Enrollment_Status || 'N/A'}</td></tr>
+                        <tr><th>Existing Loan Number:</th><td>${record.Existing_Loan_Number || 'Not Received'}</td></tr>
+                        <tr><th>Fathers/Husband Name:</th><td>${record.Father_Husband_Name || 'Not Received'}</td></tr>
+                        <tr><th>Borrower Contact Number:</th><td>${record.Contact_No || 'Not Received'}</td></tr>
+                        <tr><th>Branch Area:</th><td>${record.Branch_Area || 'Not Received'}</td></tr>
+                        <tr><th>Current Residential:</th><td>${record.Current_Residencial || 'Not Received'}</td></tr>
+                        <tr><th>Permanent Residential:</th><td>${record.Permanent_Residencial || 'Not Received'}</td></tr>
+                        <tr><th>Student Education Level:</th><td>${record.Education_Level || 'Not Received'}</td></tr>
+                        <tr><th>Student College University:</th><td>${record.Collage_Univeristy || 'Not Received'}</td></tr>
+                        <tr><th>Student Enrollment Status:</th><td>${record.Enrollment_Status || 'Not Received'}</td></tr>
                     </table>
                 </div>
             `;
@@ -876,43 +908,70 @@
 
             // Single event handler for changes
             function onFieldChange() {
-                checkAgainstLoanMetrics(record.pre_disb_temp_id);
+              const natureOfBusiness = document.getElementById('nature-of-business').value;
+              const experience = document.getElementById('experience').value;
+
+              console.log('natureOfBusiness, experience')
+              console.log(natureOfBusiness, experience)
+              // Pass them into your existing check function
+              checkAgainstLoanMetrics(record, natureOfBusiness, experience);
             }
 
             // Attach handler to dropdowns and loan amount
             document.getElementById('nature-of-business').addEventListener('change', onFieldChange);
             document.getElementById('experience').addEventListener('change', onFieldChange);
-            document.getElementById('amount-accepted').addEventListener('change', onFieldChange);
-
-            // Check button (manual trigger)
-            document.getElementById('check-button').addEventListener('click', () => checkAgainstLoanMetrics(record.pre_disb_temp_id));
 
             // Reset button
             document.getElementById('reset-button').addEventListener('click', () => {
-                document.getElementById('amount-accepted').value = record.Loan_Amount || '';
+                document.getElementById('amount-accepted').value = record.kft_approved_loan_limit !== null ? record.kft_approved_loan_limit : record.Loan_Amount;
             });
 
             const modal = new bootstrap.Modal(document.getElementById('tempModal'));
             modal.show();
+
+            generateLoanStatusTable(record, requiredPaidOffPerLoanMetrics);
+            generateLoanCeilingTable(record, loanCeilingLoanMetrics);
+            generateLoanLimitTable(record, repeatIncrementPerLoanMetrics);
+        }
+
+        // Helper function to format numbers or return Not Received
+        function formatNumber(value) {
+        console.log('formatNumber value:- ', value)
+          if (value === undefined || value === null || isNaN(value)) return 'Not Received';
+
+          let strValue = value.toString();
+
+          // If the value contains a decimal point
+          if (strValue.includes(".")) {
+              let [intPart, decimalPart] = strValue.split(".");
+              intPart = intPart.replace(',','');
+
+              // Format only the integer part
+              let formattedInt = Number(intPart.replace(/,/g, "")).toLocaleString("en-US");
+              console.log('formattedInt:- ', formattedInt)
+              // Limit decimal part to 2 digits
+              decimalPart = decimalPart.length > 2 ? decimalPart.substring(0, 2) : decimalPart;
+              return `${formattedInt}.${decimalPart}`;
+          }
+
+          // If no decimal, format normally with 2 decimals
+          return Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+
+
+        // Helper function to format percentage
+        function formatPercentage(value) {
+            if (value === undefined || value === null || isNaN(value)) return 'Not Received';
+            return `${(value).toFixed(2)}%`;
         }
 
         function generateLoanStatusTable(record, requiredPaidOffPerLoanMetrics) {
             requiredPaidOffPerLoanMetricsDecimal = parseFloat(requiredPaidOffPerLoanMetrics) / 100
             console.log(requiredPaidOffPerLoanMetricsDecimal)
 
-            // Helper function to format numbers or return N/A
-            function formatNumber(value) {
-                if (value === undefined || value === null || isNaN(value)) return 'N/A';
-                return Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            }
 
-            // Helper function to format percentage
-            function formatPercentage(value) {
-                if (value === undefined || value === null || isNaN(value)) return 'N/A';
-                return `${(value).toFixed(2)}%`;
-            }
-
-            // Extract input values or set to null if N/A
+            // Extract input values or set to null if Not Received
             const existingLoanLimit = record.Existing_Loan_Limit && !isNaN(record.Existing_Loan_Limit) ? parseFloat(record.Existing_Loan_Limit) : null;
             const outstandingLoan = record.Existing_Outstanding_Loan_Schedules && !isNaN(record.Existing_Outstanding_Loan_Schedules) ? parseFloat(record.Existing_Outstanding_Loan_Schedules) : null;
 
@@ -933,52 +992,52 @@
             const paidOffVsRequiredPercent = (existingLoanLimit && paidOffVsRequired) ? (paidOffVsRequired / existingLoanLimit) * 100 : 0;
 
             // Generate HTML table
-            return `
-                <table class="table table-sm" id="tableCalculatorMathsPaidOff">
-                    <tr>
-                        <th>Existing Loan Status:</th>
-                        <td>${record.Existing_Loan_Status || 'N/A'}</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <th>Loan Cycle:</th>
-                        <td>${record.Loan_Cycle || 'N/A'}</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <th>Existing Loan Limit:</th>
-                        <td class='existing-loan-limit-field'>${formatNumber(existingLoanLimit)}</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <th>Loan Outstanding(%):</th>
-                        <td class='loan-outstanding-field'>${formatNumber(outstandingLoan)}</td>
-                        <td>${formatPercentage(loanOutstandingPercent)}</td>
-                    </tr>
-                    <tr>
-                        <th>Paid Off (%):</th>
-                        <td class='paid-off-field'>${formatNumber(paidOff)}</td>
-                        <td class='paid-off-field-percent'>${formatPercentage(paidOffPercent)}</td>
-                    </tr>
-                    <tr>
-                        <th>REQUIRED PAID-OFF PER LOAN MATRIX (%):</th>
-                        <td class='required-paid-off-field'>${formatNumber(requiredPaidOff)}</td>
-                        <td class='required-paid-off-field-percent'>${formatNumber(requiredPaidOffPerLoanMetrics)}%</td>
-                    </tr>
-                    <tr>
-                        <th>Paid Off Actual Vs Required (%):</th>
-                        <td class='paid-off-vs-required-field'>${formatNumber(paidOffVsRequired)}</td>
-                        <td class='paid-off-vs-required-field-percent'>${formatPercentage(paidOffVsRequiredPercent)}</td>
-                    </tr>
-                </table>
+            html = `
+                <tr>
+                    <th>Existing Loan Status:</th>
+                    <td>${record.Existing_Loan_Status || 'Not Received'}</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <th>Loan Cycle:</th>
+                    <td>${record.Loan_Cycle || 'Not Received'}</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <th>Existing Loan Limit:</th>
+                    <td class='existing-loan-limit-field'>${formatNumber(existingLoanLimit)}</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <th>Loan Outstanding(%):</th>
+                    <td class='loan-outstanding-field'>${formatNumber(outstandingLoan)}</td>
+                    <td>${formatPercentage(loanOutstandingPercent)}</td>
+                </tr>
+                <tr>
+                    <th>Paid Off (%):</th>
+                    <td class='paid-off-field'>${formatNumber(paidOff)}</td>
+                    <td class='paid-off-field-percent'>${formatPercentage(paidOffPercent)}</td>
+                </tr>
+                <tr>
+                    <th>Required Paid-Off Per Loan Matrix (%):</th>
+                    <td class='required-paid-off-field'>${formatNumber(requiredPaidOff)}</td>
+                    <td class='required-paid-off-field-percent'>${formatNumber(requiredPaidOffPerLoanMetrics)}%</td>
+                </tr>
+                <tr>
+                    <th>Paid Off Actual Vs Required (%):</th>
+                    <td class='paid-off-vs-required-field'>${formatNumber(paidOffVsRequired)}</td>
+                    <td class='paid-off-vs-required-field-percent'>${formatPercentage(paidOffVsRequiredPercent)}</td>
+                </tr>
             `;
+
+            document.getElementById("tableCalculatorMathsPaidOff").innerHTML = html;
         }
 
 
         function generateTurnaroundTable(record) {
-            // Helper function to calculate days between two dates
-            function calculateDaysBetween(date1, date2) {
-                if (!date1 || !date2 || date1 === "N/A" || date2 === "N/A") return 0;
+    // Helper function to calculate days between two dates
+    function calculateDaysBetween(date1, date2) {
+        if (!date1 || !date2 || date1 === "Not Received" || date2 === "Not Received") return 0;
                 const d1 = new Date(date1);
                 const d2 = new Date(date2);
                 if (isNaN(d1) || isNaN(d2)) return 0;
@@ -986,24 +1045,17 @@
                 return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             }
 
-            // Helper function to format date or return N/A
-            function formatDate(date) {
-                if (!date || date === "N/A") return "N/A";
-                const d = new Date(date);
-                return isNaN(d) ? "N/A" : d.toLocaleDateString();
-            }
-
             // Format dates
             const applicationDate = formatDate(record.ApplicationDate);
-            const appraisalDate = formatDate(record.appraisal_date || "N/A");
-            const bankVerifiedDate = formatDate(record.bank_verified_date || "N/A");
+            const appraisalDate = formatDate(record.appraisal_date || "Not Received");
+            const bankVerifiedDate = formatDate(record.bank_verified_date || "Not Received");
             const bankProcessedDate = formatDate(record.uploaded_date);
             const approvedDate = formatDate(record.approved_date);
 
             // Calculate days for each step
             const applicationDays = 0; // Loan Application Date always has 0 days
-            const appraisalDays = record.appraisal_date && record.appraisal_date !== "N/A" ? calculateDaysBetween(record.ApplicationDate, record.appraisal_date) : 0;
-            const bankVerifiedDays = record.bank_verified_date && record.bank_verified_date !== "N/A" ? calculateDaysBetween(record.appraisal_date || record.ApplicationDate, record.bank_verified_date) : 0;
+            const appraisalDays = record.appraisal_date && record.appraisal_date !== "Not Received" ? calculateDaysBetween(record.ApplicationDate, record.appraisal_date) : 0;
+            const bankVerifiedDays = record.bank_verified_date && record.bank_verified_date !== "Not Received" ? calculateDaysBetween(record.appraisal_date || record.ApplicationDate, record.bank_verified_date) : 0;
             const bankProcessedDays = record.uploaded_date ? calculateDaysBetween(record.bank_verified_date || record.appraisal_date || record.ApplicationDate, record.uploaded_date) : 0;
             const approvedDays = record.approved_date ? calculateDaysBetween(record.uploaded_date, record.approved_date) : 0;
 
@@ -1015,30 +1067,37 @@
                 <table class="table table-sm" id="tableTurnaroundTime">
                     <tr>
                         <th>Turnaround Time - TAT</th>
+                        <th>Dates</th>
                         <th>Days</th>
                     </tr>
                     <tr>
-                        <td>Loan Application Date: ${applicationDate}</td>
+                        <td>Loan Application Date</td>
+                        <td>${applicationDate}</td>
                         <td>${applicationDays}</td>
                     </tr>
                     <tr>
-                        <td>Loan Appraisal Date: ${appraisalDate}</td>
+                        <td>Loan Appraisal Date</td>
+                        <td>${appraisalDate}</td>
                         <td>${appraisalDays}</td>
                     </tr>
                     <tr>
-                        <td>Bank Verified on: ${bankVerifiedDate}</td>
+                        <td>Bank Verified on</td>
+                        <td>${bankVerifiedDate}</td>
                         <td>${bankVerifiedDays}</td>
                     </tr>
                     <tr>
-                        <td>Bank Processed Processed on: ${bankProcessedDate}</td>
+                        <td>Bank Processed on</td>
+                        <td>${bankProcessedDate}</td>
                         <td>${bankProcessedDays}</td>
                     </tr>
                     <tr>
-                        <td>KFT Approved on: ${approvedDate}</td>
+                        <td>KFT Approved on</td>
+                        <td>${approvedDate}</td>
                         <td>${approvedDays}</td>
                     </tr>
                     <tr>
                         <td>Total Turnaround Time</td>
+                        <td></td>
                         <td>${totalDays}</td>
                     </tr>
                 </table>
@@ -1047,16 +1106,11 @@
 
 
         function generateLoanCeilingTable(record, loanCeilingLoanMetrics) {
-            // Helper function to format numbers or return N/A
-            function formatNumber(value) {
-                if (value === undefined || value === null || isNaN(value)) return 'N/A';
-                return Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            }
 
             // Check if record is defined and is an object; if not, use empty object
             const safeRecord = (record && typeof record === 'object') ? record : {};
 
-            // Extract input values or set to null if N/A or invalid
+            // Extract input values or set to null if Not Received or invalid
             console.log(safeRecord.existing_loan_exposure_per_ecib)
             const loanExposureECIB = safeRecord.existing_loan_exposure_per_ecib && !isNaN(safeRecord.existing_loan_exposure_per_ecib) ? parseFloat(safeRecord.existing_loan_exposure_per_ecib) : null;
             console.log('loanExposureECIB:- ', loanExposureECIB)
@@ -1072,54 +1126,43 @@
             const cushionForNewLoan = loanExposureECIB && loanCeilingMatrix ? loanCeilingMatrix - consideredLoanExposure : 0;
 
             // Generate HTML table
-            return `
-                <table class="table table-sm" id="tableCalculatorMathsLoanCeiling">
-                    <tr>
-                        <th>Existing Loan Exposure Per ECIB (Yet to Receive):</th>
-                        <td>${formatNumber(loanExposureECIB)}</td>
-                    </tr>
-                    <tr>
-                        <th>Less Existing Loan Outstanding:</th>
-                        <td>${formatNumber(outstandingLoan)}</td>
-                    </tr>
-                    <tr>
-                        <th>Considered Loan Exposure:</th>
-                        <td>${formatNumber(consideredLoanExposure)}</td>
-                    </tr>
-                    <tr>
-                        <th>LOAN CEILING PER LOAN MATRIX:</th>
-                        <td>${formatNumber(loanCeilingMatrix)}</td>
-                    </tr>
-                    <tr>
-                        <th>CUSHION FOR NEW LOAN:</th>
-                        <td>${formatNumber(cushionForNewLoan)}</td>
-                    </tr>
-                </table>
+            html = `
+                <tr>
+                    <th>Existing Loan Exposure Per ECIB (Yet to Receive):</th>
+                    <td>${formatNumber(loanExposureECIB)}</td>
+                </tr>
+                <tr>
+                    <th>Less Existing Loan Outstanding:</th>
+                    <td>${formatNumber(outstandingLoan)}</td>
+                </tr>
+                <tr>
+                    <th>Considered Loan Exposure:</th>
+                    <td>${formatNumber(consideredLoanExposure)}</td>
+                </tr>
+                <tr>
+                    <th>Loan Ceiling Per Loan Matrix:</th>
+                    <td>${formatNumber(loanCeilingMatrix)}</td>
+                </tr>
+                <tr>
+                    <th>Cushion For New Loan:</th>
+                    <td>${formatNumber(cushionForNewLoan)}</td>
+                </tr>
             `;
+
+            document.getElementById("tableCalculatorMathsLoanCeiling").innerHTML = html;
         }
 
 
         function generateLoanLimitTable(record, repeatIncrementPerLoanMetrics) {
-
+            repeatIncrementPerLoanMetrics = parseInt(repeatIncrementPerLoanMetrics);
             repeatIncrementPerLoanMetricsDecimal = parseFloat(repeatIncrementPerLoanMetrics) / 100
-            console.log(repeatIncrementPerLoanMetricsDecimal)
+            console.log('repeatIncrementPerLoanMetricsDecimal:- ', repeatIncrementPerLoanMetricsDecimal)
 
-            // Helper function to format numbers or return N/A
-            function formatNumber(value) {
-                if (value === undefined || value === null || isNaN(value)) return 'N/A';
-                return Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            }
-
-            // Helper function to format percentage
-            function formatPercentage(value) {
-                if (value === undefined || value === null || isNaN(value)) return 'N/A';
-                return `${(value).toFixed(2)}%`;
-            }
 
             // Check if record is defined and is an object; if not, use empty object
             const safeRecord = (record && typeof record === 'object') ? record : {};
 
-            // Extract input values or set to null if N/A or invalid
+            // Extract input values or set to null if Not Received or invalid
             const loanAmount = safeRecord.Loan_Amount && !isNaN(safeRecord.Loan_Amount) ? parseFloat(safeRecord.Loan_Amount) : null;
             const existingLoanLimit = safeRecord.Existing_Loan_Limit && !isNaN(safeRecord.Existing_Loan_Limit) ? parseFloat(safeRecord.Existing_Loan_Limit) : null;
 
@@ -1140,72 +1183,102 @@
             const requiredVsRepeatLoanPercent = (requiredVsRepeatLoan && existingLoanLimit) ? (requiredVsRepeatLoan / existingLoanLimit) * 100 : 0;
 
             // Generate HTML table
-            return `
-                <table class="table table-sm" id="tableCalculatorMathsLoanLimit">
-                    <tr>
-                        <th>BCC Approved Loan Amount:</th>
-                        <td>${formatNumber(loanAmount)}</td>
-                        <td>${formatPercentage(bccApprovedPercent)}</td>
-                    </tr>
-                    <tr>
-                        <th>Increment of Repeat Loan from Existing Limit (%):</th>
-                        <td>${formatNumber(incrementLoanAmount)}</td>
-                        <td>${formatPercentage(incrementLoanPercent)}</td>
-                    </tr>
-                    <tr>
-                        <th>REQUIRED REPEAT LOAN LIMIT PER LOAN MATRIX (%):</th>
-                        <td>${formatNumber(requiredRepeatLoanLimit)}</td>
-                        <td>${requiredRepeatLoanPercent}</td>
-                    </tr>
-                    <tr>
-                        <th>Required vs Repeat Loan Limit (%):</th>
-                        <td>${formatNumber(requiredVsRepeatLoan)}</td>
-                        <td>${formatPercentage(requiredVsRepeatLoanPercent)}</td>
-                    </tr>
-                </table>
+            html = `
+                <tr>
+                    <th>BCC Approved Loan Amount:</th>
+                    <td>${formatNumber(loanAmount)}</td>
+                    <td>${formatPercentage(bccApprovedPercent)}</td>
+                </tr>
+                <tr>
+                    <th>Increment of Repeat Loan from Existing Limit (%):</th>
+                    <td>${formatNumber(incrementLoanAmount)}</td>
+                    <td>${formatPercentage(incrementLoanPercent)}</td>
+                </tr>
+                <tr>
+                    <th>Required Repeat Loan Limit Per Loan Matrix (%):</th>
+                    <td>${formatNumber(requiredRepeatLoanLimit)}</td>
+                    <td>${formatPercentage(requiredRepeatLoanPercent)}</td>
+                </tr>
+                <tr>
+                    <th>Required vs Repeat Loan Limit (%):</th>
+                    <td>${formatNumber(requiredVsRepeatLoan)}</td>
+                    <td>${formatPercentage(requiredVsRepeatLoanPercent)}</td>
+                </tr>
             `;
+
+            document.getElementById("tableCalculatorMathsLoanLimit").innerHTML = html;
         }
 
-        function findMatchingLoanMetric(data, productCode, applicantGender) {
+        function findMatchingLoanMetric(
+          data,
+          productCode,
+          applicantGender,
+          natureOfBusiness = undefined,
+          experienceYear = undefined
+        ) {
+            console.log('---findMatchingLoanMetric---')
+            console.log('data:- ', data)
+            console.log('productCode, applicantGender, natureOfBusiness, experienceYear');
+            console.log(productCode, applicantGender, natureOfBusiness, experienceYear);
+
           // helper to normalize values
-          const normalize = (val) => val.toString().trim().toLowerCase().replace(/\s+/g, "_");
+          const normalize = (val) =>
+            val === undefined || val === null
+              ? ""
+              : val.toString().trim().toLowerCase().replace(/\s+/g, "_");
 
-          return data.filter(record =>
-            normalize(record.product_name || "") === normalize(productCode) &&
-            normalize(record.gender || "") === normalize(applicantGender)
-          );
+          return data.find((record) => {
+            const matchProduct =
+              normalize(record.product_name || "") === normalize(productCode);
+            const matchGender =
+              normalize(record.gender || "") === normalize(applicantGender);
+
+            const matchBusiness = !natureOfBusiness || normalize(record.occupation_name || "") === normalize(natureOfBusiness);
+
+            const matchExperience =!experienceYear || normalize(record.experience_label || "") === normalize(experienceYear);
+
+            return matchProduct && matchGender && matchBusiness && matchExperience;
+          });
         }
+
 
         // Function to check against loan metrics via AJAX
-        function checkAgainstLoanMetrics(preDisbTempId) {
-            const natureOfBusiness = document.getElementById('nature-of-business').value;
-            const experience = document.getElementById('experience').value;
-            const loanAmount = document.getElementById('amount-accepted').value;
+        function checkAgainstLoanMetrics(data, natureOfBusiness, experience) {
+            console.log('---checkAgainstLoanMetrics---')
+            console.log('data:- ', data)
+            const productCode = data.LoanProductCode;
+            const applicantGender = data.Gender;
 
-            fetch(`/check_record_against_loan_metrics`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    pre_disb_temp_id: preDisbTempId,
-                    nature_of_business: natureOfBusiness,
-                    experience: experience,
-                    loan_amount: loanAmount
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showToast(data.message, 3000, 'success');
-                } else {
-                    showToast(data.message, 3000, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showToast('An error occurred while checking loan metrics.', 3000, 'error');
-            });
+            console.log(productCode, applicantGender, natureOfBusiness, experience);
+
+            const proposedLoanMetric = findMatchingLoanMetric(loanMetrics, productCode, applicantGender, natureOfBusiness, experience);
+            console.log(proposedLoanMetric);
+
+            let interest_rate = 0;
+            let loanCeilingLoanMetrics = 0;
+            let requiredPaidOffPerLoanMetrics = 0;
+            let repeatIncrementPerLoanMetrics = 0;
+
+            if(proposedLoanMetric)
+            {
+                interest_rate = proposedLoanMetric.interest_rate || 0;
+                console.log(interest_rate);
+
+                loanCeilingLoanMetrics = proposedLoanMetric.global_loan_ceiling || 0;
+                console.log(loanCeilingLoanMetrics);
+
+                requiredPaidOffPerLoanMetrics =  proposedLoanMetric.required_paid_off || 0;
+                console.log(requiredPaidOffPerLoanMetrics);
+
+                repeatIncrementPerLoanMetrics = proposedLoanMetric.repeat_increment || 0;
+                console.log(repeatIncrementPerLoanMetrics);
+            }
+
+            generateLoanStatusTable(data, requiredPaidOffPerLoanMetrics);
+            generateLoanCeilingTable(data, loanCeilingLoanMetrics);
+            generateLoanLimitTable(data, repeatIncrementPerLoanMetrics);
+
+            document.getElementById('td-interest-rate').innerHTML = interest_rate + "%";
         }
 
         // View letter in modal
@@ -1300,6 +1373,7 @@
 
             const status = document.getElementById('temp-status').value;
             const notes = document.getElementById('temp-notes').value;
+            const amount_accepted = document.getElementById('amount-accepted').value;
 
             fetch('/update-pre-disbursement-temp', {
                 method: 'POST',
@@ -1309,7 +1383,8 @@
                 body: JSON.stringify({
                     pre_disb_temp_id: pre_disb_temp_id,
                     status: status,
-                    Notes: notes
+                    Notes: notes,
+                    amount_accepted: amount_accepted
                 })
             })
             .then(response => response.json())
@@ -1382,16 +1457,16 @@
                     data.records.forEach(record => {
                         const row = document.createElement('tr');
                         row.innerHTML = `
-                            <td>${record.mis_date || 'N/A'}</td>
-                            <td>${record.cnic || 'N/A'}</td>
-                            <td>${record.disbursed_amount || 'N/A'}</td>
-                            <td>${record.booked_on || 'N/A'}</td>
-                            <td>${record.principal_outstanding || 'N/A'}</td>
-                            <td>${record.markup_outstanding || 'N/A'}</td>
-                            <td>${record.purpose || 'N/A'}</td>
-                            <td>${record.loan_status || 'N/A'}</td>
-                            <td>${record.overdue_days || 'N/A'}</td>
-                            <td>${formatDate(record.loan_closed_on) || 'N/A'}</td>
+                            <td>${record.mis_date || 'Not Received'}</td>
+                            <td>${record.cnic || 'Not Received'}</td>
+                            <td>${record.disbursed_amount || 'Not Received'}</td>
+                            <td>${record.booked_on || 'Not Received'}</td>
+                            <td>${record.principal_outstanding || 'Not Received'}</td>
+                            <td>${record.markup_outstanding || 'Not Received'}</td>
+                            <td>${record.purpose || 'Not Received'}</td>
+                            <td>${record.loan_status || 'Not Received'}</td>
+                            <td>${record.overdue_days || 'Not Received'}</td>
+                            <td>${formatDate(record.loan_closed_on) || 'Not Received'}</td>
                         `;
                         tbody.appendChild(row);
                     });

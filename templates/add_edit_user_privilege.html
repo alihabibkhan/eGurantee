@@ -62,6 +62,14 @@
             </div>
             <div class="card-body">
                 <form method="POST" action="{{ url_for('add_edit_user_privilege', privilege_id=result.privilege_id) if result.privilege_id else url_for('add_edit_user_privilege') }}">
+                    {% if result.user_name != '' %}
+                        <div class="form-row">
+                            <div class="mb-3">
+                                <label class="form-label">User</label>
+                                <input type="text" class="form-control" value="{{result.user_name or ''}}" readonly>
+                            </div>
+                        </div>
+                    {% endif %}
                     <div class="form-row">
                         <div class="mb-3">
                             <label class="form-label">Role</label>

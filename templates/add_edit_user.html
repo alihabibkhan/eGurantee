@@ -115,7 +115,7 @@
 <body>
     {% include 'navbar.html' %}
     {% import 'breadcrumbs.html' as brd %}
-    {{ brd.render_Breadcrumbs([{"url": 'manage_users', "label": "Manage Volunteer"}, {"url": "", "label": 'Edit Volunteer' if result.user_id else 'Add Volunteer' }]) }}
+    {{ brd.render_Breadcrumbs([{"url": 'manage_users', "label": "Manage Volunteer"}, {"url": "", "label": 'Edit Volunteer ' + '(' + result.user.name + ')' if result.user_id else 'Add Volunteer' }]) }}
 
     <div class="container">
         {% include 'message_box.html' %}
