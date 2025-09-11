@@ -15,6 +15,18 @@ def get_all_user_data():
     return result
 
 
+def get_all_user_data_by_id(id):
+    query = f"""
+        SELECT DISTINCT u.user_id, u.name, u.email, u.rights, u.volunteer_id, u.gender, u.dob, u.phone, 
+                        u.country_of_residence, u.date_of_joining, u.orientation_completed_on, u.manager_id, 
+                        u.assigned_branch, u.date_of_retirement, u.reason
+        FROM tbl_users u where u.user_id = '{str(id)}'
+    """
+    print(query)
+    result = fetch_records(query)
+
+    return result[0]
+
 
 def get_all_user_privileges():
     """

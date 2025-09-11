@@ -156,6 +156,7 @@ def get_all_pre_disbursement_temp():
             pdt.reviewed_date,
             pdt.reviewed_by,
             pdt.Existing_Loan_Exposure_Per_ECIB,
+            pdt.KFT_Approved_Loan_Limit,
             pdt."annual_income",
             pdt."notes",
             pdt."status",

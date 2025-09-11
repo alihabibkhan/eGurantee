@@ -12,7 +12,10 @@ def manage_pre_disbursement():
                 'occupation_list': get_all_occupations(),
                 'experience_ranges_list': get_all_experience_ranges(),
                 'get_all_loan_metrics': get_all_loan_metrics(),
-                'is_reviewer': is_reviewer()
+                'is_reviewer': is_reviewer(),
+                'is_approver': is_approver(),
+                'is_executive_approver': is_executive_approver(),
+                'is_admin': is_admin()
             }
             return render_template('manage_pre_disbursement.html', result=content)
     except Exception as e:
@@ -31,6 +34,8 @@ def update_pre_disbursement_temp():
         pre_disb_temp_id = data.get('pre_disb_temp_id')
         status = str(data.get('status'))
         notes = data.get('Notes')
+        amount_accepted = data.get('amount_accepted')
+
         approved_by = str(get_current_user_id())
         approved_date = str(datetime.now())
 
@@ -42,7 +47,7 @@ def update_pre_disbursement_temp():
         if status != '4':
             query = f"""
                UPDATE tbl_pre_disbursement_temp
-               SET status = '{str(status)}', Notes = '{str(notes)}',
+               SET status = '{str(status)}', Notes = '{str(notes)}', KFT_Approved_Loan_Limit = '{str(amount_accepted)}',
                approved_by = '{str(approved_by)}', approved_date = '{str(approved_date)}'
                WHERE pre_disb_temp_id = '{str(pre_disb_temp_id)}'
             """

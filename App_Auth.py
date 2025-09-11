@@ -15,7 +15,7 @@ def login():
 
             query = f"select * from tbl_users u where u.email = '{email}' "
             user = fetch_records(query)
-            # print(user)
+            print(user)
 
             if user and check_password_hash(user[0]['password'], password):
                 print('setting user sessions.')

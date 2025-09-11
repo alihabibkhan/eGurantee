@@ -246,6 +246,10 @@ def add_edit_user(user_id=None):
 def add_edit_user_privilege(privilege_id=None):
     user_id = request.args.get('user_id')
     print('user_id:- ', user_id)
+
+    user_data = get_all_user_data_by_id(user_id)
+    user_name = user_data.get('name', '')
+
     if request.method == 'POST':
         user_id = request.form.get('hdn_user_id')
         role = request.form.get('role')
@@ -281,14 +285,21 @@ def add_edit_user_privilege(privilege_id=None):
     return render_template('add_edit_user_privilege.html', result={
         'privilege': privilege,
         'privilege_id': privilege_id,
-        'hdn_user_id': user_id
+        'hdn_user_id': user_id,
+        'user_name': user_name
     })
 
 
 @application.route('/add_edit_user_service_term', methods=['GET', 'POST'])
 @application.route('/add_edit_user_service_term/<int:term_id>', methods=['GET', 'POST'])
 def add_edit_user_service_term(term_id=None):
+
     user_id = request.args.get('user_id')
+    print('user_id:- ', user_id)
+
+    user_data = get_all_user_data_by_id(user_id)
+    user_name = user_data.get('name', '')
+
     print('user_id:- ', user_id)
     if request.method == 'POST':
         user_id = request.form.get('hdn_user_id')
@@ -329,7 +340,8 @@ def add_edit_user_service_term(term_id=None):
     return render_template('add_edit_user_service_term.html', result={
         'term': term,
         'term_id': term_id,
-        'hdn_user_id': user_id
+        'hdn_user_id': user_id,
+        'user_name': user_name
     })
 
 
