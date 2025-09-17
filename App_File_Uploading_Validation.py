@@ -647,6 +647,97 @@ def process_upload():
                 for rec in df.to_dict('records'):
                     print(f"process_upload: Processing record in DataFrame '{df_key}'")
                     if file_type == 'pre_disbursement' and str(rec['application_no']) not in ['', 'NaN', 'None']:
+                        education_level = str(rec.get('education_level'))
+                        no_of_family_members = str(rec.get('no_of_family_members', ''))
+                        tenor_of_month = str(rec.get('tenor_of_month', ''))
+                        cnic = str(rec.get('cnic'))
+                        
+                        # Extract and clean data from the sheet
+                        rec_borrower_name = str(rec.get('borrower_name', '')).strip().lower()
+                        rec_gender = str(rec.get('gender', '')).strip().lower()
+                        rec_branch_name = str(rec.get('branch_name', '')).strip().lower()
+                        rec_student_name = str(rec.get('student_name', '')).strip().lower()
+                        rec_student_co_borrower_gender = str(rec.get('student_co_borrower_gender', '')).strip().lower()
+                        rec_college_university = str(rec.get('collage_univeristy', '')).strip().lower()
+
+                        # Query to fetch the latest record from tbl_pre_disbursement_temp for the given CNIC
+                        query = f"""
+                                SELECT pdt.pre_disb_temp_id, pdt.Borrower_Name, pdt.Gender, pdt.Branch_Name, 
+                                       pdt.Student_Name, pdt.Student_Co_Borrower_Gender, pdt.Collage_Univeristy
+                                FROM tbl_pre_disbursement_temp pdt 
+                                WHERE pdt.CNIC = '{cnic}' 
+                                ORDER BY pdt.pre_disb_temp_id DESC 
+                                LIMIT 1
+                            """
+
+                        try:
+                            # Execute the query using the predefined execute_command function
+                            result = execute_command(query)
+
+                            if result:
+                                # Extract database record fields
+                                db_pre_disb_temp_id, db_borrower_name, db_gender, db_branch_name, \
+                                    db_student_name, db_student_co_borrower_gender, db_college_university = result[0]
+
+                                # Clean database fields (handle None and convert to lowercase)
+                                db_borrower_name = str(db_borrower_name or '').strip().lower()
+                                db_gender = str(db_gender or '').strip().lower()
+                                db_branch_name = str(db_branch_name or '').strip().lower()
+                                db_student_name = str(db_student_name or '').strip().lower()
+                                db_student_co_borrower_gender = str(db_student_co_borrower_gender or '').strip().lower()
+                                db_college_university = str(db_college_university or '').strip().lower()
+
+                                # Check for anomalies
+                                anomalies = []
+                                if rec_borrower_name != db_borrower_name:
+                                    anomalies.append(
+                                        f"Borrower Name mismatch: Sheet='{rec_borrower_name}', DB='{db_borrower_name}'")
+                                if rec_gender != db_gender:
+                                    anomalies.append(f"Gender mismatch: Sheet='{rec_gender}', DB='{db_gender}'")
+                                if rec_branch_name != db_branch_name:
+                                    anomalies.append(
+                                        f"Branch Name mismatch: Sheet='{rec_branch_name}', DB='{db_branch_name}'")
+                                if rec_student_name != db_student_name:
+                                    anomalies.append(
+                                        f"Student Name mismatch: Sheet='{rec_student_name}', DB='{db_student_name}'")
+                                if rec_student_co_borrower_gender != db_student_co_borrower_gender:
+                                    anomalies.append(
+                                        f"Student Co-Borrower Gender mismatch: Sheet='{rec_student_co_borrower_gender}', DB='{db_student_co_borrower_gender}'")
+                                if rec_college_university != db_college_university:
+                                    anomalies.append(
+                                        f"College/University mismatch: Sheet='{rec_college_university}', DB='{db_college_university}'")
+
+                                # If anomalies are found, insert them into tbl_pre_disb_anomalies
+                                if anomalies:
+                                    details = "; ".join(anomalies)
+                                    insert_query = f"""
+                                            INSERT INTO tbl_pre_disb_anomalies (pre_disb_id, details, created_date)
+                                            VALUES ({db_pre_disb_temp_id}, '{details}', '{datetime.now()}')
+                                        """
+                                    execute_command(insert_query)
+                                    print(f"Anomalies recorded for pre_disb_id {db_pre_disb_temp_id}: {details}")
+                                else:
+                                    print("No anomalies found.")
+                            else:
+                                print(f"No record found in tbl_pre_disbursement_temp for CNIC: {cnic}")
+
+                        except Exception as e:
+                            print(f"Error executing query: {e}")
+
+
+                        if education_level in ['None', 'NaN', 'Nan', '']:
+                            education_level = 'N/A'
+                        else:
+                            # Example: strip spaces and escape single quotes
+                            education_level = education_level.strip().replace("'", "''")
+
+                        if no_of_family_members in ['None', 'NaN', 'Nan', '']:
+                            no_of_family_members = '0'
+
+                        if tenor_of_month in ['None', 'NaN', 'Nan', '']:
+                            tenor_of_month = '0'
+
+
                         query = f"""
                                 INSERT INTO tbl_pre_disbursement_temp (
                                     "Application_No", "Annual_Business_Incomes", "Annual_Disposable_Income",
@@ -671,17 +762,17 @@ def process_upload():
                                     '{rec.get('business_expense_description', '')}', '{rec.get('business_experiense_(since)', '')}',
                                     '{rec.get('business_premises', '')}', '{rec.get('cnic', '')}', '{rec.get('collage_univeristy', '')}', 
                                     '{rec.get('collateral_type', '')}', '{rec.get('contact_no', '')}', '{rec.get('credit_history_ecib', '')}', 
-                                    '{rec.get('current_residencial', '')}', '{rec.get('dbr', '')}', '{rec.get('education_level', '')}', 
+                                    '{rec.get('current_residencial', '')}', '{rec.get('dbr', '')}', '{education_level}', 
                                     '{rec.get('enrollment_status', '')}', '{rec.get('enterprise_premises', '')}', '{rec.get('existing_loan_number', '')}',
                                     '{rec.get('existing_loan_limit', '')}', '{rec.get('existing_loan_status', '')}', 
                                     '{rec.get('existing_outstanding_loan_schedules', '')}', '{rec.get('experiense_start_date', '')}', 
                                     '{rec.get('family_monthly_income', '')}', '{rec.get('father_husband_name', '')}', '{rec.get('gender', '')}', 
                                     '{rec.get('kf_remarks', '')}', '{rec.get('loan_amount', '')}', '{rec.get('loan_cycle', '')}',
                                     '{rec.get('loanproductcode', '')}', '{rec.get('loan_status', '')}', '{rec.get('monthly_repayment_capacity', '')}', 
-                                    '{rec.get('nature_of_business', '')}', '{rec.get('no_of_family_members', '')}', '{rec.get('permanent_residencial', '')}',
+                                    '{rec.get('nature_of_business', '')}', '{no_of_family_members}', '{rec.get('permanent_residencial', '')}',
                                     '{rec.get('premises', '')}', '{rec.get('purpose_of_loan', '')}', '{rec.get('requested_loan_amount', '')}',
                                     '{rec.get('residance_type', '')}', '{rec.get('student_name', '')}', '{rec.get('student_co_borrower_gender', '')}',
-                                    '{rec.get('student_relation_with_borrower', '')}', '{rec.get('tenor_of_month', '')}', '{rec.get('type_of_business', '')}',
+                                    '{rec.get('student_relation_with_borrower', '')}', '{tenor_of_month}', '{rec.get('type_of_business', '')}',
                                     '{rec.get('annual_income', '')}', '1', '{str(get_current_user_id())}', '{str(datetime.now())}'
                                 )
                             """

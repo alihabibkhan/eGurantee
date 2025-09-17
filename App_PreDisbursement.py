@@ -23,6 +23,29 @@ def manage_pre_disbursement():
     return redirect(url_for('login'))
 
 
+@application.route('/view-rejected-applications')
+def view_rejected_applications():
+    try:
+        if is_login():
+            content = {
+                'get_temp_pre_disbursement': view_all_rejected_application(),
+                'is_user_have_sign': is_user_have_sign(),
+                'occupation_list': get_all_occupations(),
+                'experience_ranges_list': get_all_experience_ranges(),
+                'get_all_loan_metrics': get_all_loan_metrics(),
+                'is_reviewer': is_reviewer(),
+                'is_approver': is_approver(),
+                'is_executive_approver': is_executive_approver(),
+                'is_admin': is_admin()
+            }
+            return render_template('view_rejected_applications.html', result=content)
+    except Exception as e:
+        print('view-rejected-applications exception:- ', str(e.__dict__))
+        print('view-rejected-applications exception:- ', str(e))
+
+    return redirect(url_for('login'))
+
+
 
 @application.route('/update-pre-disbursement-temp', methods=['POST'])
 def update_pre_disbursement_temp():
@@ -106,31 +129,56 @@ def update_pre_disbursement_temp():
                 # execute_command(query)
 
         elif status == '3':
-            # Send rejection email
-            print('status is 3 proceeding to send rejection email.')
-            html_message = f"""
-                <html>
-                <body style="color: black;">
-                    <p>Dear Applicant,</p>
-                    <p>We regret to inform you that your loan application with Application ID: <strong>{pre_disb_temp_id}</strong> has been rejected.</p>
-                    <p>The reason for rejection is as follows: <strong>{notes or 'No specific reason provided.'}</strong></p>
-                    <p>If you have any questions or need further assistance, please contact our support team.</p>
-                    <p>Regards,<br><strong>HBL Microfinance Bank</strong></p>
-                </body>
-                </html>
+            # Insert into tbl_pre_disb_rejected_app
+            query = f"""
+                INSERT INTO tbl_pre_disb_rejected_app (
+                    post_disb_id,
+                    application_status,
+                    status,
+                    created_by,
+                    created_date,
+                    modified_by,
+                    modified_date
+                )
+                SELECT
+                    {str(pre_disb_temp_id)},
+                    {str(status)},
+                    1,
+                    {str(approved_by)},
+                    '{approved_date}',
+                    {str(approved_by)},
+                    '{approved_date}'
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM tbl_pre_disb_rejected_app WHERE post_disb_id = {str(pre_disb_temp_id)}
+                )
             """
+            execute_command(query)
 
-            from Model_Email import send_email
-
-            success = send_email(
-                subject='Loan Application Rejection',
-                email_list=['dali27037@gmail.com'],  # Replace with actual email if different
-                message=None,
-                html_message=html_message,
-                attachment=None
-            )
-            if not success:
-                return jsonify({'success': False, 'error': 'Failed to send rejection email'}), 500
+            # Send rejection email
+            # print('status is 3 proceeding to send rejection email.')
+            # html_message = f"""
+            #     <html>
+            #     <body style="color: black;">
+            #         <p>Dear Applicant,</p>
+            #         <p>We regret to inform you that your loan application with Application ID: <strong>{pre_disb_temp_id}</strong> has been rejected.</p>
+            #         <p>The reason for rejection is as follows: <strong>{notes or 'No specific reason provided.'}</strong></p>
+            #         <p>If you have any questions or need further assistance, please contact our support team.</p>
+            #         <p>Regards,<br><strong>HBL Microfinance Bank</strong></p>
+            #     </body>
+            #     </html>
+            # """
+            #
+            # from Model_Email import send_email
+            #
+            # success = send_email(
+            #     subject='Loan Application Rejection',
+            #     email_list=['dali27037@gmail.com'],  # Replace with actual email if different
+            #     message=None,
+            #     html_message=html_message,
+            #     attachment=None
+            # )
+            # if not success:
+            #     return jsonify({'success': False, 'error': 'Failed to send rejection email'}), 500
 
         return jsonify({'success': True}), 200
 
@@ -149,7 +197,7 @@ def approval_letter(app_no):
         # """
 
         query = f"""
-            SELECT "Borrower_Name", "Application_No", "Loan_Amount", "ApplicationDate", "Father_Husband_Name", "CNIC", "approved_date", "email_status" 
+            SELECT "Borrower_Name", "Application_No", "Loan_Amount", KFT_Approved_Loan_Limit, "ApplicationDate", "Father_Husband_Name", "CNIC", "approved_date", "email_status" 
             FROM tbl_pre_disbursement_temp 
             WHERE "pre_disb_temp_id" = '{str(app_no)}' AND "status" = '2'
         """

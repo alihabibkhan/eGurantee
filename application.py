@@ -42,6 +42,16 @@ def format_date(value):
         return ""
     return value.strftime('%d-%m-%Y')
 
+@application.template_filter('date_format')
+def date_format(value):
+    """Format a datetime object to YYYY-MM-DD for HTML date input."""
+    if value is None:
+        return ''
+    try:
+        return value.strftime('%Y-%m-%d')
+    except (AttributeError, ValueError):
+        return ''
+
 
 # --- Custom Error Handlers ---
 @application.errorhandler(404)
@@ -96,6 +106,9 @@ from App_LoanProducts import *
 from App_Occupations import *
 from App_ExperienceRanges import *
 from App_LoanMetrics import *
+from App_Summary import *
+from App_Bank_Details import *
+
 
 if __name__ == '__main__':
     application.run(debug=True, port=8080)

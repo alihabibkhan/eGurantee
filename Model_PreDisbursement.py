@@ -175,6 +175,88 @@ def get_all_pre_disbursement_temp():
     return result
 
 
+
+def view_all_rejected_application():
+
+    query = f"""
+        SELECT 
+            pdt."pre_disb_temp_id",
+            pdt."Application_No",
+            pdt."Annual_Business_Incomes",
+            pdt."Annual_Disposable_Income",
+            pdt."Annual_Expenses",
+            pdt."ApplicationDate",
+            pdt."Bcc_Approval_Date",
+            pdt."Borrower_Name",
+            pdt."Branch_Area",
+            pdt."Branch_Name",
+            pdt."Business_Expense_Description",
+            pdt."Business_Experiense_Since",
+            pdt."Business_Premises",
+            pdt."CNIC",
+            pdt."Collage_Univeristy",
+            pdt."Collateral_Type",
+            pdt."Contact_No",
+            pdt."Credit_History_Ecib",
+            pdt."Current_Residencial",
+            pdt."Dbr",
+            pdt."Education_Level",
+            pdt."Enrollment_Status",
+            pdt."Enterprise_Premises",
+            pdt."Existing_Loan_Number",
+            pdt."Existing_Loan_Limit",
+            pdt."Existing_Loan_Status",
+            pdt."Existing_Outstanding_Loan_Schedules",
+            pdt."Experiense_Start_Date",
+            pdt."Family_Monthly_Income",
+            pdt."Father_Husband_Name",
+            pdt."Gender",
+            pdt."KF_Remarks",
+            pdt."Loan_Amount",
+            pdt."Loan_Cycle",
+            pdt."LoanProductCode",
+            pdt."Loan_Status",
+            pdt."Monthly_Repayment_Capacity",
+            pdt."Nature_Of_Business",
+            pdt."No_Of_Family_Members",
+            pdt."Permanent_Residencial",
+            pdt."Premises",
+            pdt."Purpose_Of_Loan",
+            pdt."Requested_Loan_Amount",
+            pdt."Residance_Type",
+            pdt."Student_Name",
+            pdt."Student_Co_Borrower_Gender",
+            pdt."Student_Relation_With_Borrower",
+            pdt."Tenor_Of_Month",
+            pdt."Type_of_Business",
+            pdt.reviewed_date,
+            pdt.Existing_Loan_Exposure_Per_ECIB,
+            pdt.KFT_Approved_Loan_Limit,
+            pdt."annual_income",
+            pdt."notes",
+            pdt."status",
+            pdt."uploaded_date",
+            pdt."approved_date",
+            pdt."email_status",
+            u1."name" AS rejected_by,
+            pdr.created_date as rejected_date,
+            u2."name" as uploaded_by,
+            u3."name" as approved_by,
+            u4."name" as reviewed_by
+        FROM 
+            tbl_pre_disbursement_temp pdt
+        inner join tbl_pre_disb_rejected_app pdr on pdr.post_disb_id = pdt.pre_disb_temp_id
+        LEFT JOIN tbl_users u1 ON u1."user_id" = pdr.created_by
+        LEFT JOIN tbl_users u2 ON u2."user_id" = pdt."uploaded_by"
+        LEFT JOIN tbl_users u3 ON u3."user_id" = pdt."approved_by"
+        LEFT JOIN tbl_users u4 ON u4."user_id" = pdt."reviewed_by"
+    """
+    print(query)
+    result = fetch_records(query)
+
+    return result
+
+
 # def get_all_pre_disbursement_temp_by_id(id):
 #     query = f"""
 #         SELECT

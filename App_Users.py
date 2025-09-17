@@ -228,6 +228,7 @@ def add_edit_user(user_id=None):
             'get_all_user_privileges': get_all_user_privileges(),
             'get_all_user_service_terms': get_all_user_service_terms(),
             'get_all_branches_info': get_all_branches_info(),
+            'get_distinct_branches_roles': get_distinct_branches_roles(),
             'user': user,
             'user_id': user_id
         }
