@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Pre-Disbursement</title>
+    <title>View Rejected Applications</title>
     {% include 'head.html' %}
     <style>
         .table-responsive {
@@ -91,62 +91,16 @@
     {% include 'navbar.html' %}
 
     {% import 'breadcrumbs.html' as brd %}
-    {{ brd.render_Breadcrumbs([{"url":manage_pre_disbursement, "label":'Manage Pre Disbursement'}]) }}
+    {{ brd.render_Breadcrumbs([{"url":'', "label":'View Rejected Applications'}]) }}
 
     <div class="mt-3">{% include 'message_box.html' %}</div>
     <div class="container py-4">
-        <h1 class="mb-3 text-muted">Manage Pre-Disbursement</h1>
-
-        <!-- Filter Card -->
-        <div class="card filter-card">
-            <div class="card-header">
-                <h5 class="mb-0">Filters</h5>
-            </div>
-            <div class="card-body">
-                <div class="row g-3 align-items-center">
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label for="status-filter" class="form-label">Status</label>
-                            <select class="form-select form-select-sm" id="status-filter">
-                                <option value="all" selected>All</option>
-                                {% if result.is_reviewer or result.is_approver or result.is_executive_approver or result.is_admin %}
-                                    <option value="1">Under Review</option>
-                                {% endif %}
-
-                                {% if result.is_approver or result.is_executive_approver or result.is_admin %}
-                                    <option value="2">Agreed</option>
-                                    <option value="3">Disagreed</option>
-                                {% endif %}
-
-                                {% if result.is_reviewer or result.is_admin %}
-                                    <option value="4">Recommended for Agreement</option>
-                                    <option value="5">Recommended for Disagreement</option>
-                                {% endif %}
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label for="loan-amount-filter" class="form-label">Loan Amount</label>
-                            <select class="form-select form-select-sm" id="loan-amount-filter">
-                                <option value="all">All</option>
-                                <option value="below-50k">Below 50,000</option>
-                                <option value="50k-100k">50,000 - 100,000</option>
-                                <option value="above-100k">Above 100,000</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-4 d-flex align-items-end">
-                        <button type="button" class="btn btn-primary btn-sm w-75" onclick="applyFilters()" style="margin-top: 30px;">Apply Filters</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <h1 class="mb-3 text-muted">View Rejected Applications</h1>
 
         <!-- Data Table Card -->
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0">Pre Disbursement</h5>
+                <h5 class="mb-0">Rejected Applications</h5>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -157,10 +111,9 @@
                                 <th scope="col">Borrower Name</th>
                                 <th scope="col">Loan Amount</th>
                                 <th scope="col">Application Date</th>
-                                <th scope="col">Approved By</th>
-                                <th scope="col">Approved Date</th>
-                                <th scope="col">Status</th>
-                                <th scope="col">Action</th>
+                                <th scope="col">Rejected By</th>
+                                <th scope="col">Rejected Date</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="temp-table-body"></tbody>
@@ -177,14 +130,14 @@
             <div class="modal-dialog modal-xl">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="tempModalLabel">View Pre Disbursement Record</h5>
+                        <h5 class="modal-title" id="tempModalLabel">View Record</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body" id="temp-modal-body"></div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                         <!--<button type="button" class="btn btn-info" id="ongoing-loan-btn" onclick="viewOngoingLoan(event)">View On-going Loan</button>-->
-                        <button type="button" class="btn btn-primary" id="temp-save-btn">Save</button>
+                        <!--<button type="button" class="btn btn-primary" id="temp-save-btn">Save</button>-->
                     </div>
                 </div>
             </div>
@@ -333,33 +286,11 @@
 
         // Apply filters
         function applyFilters() {
-            const statusFilter = document.getElementById('status-filter').value;
-            const loanAmountFilter = document.getElementById('loan-amount-filter').value;
-
-            filteredData = tempData.filter(record => {
-                let statusMatch = true;
-                let amountMatch = true;
-
-                if (statusFilter !== 'all') {
-                    statusMatch = record.status === statusFilter;
-                }
-
-                const loanAmount = parseFloat(record.Loan_Amount) || 0;
-                if (loanAmountFilter === 'below-50k') {
-                    amountMatch = loanAmount < 50000;
-                } else if (loanAmountFilter === '50k-100k') {
-                    amountMatch = loanAmount >= 50000 && loanAmount <= 100000;
-                } else if (loanAmountFilter === 'above-100k') {
-                    amountMatch = loanAmount > 100000;
-                }
-
-                return statusMatch && amountMatch;
-            });
-
             tempCurrentPage = 1;
             renderTable(filteredData, 'temp-table-body', tempCurrentPage);
             renderPagination(filteredData, 'temp-pagination', tempCurrentPage);
         }
+
 
         // Render table
         function renderTable(data, tableBodyId, currentPage) {
@@ -396,12 +327,10 @@
                     <td>${record['Borrower_Name'] || 'Not Received'}</td>
                     <td>${record['Loan_Amount'] || 'Not Received'}</td>
                     <td>${formatDate(record.ApplicationDate)}</td>
-                    <td>${record.approved_by || 'Not Received'}</td>
-                    <td title='${record.approved_date}'>${formatDate(record.approved_date)}</td>
-                    <td>${statusText}</td>
+                    <td>${record.rejected_by || 'Not Received'}</td>
+                    <td title='${record.rejected_date}'>${formatDate(record.approved_date)}</td>
                     <td>
                         <button class="btn btn-sm btn-primary" onclick="viewRecord(${start + index})">View</button>
-                        ${letterButton}
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -813,11 +742,7 @@
                     <table class="table table-sm">
                         <tr><th>KFT Approved Loan Limit:</th><td>
                             <div class="input-group">
-                                <input class="form-control form-control-sm" type="text" value="${record.kft_approved_loan_limit !== null ? record.kft_approved_loan_limit : record.Loan_Amount}" id="amount-accepted">
-
-                                <button class="btn btn-danger btn-sm" type="button" id="reset-button" title="Reset">
-                                    <i class="bi bi-arrow-counterclockwise"></i>
-                                </button>
+                                <input class="form-control form-control-sm" type="text" value="${record.kft_approved_loan_limit !== null ? record.kft_approved_loan_limit : record.Loan_Amount}" id="amount-accepted" readonly>
                             </div>
                         </td></tr>
                         <tr><th>Tenure (Tenure of Months):</th><td>${record.Tenor_Of_Month || 'Not Received'}</td></tr>
@@ -828,7 +753,7 @@
                         <tr><th>Reviewed By (Reviewed Date):</th><td>${record.reviewed_by || 'Not Received'} (${formatDate(record.reviewed_date)})</td></tr>
                         <tr><th>Approved By (Approved Date):</th><td>${record.approved_by || 'Not Received'} (${formatDate(record.approved_date)})</td></tr>
                         <tr><th>Status:</th><td>
-                            <select class="form-select form-select-sm" id="temp-status">
+                            <select class="form-select form-select-sm" id="temp-status" disabled>
                                 {% if result.is_reviewer or result.is_approver or result.is_executive_approver or result.is_admin %}
                                     <option value="1" ${record.status === '1' ? 'selected' : ''}>Under Review</option>
                                 {% endif %}
@@ -847,7 +772,7 @@
                         <tr>
                             <th>Exceptions/Notes:</th>
                             <td>
-                                <textarea class="form-control" id="temp-notes" rows="4">${record.notes || ''}</textarea>
+                                <textarea class="form-control" id="temp-notes" rows="4" readonly>${record.notes || ''}</textarea>
                             </td>
                         </tr>
                     </table>
@@ -903,9 +828,10 @@
             `;
             modalBody.appendChild(othersAvailableInfoTable);
 
+            /*
             const saveBtn = document.getElementById('temp-save-btn');
             saveBtn.onclick = () => saveTempRecord(record.pre_disb_temp_id, saveBtn);
-
+            */
             // Single event handler for changes
             function onFieldChange() {
               const natureOfBusiness = document.getElementById('nature-of-business').value;
@@ -921,10 +847,6 @@
             document.getElementById('nature-of-business').addEventListener('change', onFieldChange);
             document.getElementById('experience').addEventListener('change', onFieldChange);
 
-            // Reset button
-            document.getElementById('reset-button').addEventListener('click', () => {
-                document.getElementById('amount-accepted').value = record.kft_approved_loan_limit !== null ? record.kft_approved_loan_limit : record.Loan_Amount;
-            });
 
             const modal = new bootstrap.Modal(document.getElementById('tempModal'));
             modal.show();

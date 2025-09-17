@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Bank Details</title>
+    {% include 'head.html' %}
+    <style>
+        .table-responsive {
+            margin-bottom: 1rem;
+        }
+        .pagination .page-item.active .page-link {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        .pagination .page-item.disabled .page-link {
+            cursor: not-allowed;
+            opacity: 0.65;
+        }
+        .card {
+            margin-top: 1rem;
+        }
+        .action-icons a, .action-icons button {
+            margin-right: 0.5rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+        }
+        .add-button {
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    {% include 'navbar.html' %}
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url":"", "label":"Manage Bank Details"}]) }}
+
+    <div class="mt-3">
+        {% include 'message_box.html' %}
+    </div>
+
+    <div class="container py-4">
+        <a href="/add-bank-details" class="btn btn-primary add-button mb-3">Add Bank Details</a>
+
+        <h1 class="mb-4">Manage Bank Details</h1>
+        <!-- Data Table Card -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Bank Account Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover text-nowrap">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col">Bank Code</th>
+                                <th scope="col">Branch</th>
+                                <th scope="col">IBAN</th>
+                                <th scope="col">Account Title</th>
+                                <th scope="col">Modified By</th>
+                                <th scope="col">Modified Date</th>
+                                <th scope="col">Date Account Closed</th>
+                                <th scope="col">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bank-details-table-body"></tbody>
+                    </table>
+                </div>
+                <nav aria-label="Bank details pagination">
+                    <ul class="pagination justify-content-center" id="bank-details-pagination"></ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data from Flask
+        const bankDetailsData = {{ result.get_all_bank_details | tojson }};
+        const itemsPerPage = 10;
+
+        // Pagination state
+        let bankDetailsCurrentPage = 1;
+        let filteredData = bankDetailsData;
+
+        // Format date
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            const date = new Date(dateStr);
+            return isNaN(date) ? dateStr : date.toLocaleDateString();
+        }
+
+        // Render table
+        function renderTable(data, tableBodyId, currentPage) {
+            const tbody = document.getElementById(tableBodyId);
+            tbody.innerHTML = '';
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const pageData = data.slice(start, end);
+
+            if (pageData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No records found</td></tr>';
+                return;
+            }
+
+            pageData.forEach(record => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${record.bank_code || 'N/A'}</td>
+                    <td>${record.branch_of_account || 'N/A'}</td>
+                    <td class='text-truncate' style='max-width: 150px;' title='${record.iban || 'N/A'}'>${record.iban || 'N/A'}</td>
+                    <td class='text-truncate' style='max-width: 150px;' title='${record.account_title || 'N/A'}'>${record.account_title || 'N/A'}</td>
+                    <td>${record.modified_by_name || 'N/A'}</td>
+                    <td>${formatDate(record.modified_date)}</td>
+                    <td>${formatDate(record.date_account_closed)}</td>
+                    <td class="action-icons">
+                        <a href="/edit-bank-details/${record.bank_id}" title="Edit">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <form action="/delete-bank-details/${record.bank_id}" method="POST" style="display:inline;">
+                            <button type="submit" title="Delete" onclick="return confirm('Are you sure you want to delete this record?')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Render pagination
+        function renderPagination(data, paginationId, currentPage) {
+            const pagination = document.getElementById(paginationId);
+            pagination.innerHTML = '';
+            const totalPages = Math.ceil(data.length / itemsPerPage);
+            if (totalPages <= 1) return;
+
+            const prevLi = document.createElement('li');
+            prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `<a class="page-link" href="#" ${currentPage === 1 ? '' : `onclick="changePage(${currentPage - 1})"`}>Previous</a>`;
+            pagination.appendChild(prevLi);
+
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            if (endPage - startPage + 1 < maxVisiblePages) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+
+            if (startPage > 1) {
+                const firstLi = document.createElement('li');
+                firstLi.className = 'page-item';
+                firstLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(1)">1</a>`;
+                pagination.appendChild(firstLi);
+
+                if (startPage > 2) {
+                    const ellipsisLi = document.createElement('li');
+                    ellipsisLi.className = 'page-item disabled';
+                    ellipsisLi.innerHTML = '<span class="page-link">...</span>';
+                    pagination.appendChild(ellipsisLi);
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                const pageLi = document.createElement('li');
+                pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                pageLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i})">${i}</a>`;
+                pagination.appendChild(pageLi);
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    const ellipsisLi = document.createElement('li');
+                    ellipsisLi.className = 'page-item disabled';
+                    ellipsisLi.innerHTML = '<span class="page-link">...</span>';
+                    pagination.appendChild(ellipsisLi);
+                }
+
+                const lastLi = document.createElement('li');
+                lastLi.className = 'page-item';
+                lastLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${totalPages})">${totalPages}</a>`;
+                pagination.appendChild(lastLi);
+            }
+
+            const nextLi = document.createElement('li');
+            nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+            nextLi.innerHTML = `<a class="page-link" href="#" ${currentPage === totalPages ? '' : `onclick="changePage(${currentPage + 1})"`}>Next</a>`;
+            pagination.appendChild(nextLi);
+        }
+
+        // Change page
+        function changePage(page) {
+            bankDetailsCurrentPage = page;
+            renderTable(filteredData, 'bank-details-table-body', bankDetailsCurrentPage);
+            renderPagination(filteredData, 'bank-details-pagination', bankDetailsCurrentPage);
+        }
+
+        // Initial render
+        renderTable(filteredData, 'bank-details-table-body', bankDetailsCurrentPage);
+        renderPagination(filteredData, 'bank-details-pagination', bankDetailsCurrentPage);
+    </script>
+</body>
+</html>

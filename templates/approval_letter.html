@@ -126,7 +126,7 @@
                 <td>{{ result.Borrower_Name or 'N/A' }}</td>
                 <td>{{ result.Father_Husband_Name or 'N/A' }}</td>
                 <td>{{ result.CNIC or 'N/A' }}</td>
-                <td>{{ '{:,.0f}'.format(result.Loan_Amount|int) if result.Loan_Amount else 'N/A' }}</td>
+                <td>{{ '{:,.0f}'.format(result.kft_approved_loan_limit|int) if result.kft_approved_loan_limit is not none else ('{:,.0f}'.format(result.Loan_Amount|int) if result.Loan_Amount else 'N/A') }}</td>
             </tr>
         </table>
         <p>I also hereby authorize HBL Microfinance Bank Ltd. to en-cash the proceeds of above instrument towards settlement of complete liability (principal and services charges) as against borrowers mentioned in above table directly in case of loan default.</p>

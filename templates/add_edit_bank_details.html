@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% include 'head.html' %}
+    <title>{{ 'Edit Bank Details' if result.bank_details else 'Add Bank Details' }}</title>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url": 'manage_bank_details', "label": "Manage Bank Details"}, {"url": "", "label": 'Edit Bank Details' if result.bank_details else 'Add Bank Details' }]) }}
+
+    <div class="container mt-4">
+        {% include 'message_box.html' %}
+
+        <div class="card">
+            <div class="card-header">
+                <h2>{{ 'Edit Bank Details' if result.bank_details else 'Add Bank Details' }}</h2>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                     <div class="form-group mb-3">
+                        <label for="bank_code">Bank Name</label>
+                        <input type="text" name="bank_name" class="form-control" value="{{ result.bank_details.bank_name if result.bank_details else '' }}" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="bank_code">Bank Code</label>
+                        <input type="text" name="bank_code" class="form-control" value="{{ result.bank_details.bank_code if result.bank_details else '' }}" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="branch_of_account">Branch</label>
+                        <input type="text" name="branch_of_account" class="form-control" value="{{ result.bank_details.branch_of_account if result.bank_details else '' }}" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="currency">Currency</label>
+                        <input type="text" name="currency" class="form-control" value="{{ result.bank_details.currency if result.bank_details else '' }}" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="IBAN">IBAN</label>
+                        <input type="text" name="IBAN" class="form-control" value="{{ result.bank_details.iban if result.bank_details else '' }}" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="account_title">Account Title</label>
+                        <input type="text" name="account_title" class="form-control" value="{{ result.bank_details.account_title if result.bank_details else '' }}" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="date_account_opened">Date Account Opened</label>
+                        <input type="date" name="date_account_opened" class="form-control" value="{{ result.bank_details.date_account_opened | date_format if result.bank_details and result.bank_details.date_account_opened else '' }}">
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="date_account_closed">Date Account Closed</label>
+                        <input type="date" name="date_account_closed" class="form-control" value="{{ result.bank_details.date_account_closed | date_format if result.bank_details and result.bank_details.date_account_closed else '' }}">
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="status">Status</label>
+                        <select name="status" id="status" class="form-control form-select">
+                            <option value="1" {% if result.bank_details and result.bank_details.status|string == '1'  %} selected {% endif %}>Active</option>
+                            <option value="2" {% if result.bank_details and result.bank_details.status|string == '2'  %} selected {% endif %}>In-Active</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">{{ 'Update Bank Details' if result.bank_details else 'Add Bank Details' }}</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

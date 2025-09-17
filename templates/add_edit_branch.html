@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% include 'head.html' %}
+    <title>{{ 'Edit Branch' if result.branch_details else 'Add Branch' }}</title>
+    <style>
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .form-row .form-group {
+            flex: 1;
+            min-width: 0;
+        }
+    </style>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url": "manage_branches", "label": "Manage Branches"}, {"url": "", "label": 'Edit Branch' if result.branch_details else 'Add Branch'}]) }}
+
+    <div class="container mt-4">
+        {% include 'message_box.html' %}
+
+        <div class="card">
+            <div class="card-header">
+                <h2>{{ 'Edit Branch' if result.branch_details else 'Add Branch' }}</h2>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="form-group mb-3">
+                        <div class="form-group">
+                            <label for="bank_id">Bank</label>
+                            <select name="bank_id" id="bank_id" class="form-control form-select" required>
+                                <option value="">[[select...]]</option>
+                                {% for bank in result.bank_details %}
+                                    <option value="{{ bank.bank_id }}" {% if result.branch_details and result.branch_details.bank_id == bank.bank_id %}selected{% endif %}>
+                                        {{ bank.bank_code }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row mb-3">
+                        <div class="form-group">
+                            <label for="branch_name">Branch Name</label>
+                            <input type="text" name="branch_name" class="form-control" value="{{ result.branch_details.branch_name if result.branch_details else '' }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="branch_code">Branch Code</label>
+                            <input type="text" name="branch_code" class="form-control" value="{{ result.branch_details.branch_code if result.branch_details else '' }}" required>
+                        </div>
+                    </div>
+                    <div class="form-row mb-3">
+                        <div class="form-group">
+                            <label for="role">Role</label>
+                            <input type="text" name="role" class="form-control" value="{{ result.branch_details.role if result.branch_details else '' }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="role">Branch</label>
+                            <input type="text" name="branch" class="form-control" value="{{ result.branch_details.branch if result.branch_details else '' }}" required>
+                        </div>
+                    </div>
+                    <div class="form-row mb-3">
+                        <div class="form-group">
+                            <label for="area">Area</label>
+                            <input type="text" name="area" class="form-control" value="{{ result.branch_details.area if result.branch_details else '' }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="area">Area Name</label>
+                            <input type="text" name="area_name" class="form-control" value="{{ result.branch_details.area_name if result.branch_details else '' }}" required>
+                        </div>
+                    </div>
+                    <div class="form-row mb-3">
+                        <div class="form-group">
+                            <label for="role">Branch Manager Name</label>
+                            <input type="text" name="branch_manager" class="form-control" value="{{ result.branch_details.branch_manager if result.branch_details else '' }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" name="email" class="form-control" value="{{ result.branch_details.email if result.branch_details else '' }}" required>
+                        </div>
+                    </div>
+                    <div class="form-row mb-3">
+                        <div class="form-group">
+                            <label for="bank_distribution">Bank Distribution</label>
+                            <input type="text" name="bank_distribution" class="form-control" value="{{ result.branch_details.bank_distribution if result.branch_details else '' }}">
+                        </div>
+                        <div class="form-group">
+                            <label for="kft_distribution">KFT Distribution</label>
+                            <input type="text" name="kft_distribution" class="form-control" value="{{ result.branch_details.kft_distribution if result.branch_details else '' }}">
+                        </div>
+                    </div>
+                    <div class="form-row mb-3">
+                        <div class="form-group">
+                            <label for="national_council_distribution">National Council Distribution</label>
+                            <input type="text" name="national_council_distribution" class="form-control" value="{{ result.branch_details.national_council_distribution if result.branch_details else '' }}">
+                        </div>
+                        <div class="form-group">
+                            <label for="live_branch">Branch Live</label>
+                            <select name="live_branch" id="live_branch" class="form-control form-select" required>
+                                <option value="1" {% if result.branch_details and result.branch_details.live_branch|string == '1' %}selected{% endif %}>Active</option>
+                                <option value="2" {% if result.branch_details and result.branch_details.live_branch|string == '2' %}selected{% endif %}>In-Active</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">{{ 'Update Branch' if result.branch_details else 'Add Branch' }}</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
