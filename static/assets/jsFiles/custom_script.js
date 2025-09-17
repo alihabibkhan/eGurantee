@@ -1,28 +1,34 @@
-$(document).on('submit', 'form', function (e) {
+$(document).on('submit', 'form.form-show-processing', function (e) {
+    // Find the submit button within the form
     const $form = $(this);
-    let $submitBtn = $form.find('button[type="submit"]:focus');
+    const $button = $form.find('button[type="submit"], input[type="submit"]');
 
-    // If no focused button (e.g. Enter key pressed), get the first submit button
-    if (!$submitBtn.length) {
-        $submitBtn = $form.find('button[type="submit"]').first();
+    // Exit if no submit button is found
+    if (!$button.length) {
+        return;
     }
 
-    if ($submitBtn.length) {
-        $submitBtn
-            .addClass('processing')
-            .prop('disabled', true)
-            .html('Processing... <i class="fas fa-spinner fa-spin ml-2 ms-2"></i>');
+    // Exit if the button is already processing
+    if ($button.hasClass('processing')) {
+        e.preventDefault(); // Prevent form resubmission
+        return;
     }
-});
 
+    // Store original state
+    const originalHtml = $button.html();
+    const originalDisabled = $button.prop('disabled');
+    const processingText = $button.data('processing-text') || 'Processing...';
 
-$(document).on('click', 'a[href^="/"]:not([data-no-process]):not([class="breadcrumb-item"])', function (e) {
-    const $element = $(this);
-
-    $element
+    // Update button to processing state
+    $button
         .addClass('processing')
         .prop('disabled', true)
-        .html('Processing... <i class="fas fa-spinner fa-spin ml-2 ms-2"></i>');
+        .data('original-html', originalHtml)
+        .data('original-disabled', originalDisabled)
+        .html(`${processingText} <i class="fas fa-spinner fa-spin ms-2"></i>`);
 
-    // Let the browser follow the link normally (no e.preventDefault)
+    // Optional: Allow form submission to proceed
+    // If you need to prevent submission (e.g., for AJAX), add:
+    // e.preventDefault();
+    // Then handle submission manually (e.g., via $.ajax)
 });
