@@ -19,16 +19,16 @@
             <div class="card-body">
                 <ul class="nav nav-tabs" id="loanMetricsTabs" role="tablist">
                     <li class="nav-item">
-                        <a class="nav-link active" id="loan-products-tab" data-bs-toggle="tab" href="#loan-products" role="tab" aria-controls="loan-products" aria-selected="true">Loan Products</a>
+                        <a class="nav-link active" id="loan-products-tab" data-bs-toggle="tab" data-bs-target="#loan-products" href="#loan-products" role="tab" aria-controls="loan-products" aria-selected="true">Loan Products</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" id="occupations-tab" data-bs-toggle="tab" href="#occupations" role="tab" aria-controls="occupations" aria-selected="false">Occupations</a>
+                        <a class="nav-link" id="occupations-tab" data-bs-toggle="tab" href="#occupations" data-bs-target="#occupations" role="tab" aria-controls="occupations" aria-selected="false">Occupations</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" id="experience-ranges-tab" data-bs-toggle="tab" href="#experience-ranges" role="tab" aria-controls="experience-ranges" aria-selected="false">Experience Ranges</a>
+                        <a class="nav-link" id="experience-ranges-tab" data-bs-toggle="tab" href="#experience-ranges" data-bs-target="#experience-ranges" role="tab" aria-controls="experience-ranges" aria-selected="false">Experience Ranges</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" id="loan-metrics-tab" data-bs-toggle="tab" href="#loan-metrics" role="tab" aria-controls="loan-metrics" aria-selected="false">Loan Metrics</a>
+                        <a class="nav-link" id="loan-metrics-tab" data-bs-toggle="tab" href="#loan-metrics" data-bs-target="#loan-metrics" role="tab" aria-controls="loan-metrics" aria-selected="false">Loan Metrics</a>
                     </li>
                 </ul>
 
@@ -173,3 +173,26 @@
     </div>
 </body>
 </html>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // Activate tab if URL contains hash
+      let hash = window.location.hash;
+      if (hash) {
+        let triggerEl = document.querySelector(`[data-bs-target="${hash}"]`);
+        if (triggerEl) {
+          let tab = new bootstrap.Tab(triggerEl);
+          tab.show();
+        }
+      }
+
+      // Update hash when tab is changed
+      let tabLinks = document.querySelectorAll('a[data-bs-toggle="tab"]');
+      tabLinks.forEach(function (el) {
+        el.addEventListener("shown.bs.tab", function (event) {
+          let target = event.target.getAttribute("data-bs-target");
+          console.log(target)
+          history.replaceState(null, null, target); // updates URL hash
+        });
+      });
+    });
+</script>
