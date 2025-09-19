@@ -108,6 +108,8 @@ from App_ExperienceRanges import *
 from App_LoanMetrics import *
 from App_Summary import *
 from App_Bank_Details import *
+from App_Bank_Entry import *
+from App_User_Service_Hours import *
 
 
 if __name__ == '__main__':

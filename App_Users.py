@@ -245,7 +245,7 @@ def add_edit_user(user_id=None):
 @application.route('/add-edit-user-privilege', methods=['GET', 'POST'])
 @application.route('/add-edit-user-privilege/<int:privilege_id>', methods=['GET', 'POST'])
 def add_edit_user_privilege(privilege_id=None):
-    user_id = request.args.get('user_id')
+    user_id = request.args.get('user_id') or request.form.get('hdn_user_id')
     print('user_id:- ', user_id)
 
     user_data = get_all_user_data_by_id(user_id)
@@ -295,10 +295,11 @@ def add_edit_user_privilege(privilege_id=None):
 @application.route('/add_edit_user_service_term/<int:term_id>', methods=['GET', 'POST'])
 def add_edit_user_service_term(term_id=None):
 
-    user_id = request.args.get('user_id')
+    user_id = request.args.get('user_id') or request.form.get('hdn_user_id')
     print('user_id:- ', user_id)
 
     user_data = get_all_user_data_by_id(user_id)
+    print(user_data)
     user_name = user_data.get('name', '')
 
     print('user_id:- ', user_id)

@@ -105,7 +105,7 @@ def add_edit_branch(branch_id=None):
             return redirect(url_for('manage_branches'))
 
         # Render form for GET request
-        return render_template('add_edit_branch.html', result={'branch_details': branch_details, 'bank_details': bank_details})
+        return render_template('add_edit_branch.html', result={'branch_details': branch_details, 'get_all_branches_info': get_all_branches_info(), 'bank_details': bank_details})
     except Exception as e:
         print('add/edit branch exception:- ', str(e))
         return redirect(url_for('login'))

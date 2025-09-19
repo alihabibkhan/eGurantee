@@ -35,3 +35,5 @@ from Model_ExperienceRanges import *
 from Model_LoanMetrics import *
 from Model_Summary import *
 from Model_Bank_Details import *
+from Model_Bank_Entry import *
+from Model_User_Service_Hours import *
