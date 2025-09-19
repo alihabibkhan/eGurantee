@@ -86,9 +86,6 @@
             margin-left: 5px;
         }
     </style>
-    <!-- Add jsPDF and autoTable for PDF export -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body class="bg-light">
     {% include 'navbar.html' %}
@@ -100,46 +97,6 @@
     <div class="container py-4">
         <h1 class="mb-3 text-muted">Disagreed Loans Report</h1>
 
-        <!-- Filter Card -->
-        <div class="card filter-card">
-            <div class="card-header">
-                <h5 class="mb-0">Filters and Export</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3">
-                        <label for="start-date">Start Date (Report Period)</label>
-                        <input type="date" id="start-date" class="form-control">
-                    </div>
-                    <div class="col-md-3">
-                        <label for="end-date">End Date (Report Period)</label>
-                        <input type="date" id="end-date" class="form-control">
-                    </div>
-                    <div class="col-md-3">
-                        <label for="sort-by">Sorted By</label>
-                        <select id="sort-by" class="form-control">
-                            <option value="">Select</option>
-                            <option value="ApplicationDate">Application Date</option>
-                            <option value="Loan_Amount">Loan Amount</option>
-                            <option value="rejected_by">Disagreed By</option>
-                            <option value="notes">Reasons for Disagreement</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label>&nbsp;</label>
-                        <button class="btn btn-primary form-control" onclick="applyFilters()">Apply Filters</button>
-                    </div>
-                </div>
-                <div class="row mt-3">
-                    <div class="col-md-12">
-                        <button class="btn btn-success" onclick="exportToExcel()">Export to Excel (CSV)</button>
-                        <button class="btn btn-info" onclick="exportToPDF()">Export to PDF</button>
-                        <button class="btn btn-secondary" onclick="printTable()">Print</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Data Table Card -->
         <div class="card">
             <div class="card-header">
@@ -147,7 +104,7 @@
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-bordered table-hover" id="print-table">
+                    <table class="table table-bordered table-hover">
                         <thead class="table-light">
                             <tr>
                                 <th scope="col">Application No</th>
@@ -328,49 +285,14 @@
           return formatted.replace(', ', '/').replace(' ', '/');
         }
 
-        // Parse date for filtering/sorting
-        function parseDate(dateStr) {
-          if (!dateStr) return null;
-          return new Date(dateStr);
-        }
 
-        // Apply filters and sorting
+        // Apply filters
         function applyFilters() {
-            let startDate = document.getElementById('start-date').value ? parseDate(document.getElementById('start-date').value) : null;
-            let endDate = document.getElementById('end-date').value ? parseDate(document.getElementById('end-date').value) : null;
-            let sortBy = document.getElementById('sort-by').value;
-
-            filteredData = tempData.filter(record => {
-                let rejectedDate = parseDate(record.rejected_date);
-                if (startDate && rejectedDate < startDate) return false;
-                if (endDate && rejectedDate > endDate) return false;
-                return true;
-            });
-
-            if (sortBy) {
-                filteredData.sort((a, b) => {
-                    let valA = a[sortBy];
-                    let valB = b[sortBy];
-                    if (sortBy === 'ApplicationDate') {
-                        valA = parseDate(valA) || new Date(0);
-                        valB = parseDate(valB) || new Date(0);
-                    } else if (sortBy === 'Loan_Amount') {
-                        valA = parseFloat(valA) || 0;
-                        valB = parseFloat(valB) || 0;
-                    } else if (sortBy === 'notes' || sortBy === 'rejected_by') {
-                        valA = valA ? valA.toLowerCase() : '';
-                        valB = valB ? valB.toLowerCase() : '';
-                    }
-                    if (valA < valB) return -1;
-                    if (valA > valB) return 1;
-                    return 0;
-                });
-            }
-
             tempCurrentPage = 1;
             renderTable(filteredData, 'temp-table-body', tempCurrentPage);
             renderPagination(filteredData, 'temp-pagination', tempCurrentPage);
         }
+
 
         // Render table
         function renderTable(data, tableBodyId, currentPage) {
@@ -736,6 +658,30 @@
                 </div>
             `;
             modalBody.appendChild(familyInfo);
+
+            // Table for Loan Terms
+            /*
+            const loanTerms = document.createElement('div');
+            loanTerms.className = 'row mt-3';
+            loanTerms.innerHTML = `
+                <div class="col-md-12">
+                    <h5 class="bg-warning text-dark p-2 mb-2 rounded" style="font-weight: bold; border-left: 4px solid #ffc107;">
+                        Loan Calculator
+                    </h5>
+                    <table class="table table-sm">
+                        <tr>
+                            <th>Purpose of the Loan:</th>
+                            <td>${record.Purpose_Of_Loan || 'Not Received'}</td>
+                        </tr>
+                        <tr><th>Borrower Requested Loan Amount:</th><td>${record.Requested_Loan_Amount || 'Not Received'}</td></tr>
+                        <tr><th>BCC Approved Loan Amount:</th><td>${record.Loan_Amount || 'Not Received'}</td></tr>
+                        <tr><th>Bank Tenur of Loan (In Months):</th><td>${record.Tenor_Of_Month || 'Not Received'}</td></tr>
+                        <tr><th>Bank Repayment Term (Monthly / Quarterly / Bullet):</th><td>Not Applicable</td></tr>
+                    </table>
+                </div>
+            `;
+            modalBody.appendChild(loanTerms);
+            */
 
             // Heading for KFT ACCEPTED Loan Terms
             const kftLoanHeading = document.createElement('div');
@@ -1462,49 +1408,6 @@
 
             const ongoingModal = new bootstrap.Modal(document.getElementById('ongoingLoanModal'));
             ongoingModal.show();
-        }
-
-        // Export to Excel (CSV)
-        function exportToExcel() {
-            let csv = 'Application No,Branch,Loan Product,Borrower Name,Loan Amount,Reason,Rejected By,Rejected Date\n';
-            filteredData.forEach(record => {
-                csv += `${record.Application_No || 'Not Received'},${record.Branch_Name || 'Not Received'},${record.LoanProductCode || 'Not Received'},${record.Borrower_Name || 'Not Received'},${record.Loan_Amount || 'Not Received'},${(record.notes || 'Not Received').replace(/,/g, ';')},${record.rejected_by || 'Not Received'},${formatDate(record.rejected_date) || 'Not Received'}\n`;
-            });
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'disagreed_loans.csv';
-            link.click();
-        }
-
-        // Export to PDF
-        function exportToPDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.autoTable({
-                head: [['Application No', 'Branch', 'Loan Product', 'Borrower Name', 'Loan Amount', 'Reason', 'Rejected By', 'Rejected Date']],
-                body: filteredData.map(record => [
-                    record.Application_No || 'Not Received',
-                    record.Branch_Name || 'Not Received',
-                    record.LoanProductCode || 'Not Received',
-                    record.Borrower_Name || 'Not Received',
-                    record.Loan_Amount || 'Not Received',
-                    record.notes || 'Not Received',
-                    record.rejected_by || 'Not Received',
-                    formatDate(record.rejected_date) || 'Not Received'
-                ]),
-            });
-            doc.save('disagreed_loans.pdf');
-        }
-
-        // Print the table
-        function printTable() {
-            const printContent = document.getElementById('print-table').outerHTML;
-            const originalContent = document.body.innerHTML;
-            document.body.innerHTML = printContent;
-            window.print();
-            document.body.innerHTML = originalContent;
-            window.location.reload(); // Reload to restore page
         }
 
         // Initial render

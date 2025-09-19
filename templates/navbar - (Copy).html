@@ -1,23 +1,544 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark px-4">
-  <a class="navbar-brand d-flex fw-bold text-white fst-italic align-items-center" href="{{ url_for('index') }}">
-    <i class="bi bi-house-fill me-1"></i> eGuarantee System
-  </a>
-  <div class="ms-auto d-flex align-items-center text-white">
-    <span class="me-3">
-      {% if session['name'] %}
-        Hello, {{ session['name'] }}!
-      {% else %}
-        Welcome, guest!
-      {% endif %}
-    </span>
-    <div class="dropdown">
-      <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-        <i class="bi bi-person-circle"></i>
-      </button>
-      <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
-        <li><a class="dropdown-item" href="{{url_for('profile')}}"><i class="bi bi-person me-2"></i>Profile</a></li>
-        <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
-      </ul>
-    </div>
-  </div>
-</nav>
+<style>
+  /* Importing Google Fonts - Poppins */
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Poppins", sans-serif;
+  }
+  body {
+    min-height: 100vh;
+    #background: linear-gradient(#F1F3FF, #CBD4FF);
+    background: white;
+  }
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 10;
+    width: 380px;
+    height: 100vh;
+    background: #151A2D;
+    transition: all 0.4s ease;
+  }
+  .sidebar.collapsed {
+    width: 85px;
+  }
+  .sidebar .sidebar-header {
+    display: flex;
+    position: relative;
+    padding: 25px 20px;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .sidebar-header .header-logo img {
+    width: 46px;
+    height: 46px;
+    display: block;
+    object-fit: contain;
+    border-radius: 50%;
+  }
+  .sidebar-header .sidebar-toggler,
+  .sidebar-menu-button {
+    position: absolute;
+    right: 20px;
+    height: 35px;
+    width: 35px;
+    color: #151A2D;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    background: #EEF2FF;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: 0.4s ease;
+  }
+  .sidebar.collapsed .sidebar-header .sidebar-toggler {
+    transform: translate(-4px, 65px);
+  }
+  .sidebar-header .sidebar-toggler span,
+  .sidebar-menu-button span {
+    font-size: 1.75rem;
+    transition: 0.4s ease;
+  }
+  .sidebar.collapsed .sidebar-header .sidebar-toggler span {
+    transform: rotate(180deg);
+  }
+  .sidebar-header .sidebar-toggler:hover {
+    background: #d9e1fd;
+  }
+  .sidebar-nav .nav-list {
+    list-style: none;
+    display: flex;
+    gap: 4px;
+    padding: 0 15px;
+    flex-direction: column;
+    transform: translateY(15px);
+    transition: 0.4s ease;
+  }
+  .sidebar .sidebar-nav .primary-nav {
+    overflow-y: auto;
+    scrollbar-width: thin;
+    padding-bottom: 20px;
+    height: calc(100vh - 227px);
+    scrollbar-color: transparent transparent;
+  }
+  .sidebar .sidebar-nav .primary-nav:hover {
+    scrollbar-color: #EEF2FF transparent;
+  }
+  .sidebar.collapsed .sidebar-nav .primary-nav {
+    overflow: unset;
+    transform: translateY(65px);
+  }
+  .sidebar-nav .nav-item .nav-link {
+    color: #fff;
+    display: flex;
+    gap: 12px;
+    white-space: nowrap;
+    border-radius: 8px;
+    padding: 11px 15px;
+    align-items: center;
+    text-decoration: none;
+    border: 1px solid #151A2D;
+    transition: 0.4s ease;
+  }
+  .sidebar-nav .nav-item:is(:hover, .open)>.nav-link:not(.dropdown-title) {
+    color: #151A2D;
+    background: #EEF2FF;
+  }
+  .sidebar .nav-link .nav-label {
+    transition: opacity 0.3s ease;
+  }
+  .sidebar.collapsed .nav-link :where(.nav-label, .dropdown-icon) {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .sidebar.collapsed .nav-link .dropdown-icon {
+    transition: opacity 0.3s 0s ease;
+  }
+  .sidebar-nav .secondary-nav {
+    position: absolute;
+    bottom: 35px;
+    width: 100%;
+    background: #151A2D;
+  }
+  .sidebar-nav .nav-item {
+    position: relative;
+  }
+  /* Dropdown Stylings */
+  .sidebar-nav .dropdown-container .dropdown-icon {
+    margin: 0 -4px 0 auto;
+    transition: transform 0.4s ease, opacity 0.3s 0.2s ease;
+  }
+  .sidebar-nav .dropdown-container.open .dropdown-icon {
+    transform: rotate(180deg);
+  }
+  .sidebar-nav .custom-dropdown-menu {
+    height: 0;
+    overflow-y: hidden;
+    list-style: none;
+    padding-left: 15px;
+    transition: height 0.4s ease;
+  }
+  .sidebar.collapsed .custom-dropdown-menu {
+    position: absolute;
+    top: -10px;
+    left: 100%;
+    opacity: 0;
+    height: auto !important;
+    padding-right: 10px;
+    overflow-y: unset;
+    pointer-events: none;
+    border-radius: 0 10px 10px 0;
+    background: #151A2D;
+    transition: 0s;
+  }
+  .sidebar.collapsed .custom-dropdown-menu:has(.dropdown-link) {
+    padding: 7px 10px 7px 24px;
+  }
+  .sidebar.sidebar.collapsed .nav-item:hover>.custom-dropdown-menu {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(12px);
+    transition: all 0.4s ease;
+  }
+  .sidebar.sidebar.collapsed .nav-item:hover>.custom-dropdown-menu:has(.dropdown-link) {
+    transform: translateY(10px);
+  }
+  .custom-dropdown-menu .nav-item .nav-link {
+    color: #F1F4FF;
+    padding: 9px 15px;
+  }
+  .sidebar.collapsed .custom-dropdown-menu .nav-link {
+    padding: 7px 15px;
+  }
+  .custom-dropdown-menu .nav-item .nav-link.dropdown-title {
+    display: none;
+    color: #fff;
+    padding: 9px 15px;
+  }
+  .custom-dropdown-menu:has(.dropdown-link) .nav-item .dropdown-title {
+    font-weight: 500;
+    padding: 7px 15px;
+  }
+  .sidebar.collapsed .custom-dropdown-menu .nav-item .dropdown-title {
+    display: block;
+  }
+  .sidebar-menu-button {
+    display: none;
+  }
+  /* Sub-Dropdown Stylings */
+  .sidebar-nav .sub-dropdown-container .sub-dropdown-icon {
+    margin: 0 -4px 0 auto;
+    transition: transform 0.4s ease;
+  }
+  .sidebar-nav .sub-dropdown-container.open .sub-dropdown-icon {
+    transform: rotate(180deg);
+  }
+  .sidebar-nav .sub-dropdown-menu {
+    height: 0;
+    overflow-y: hidden;
+    list-style: none;
+    padding-left: 20px;
+    transition: height 0.4s ease;
+  }
+  .sidebar.collapsed .sub-dropdown-menu {
+    position: absolute;
+    top: -10px;
+    left: 100%;
+    opacity: 0;
+    height: auto !important;
+    padding: 7px 10px 7px 24px;
+    overflow-y: unset;
+    pointer-events: none;
+    border-radius: 0 10px 10px 0;
+    background: #151A2D;
+    transition: 0s;
+  }
+  .sidebar.collapsed .sub-dropdown-container:hover>.sub-dropdown-menu {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(10px);
+    transition: all 0.4s ease;
+  }
+  .sub-dropdown-menu .nav-item .nav-link {
+    color: #F1F4FF;
+    padding: 7px 15px;
+  }
+  .sidebar.collapsed .sub-dropdown-menu .nav-link {
+    padding: 7px 15px;
+  }
+  /* Responsive media query code for small screens */
+  @media (max-width: 768px) {
+    .sidebar-menu-button {
+      position: fixed;
+      left: 20px;
+      top: 20px;
+      height: 40px;
+      width: 42px;
+      display: flex;
+      color: #F1F4FF;
+      background: #151A2D;
+    }
+    .sidebar.collapsed {
+      width: 270px;
+      left: -270px;
+    }
+    .sidebar.collapsed .sidebar-header .sidebar-toggler {
+      transform: none;
+    }
+    .sidebar.collapsed .sidebar-nav .primary-nav {
+      transform: translateY(15px);
+    }
+  }
+</style>
+<!-- Mobile Sidebar Menu Button -->
+<button class="sidebar-menu-button">
+  <span class="material-symbols-rounded">menu</span>
+</button>
+<aside class="sidebar collapsed">
+  <!-- Sidebar Header -->
+  <header class="sidebar-header">
+    <a href="#" class="header-logo">
+      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSppuj7o6w9JtnVgpSWZuzf6dd5K3UsYozGZg&s"/>
+    </a>
+    <button class="sidebar-toggler">
+      <span class="material-symbols-rounded">chevron_left</span>
+    </button>
+  </header>
+  <nav class="sidebar-nav">
+    <!-- Primary Top Nav -->
+    <ul class="nav-list primary-nav">
+      <li class="nav-item">
+        <a href="#" class="nav-link">
+          <span class="material-symbols-rounded">dashboard</span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <ul class="custom-dropdown-menu">
+          <li class="nav-item"><a class="nav-link dropdown-title" href="{{ url_for('index') }}">Dashboard</a></li>
+        </ul>
+      </li>
+      <!-- Dropdown -->
+      <li class="nav-item dropdown-container">
+        <a href="#" class="nav-link custom-dropdown-toggle">
+          <i class="fa-classic fa-solid fa-home fa-xl"></i>
+          <span class="nav-label">Home</span>
+          <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
+        </a>
+        <!-- Dropdown Menu -->
+        <ul class="custom-dropdown-menu">
+          <li class="nav-item"><a class="nav-link dropdown-title">Home</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Chairman Message</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Vision, Mission & Goals</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Board of Trustee</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Board of Director</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Committees</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Governance Manual</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Partners Institutions</a></li>
+        </ul>
+      </li>
+      <!-- Dropdown -->
+      <li class="nav-item dropdown-container">
+        <a href="#" class="nav-link custom-dropdown-toggle">
+          <i class="fa-classic fa-solid fa-wallet fa-xl"></i>
+          <span class="nav-label">Loan Portfolio</span>
+          <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
+        </a>
+        <!-- Dropdown Menu -->
+        <ul class="custom-dropdown-menu">
+          <li class="nav-item"><a class="nav-link dropdown-title">Loan Portfolio</a></li>
+          <li class="nav-item"><a href="{{url_for('manage_pre_disbursement')}}" class="nav-link dropdown-link">Loan Application Analysis</a></li>
+          <li class="nav-item sub-dropdown-container">
+            <a href="#" class="nav-link dropdown-link sub-custom-dropdown-toggle">
+              <span class="">Loan Portfolio Reports</span>
+              <span class="sub-dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
+            </a>
+            <!-- Sub-Dropdown Menu -->
+            <ul class="sub-dropdown-menu">
+              <li class="nav-item"><a class="nav-link dropdown-title">Loan Portfolio Reports</a></li>
+              <li class="nav-item"><a href="#" class="nav-link">Gross / Net Loans Reports</a></li>
+              <li class="nav-item"><a href="#" class="nav-link">Loan Projections Report </a></li>
+              <li class="nav-item"><a href="{{url_for('view_rejected_applications')}}" class="nav-link">Disagreed Loans Report</a></li>
+              <li class="nav-item"><a href="#" class="nav-link">Non Performance Loan Report</a></li>
+              <li class="nav-item"><a href="#" class="nav-link">Loan Budget Vs Disbursed</a></li>
+            </ul>
+          </li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Loan</a></li>
+        </ul>
+      </li>
+      <!-- Dropdown -->
+      <li class="nav-item dropdown-container">
+        <a href="#" class="nav-link custom-dropdown-toggle">
+          <i class="fa-classic fa-solid fa-users fa-xl"></i>
+          <span class="nav-label">Volunteers</span>
+          <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
+        </a>
+        <!-- Dropdown Menu -->
+        <ul class="custom-dropdown-menu">
+          <li class="nav-item"><a class="nav-link dropdown-title">Volunteers</a></li>
+          <li class="nav-item"><a href="{{url_for('profile')}}" class="nav-link dropdown-link">Profile</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Self Service Hours Update</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Community Services</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Volunteer Report</a></li>
+        </ul>
+      </li>
+
+      <!-- Dropdown with Sub-Dropdown -->
+      <li class="nav-item dropdown-container">
+        <a href="#" class="nav-link custom-dropdown-toggle">
+          <i class="fa-solid fa-coins fa-xl"></i>
+          <span class="nav-label">Financial Management</span>
+          <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
+        </a>
+        <!-- Dropdown Menu -->
+        <ul class="custom-dropdown-menu">
+          <li class="nav-item"><a class="nav-link dropdown-title">Financial Management</a></li>
+          <li class="nav-item"><a href="{{url_for('manage_bank_entries')}}" class="nav-link dropdown-link">Bank Data Entry</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Bank Reconciliation</a></li>
+          <li class="nav-item sub-dropdown-container">
+            <a href="#" class="nav-link dropdown-link sub-custom-dropdown-toggle">
+              <span class="">Financial Reports</span>
+              <span class="sub-dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
+            </a>
+            <!-- Sub-Dropdown Menu -->
+            <ul class="sub-dropdown-menu">
+              <li class="nav-item"><a class="nav-link dropdown-title">Financial Reports</a></li>
+              <li class="nav-item"><a href="#" class="nav-link">Bank Account Statement</a></li>
+              <li class="nav-item"><a href="#" class="nav-link">Loan to Value Report</a></li>
+              <li class="nav-item"><a href="#" class="nav-link">Loan Projection Analysis</a></li>
+              <li class="nav-item"><a href="#" class="nav-link">Funds Projection Analysis</a></li>
+            </ul>
+          </li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Data Archive</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Volunteer Report</a></li>
+        </ul>
+      </li>
+
+      <!-- Dropdown -->
+      <li class="nav-item dropdown-container">
+        <a href="#" class="nav-link custom-dropdown-toggle">
+          <i class="fa-solid fa-list-check fa-xl"></i>
+          <span class="nav-label">Risk Management</span>
+          <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
+        </a>
+        <!-- Dropdown Menu -->
+        <ul class="custom-dropdown-menu">
+          <li class="nav-item"><a class="nav-link dropdown-title">Risk Management</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Exception Reports</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Loan Limit Exceptions</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Loan Budgets Variation</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Meeting Action Items</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Volunteers</a></li>
+        </ul>
+      </li>
+
+      <!-- Dropdown -->
+      <li class="nav-item dropdown-container">
+        <a href="#" class="nav-link custom-dropdown-toggle">
+          <i class="fa-solid fa-handshake fa-xl"></i>
+          <span class="nav-label">Meetings</span>
+          <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
+        </a>
+        <!-- Dropdown Menu -->
+        <ul class="custom-dropdown-menu">
+          <li class="nav-item"><a class="nav-link dropdown-title">Meetings</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Calendars</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Meeting Action Items</a></li>
+        </ul>
+      </li>
+
+      <!-- Dropdown -->
+      <li class="nav-item dropdown-container">
+        <a href="#" class="nav-link custom-dropdown-toggle">
+          <i class="fa-brands fa-squarespace fa-xl"></i>
+          <span class="nav-label">Research & Development</span>
+          <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
+        </a>
+        <!-- Dropdown Menu -->
+        <ul class="custom-dropdown-menu">
+          <li class="nav-item"><a class="nav-link dropdown-title">Research & Development</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">KFT Regional Newsletters</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Bank Product Lines</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Council Organization</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">SAJDA Best Practices</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Other Program Best Practices</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Pakistan Poverty</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">AKEPBP Intervention Indicators</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">AKSWBP Intervention, Indicators</a></li>
+        </ul>
+      </li>
+
+      <!-- Dropdown -->
+      <li class="nav-item dropdown-container">
+        <a href="#" class="nav-link custom-dropdown-toggle">
+          <i class="fa-solid fa-compact-disc fa-xl"></i>
+          <span class="nav-label">Program Impact</span>
+          <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
+        </a>
+        <!-- Dropdown Menu -->
+        <ul class="custom-dropdown-menu">
+          <li class="nav-item"><a class="nav-link dropdown-title">Program Impact</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Cash flow / Baseline Data</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Student Academic Profile</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Impact Monitoring by region</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Success stories</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Graphs, trends, map</a></li>
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Pakistan Poverty</a></li>
+        </ul>
+      </li>
+      <!-- Dropdown with Sub-Dropdown -->
+      <li class="nav-item dropdown-container">
+        <a href="#" class="nav-link custom-dropdown-toggle">
+          <i class="fa-solid fa-gear fa-xl"></i>
+          <span class="nav-label">Administration/Setting</span>
+          <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
+        </a>
+        <!-- Dropdown Menu -->
+        <ul class="custom-dropdown-menu">
+          <li class="nav-item"><a class="nav-link dropdown-title">Administration/Setting</a></li>
+          <li class="nav-item"><a href="{{url_for('manage_bank_details')}}" class="nav-link dropdown-link">Bank Setup</a></li>
+          <li class="nav-item"><a href="{{url_for('manage_post_disbursement')}}" class="nav-link dropdown-link">Loan Assessment (Post)</a></li>
+          <li class="nav-item"><a class="nav-link dropdown-title">Loan Administration</a></li>
+          <li class="nav-item"><a href="{{url_for('manage_loan_metrics')}}" class="nav-link">Loan Matrix Parameters</a></li>
+          <li class="nav-item"><a href="#" class="nav-link">Loan Annual Budgets</a></li>
+          <li class="nav-item"><a href="{{url_for('manage_file')}}" class="nav-link">Loan Assessment File Uploading</a></li>
+          <li class="nav-item"><a class="nav-link dropdown-title" href="{{url_for('manage_users')}}">Volunteer Administration</a></li>
+          <li class="nav-item"><a href="#" class="nav-link">Volunteers Roles Update</a></li>
+          <li class="nav-item"><a href="#" class="nav-link">Partner Organization</a></li>
+        </ul>
+      </li>
+    </ul>
+    <!-- Secondary Bottom Nav -->
+    <ul class="nav-list secondary-nav">
+      <li class="nav-item">
+        <a href="#" class="nav-link">
+          <i class="fa-solid fa-arrow-right-from-bracket fa-xl"></i>
+          <span class="nav-label">Sign Out</span>
+        </a>
+        <ul class="custom-dropdown-menu">
+          <li class="nav-item"><a class="nav-link dropdown-title" href="{{ url_for('logout') }}">Sign Out</a></li>
+        </ul>
+      </li>
+    </ul>
+  </nav>
+</aside>
+
+
+<script>
+  // Toggle the visibility of a dropdown or sub-dropdown menu
+  const toggleMenu = (container, menu, isOpen) => {
+    container.classList.toggle("open", isOpen);
+    menu.style.height = isOpen ? `${menu.scrollHeight}px` : 0;
+  };
+
+  // Close all open dropdowns and sub-dropdowns
+  const closeAllMenus = () => {
+    document.querySelectorAll(".dropdown-container.open, .sub-dropdown-container.open").forEach((openContainer) => {
+      const menu = openContainer.querySelector(".custom-dropdown-menu, .sub-dropdown-menu");
+      toggleMenu(openContainer, menu, false);
+    });
+  };
+
+  // Attach click event to all dropdown toggles
+  document.querySelectorAll(".custom-dropdown-toggle").forEach((dropdownToggle) => {
+    dropdownToggle.addEventListener("click", (e) => {
+      e.preventDefault();
+      const dropdown = dropdownToggle.closest(".dropdown-container");
+      const menu = dropdown.querySelector(".custom-dropdown-menu");
+      const isOpen = dropdown.classList.contains("open");
+      closeAllMenus(); // Close all open dropdowns and sub-dropdowns
+      toggleMenu(dropdown, menu, !isOpen); // Toggle current dropdown visibility
+    });
+  });
+
+  // Attach click event to all sub-dropdown toggles
+  document.querySelectorAll(".sub-custom-dropdown-toggle").forEach((subDropdownToggle) => {
+    subDropdownToggle.addEventListener("click", (e) => {
+      e.preventDefault();
+      const subDropdown = subDropdownToggle.closest(".sub-dropdown-container");
+      const menu = subDropdown.querySelector(".sub-dropdown-menu");
+      const isOpen = subDropdown.classList.contains("open");
+      // Close other sub-dropdowns within the same dropdown
+      subDropdown.closest(".custom-dropdown-menu").querySelectorAll(".sub-dropdown-container.open").forEach((openSub) => {
+        if (openSub !== subDropdown) {
+          const subMenu = openSub.querySelector(".sub-dropdown-menu");
+          toggleMenu(openSub, subMenu, false);
+        }
+      });
+      toggleMenu(subDropdown, menu, !isOpen); // Toggle current sub-dropdown visibility
+    });
+  });
+
+  // Attach click event to sidebar toggle buttons
+  document.querySelectorAll(".sidebar-toggler, .sidebar-menu-button").forEach((button) => {
+    button.addEventListener("click", () => {
+      closeAllMenus(); // Close all open dropdowns and sub-dropdowns
+      document.querySelector(".sidebar").classList.toggle("collapsed"); // Toggle collapsed class on sidebar
+    });
+  });
+
+  // Collapse sidebar by default on small screens
+  if (window.innerWidth <= 1024) document.querySelector(".sidebar").classList.add("collapsed");
+</script>

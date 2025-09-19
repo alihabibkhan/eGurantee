@@ -55,7 +55,14 @@
                     <div class="form-row mb-3">
                         <div class="form-group">
                             <label for="role">Role</label>
-                            <input type="text" name="role" class="form-control" value="{{ result.branch_details.role if result.branch_details else '' }}" required>
+                            <select name="role" id="role" class="form-select form-control" required>
+                                <option value="">[[select...]]</option>
+                                {% set seen_roles = [] %}
+                                {% for item in result.get_all_branches_info if item['role'] not in seen_roles %}
+                                <option value="{{ item['role'] }}" {% if result.branch_details and result.branch_details.role == item['role'] %}selected{% endif %}>{{ item['role'] }}</option>
+                                {{ seen_roles.append(item['role']) }}
+                                {% endfor %}
+                            </select>
                         </div>
                         <div class="form-group">
                             <label for="role">Branch</label>
@@ -85,17 +92,39 @@
                     <div class="form-row mb-3">
                         <div class="form-group">
                             <label for="bank_distribution">Bank Distribution</label>
-                            <input type="text" name="bank_distribution" class="form-control" value="{{ result.branch_details.bank_distribution if result.branch_details else '' }}">
+                            <select name="bank_distribution" class="form-control form-select">
+                                <option value="">[[select...]]</option>
+                                <option value="sindh_baluchistan" {% if result.branch_details and result.branch_details.bank_distribution == "sindh_baluchistan" %} selected {% endif %}>Sindh & Baluchistan</option>
+                                <option value="north" {% if result.branch_details and result.branch_details.bank_distribution == "north" %} selected {% endif %}>North</option>
+                                <option value="central_punjab" {% if result.branch_details and result.branch_details.bank_distribution == "central_punjab" %} selected {% endif %}>Central Punjab</option>
+                                <option value="south_punjab" {% if result.branch_details and result.branch_details.bank_distribution == "south_punjab" %} selected {% endif %}>South Punjab</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label for="kft_distribution">KFT Distribution</label>
-                            <input type="text" name="kft_distribution" class="form-control" value="{{ result.branch_details.kft_distribution if result.branch_details else '' }}">
+                            <select name="kft_distribution" class="form-control">
+                                <option value="">[[select...]]</option>
+                                <option value="southern_central" {% if result.branch_details and result.branch_details.kft_distribution == "southern_central" %} selected {% endif %}>Southern & Central</option>
+                                <option value="upper_lower_chitral" {% if result.branch_details and result.branch_details.kft_distribution == "upper_lower_chitral" %} selected {% endif %}>Upper & Lower Chitral</option>
+                                <option value="hunza_gupis_yaseen" {% if result.branch_details and result.branch_details.kft_distribution == "hunza_gupis_yaseen" %} selected {% endif %}>Hunza & Gupis Yaseen</option>
+                                <option value="gilgit_ishkoman_puniyal" {% if result.branch_details and result.branch_details.kft_distribution == "gilgit_ishkoman_puniyal" %} selected {% endif %}>Gilgit & Ishkoman Puniyal RC</option>
+                            </select>
                         </div>
                     </div>
                     <div class="form-row mb-3">
                         <div class="form-group">
                             <label for="national_council_distribution">National Council Distribution</label>
-                            <input type="text" name="national_council_distribution" class="form-control" value="{{ result.branch_details.national_council_distribution if result.branch_details else '' }}">
+                            <select name="national_council_distribution" class="form-control form-select">
+                                <option value="">[[select...]]</option>
+                                <option value="southern_rc" {% if result.branch_details and result.branch_details.national_council_distribution == "southern_rc" %} selected {% endif %}>Southern RC</option>
+                                <option value="central_rc" {% if result.branch_details and result.branch_details.national_council_distribution == "central_rc" %} selected {% endif %}>Central RC</option>
+                                <option value="upper_chitral_rc" {% if result.branch_details and result.branch_details.national_council_distribution == "upper_chitral_rc" %} selected {% endif %}>Upper Chitral RC</option>
+                                <option value="lower_chitral_rc" {% if result.branch_details and result.branch_details.national_council_distribution == "lower_chitral_rc" %} selected {% endif %}>Lower Chitral RC</option>
+                                <option value="hunza_rc" {% if result.branch_details and result.branch_details.national_council_distribution == "hunza_rc" %} selected {% endif %}>Hunza RC</option>
+                                <option value="gilgit_rc" {% if result.branch_details and result.branch_details.national_council_distribution == "gilgit_rc" %} selected {% endif %}>Gilgit RC</option>
+                                <option value="ishkoman_puniyal_rc" {% if result.branch_details and result.branch_details.national_council_distribution == "ishkoman_puniyal_rc" %} selected {% endif %}>Ishkoman Puniyal RC</option>
+                                <option value="gupis_yasin_rc" {% if result.branch_details and result.branch_details.national_council_distribution == "gupis_yasin_rc" %} selected {% endif %}>Gupis Yasin RC</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label for="live_branch">Branch Live</label>

@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Bank Entries</title>
+    {% include 'head.html' %}
+    <style>
+        .table-responsive {
+            margin-bottom: 1rem;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .table {
+            min-width: 1000px;
+        }
+        .table th, .table td {
+            min-width: 120px;
+            white-space: nowrap;
+        }
+        .pagination .page-item.active .page-link {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        .pagination .page-item.disabled .page-link {
+            cursor: not-allowed;
+            opacity: 0.65;
+        }
+        .card {
+            margin-top: 1rem;
+        }
+        .action-icons button {
+            margin-right: 0.5rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+            position: relative;
+        }
+        .action-icons button:disabled {
+            cursor: not-allowed;
+        }
+        .add-button {
+            margin-bottom: 1rem;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .editable-field, .editable-select {
+            width: 100%;
+            padding: 0.375rem 0.75rem;
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    {% include 'navbar.html' %}
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url":"", "label":"Manage Bank Entries"}]) }}
+
+    <div class="mt-3">
+        {% include 'message_box.html' %}
+    </div>
+
+    <div class="container py-4">
+        <h1 class="mb-4">Manage Bank Entries</h1>
+
+        <!-- Bank Selection and Account Details -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Bank and Account Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label for="bank-select">Bank</label>
+                    <select id="bank-select" class="form-control">
+                        <option value="">Select a Bank</option>
+                        {% for bank in result.get_all_bank_details %}
+                            <option value="{{ bank.bank_id }}"
+                                    data-branch="{{ bank.branch_of_account }}"
+                                    data-account-title="{{ bank.account_title }}"
+                                    data-account-number="{{ bank.iban }}">
+                                {{ bank.bank_code }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="branch-name">Branch Name</label>
+                    <input type="text" id="branch-name" class="form-control" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="account-title">Account Title</label>
+                    <input type="text" id="account-title" class="form-control" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="account-number">Account Number</label>
+                    <input type="text" id="account-number" class="form-control" readonly>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Button -->
+        <button class="btn btn-primary add-button mb-3" onclick="addNewRow()">Add New Entry</button>
+
+        <!-- Data Table Card -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Bank Entries</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover text-nowrap">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col">Date Posted</th>
+                                <th scope="col">Mode</th>
+                                <th scope="col">General Ledger</th>
+                                <th scope="col">Nature of Transaction</th>
+                                <th scope="col">Withdrawal</th>
+                                <th scope="col">Deposit</th>
+                                <th scope="col">Balance</th>
+                                <th scope="col">Date Reconciled</th>
+                                <th scope="col">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bank-entries-table-body"></tbody>
+                    </table>
+                </div>
+                <nav aria-label="Bank entries pagination">
+                    <ul class="pagination justify-content-center" id="bank-entries-pagination"></ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data from Flask
+        const bankEntriesData = {{ result.get_all_bank_entries_info | tojson }};
+        const itemsPerPage = 10;
+
+        // Dropdown options
+        const modeOptions = ['Cash Deposit', 'Transfer Deposit', 'Cash Withdrawals', 'Cheques', 'Auto Withdrawals'];
+        const generalLedgerOptions = ['Donation', 'Other Loan Receipt', 'Income', 'Expense', 'Bene Loan', 'Payment', 'Tax Payments'];
+        const natureOfTransactionOptions = ['Withdrawal', 'Deposit'];
+        const depositModes = ['Cash Deposit', 'Transfer Deposit', 'Cheques'];
+        const withdrawalModes = ['Cash Withdrawals', 'Auto Withdrawals'];
+
+        // Pagination state
+        let bankEntriesCurrentPage = 1;
+        let filteredData = []; // Initialize as empty to show no records initially
+        let editRowId = null;
+
+        // Format date for display
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            const date = new Date(dateStr);
+            return isNaN(date) ? dateStr : date.toLocaleDateString();
+        }
+
+        // Format date for input value (YYYY-MM-DD)
+        function formatDateForInput(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            return isNaN(date) ? '' : date.toISOString().split('T')[0];
+        }
+
+        // Create dropdown HTML
+        function createDropdown(options, selectedValue, id) {
+            return `
+                <select class="editable-select" id="${id}">
+                    <option value="">Select</option>
+                    ${options.map(option => `<option value="${option}" ${selectedValue === option ? 'selected' : ''}>${option}</option>`).join('')}
+                </select>
+            `;
+        }
+
+        // Get previous balance
+        function getPreviousBalance(currentDate, currentId = null) {
+            const entries = filteredData.filter(entry => entry.bank_entry_id != currentId);
+            const sorted = [...entries].sort((a, b) => new Date(a.date_posted) - new Date(b.date_posted));
+            let prevBalance = 0;
+            for (let entry of sorted) {
+                if (new Date(entry.date_posted) < new Date(currentDate)) {
+                    prevBalance = entry.balance || 0;
+                } else {
+                    break;
+                }
+            }
+            return prevBalance;
+        }
+
+        // Populate account details and filter table based on bank selection
+        document.getElementById('bank-select').addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            document.getElementById('branch-name').value = selectedOption.dataset.branch || '';
+            document.getElementById('account-title').value = selectedOption.dataset.accountTitle || '';
+            document.getElementById('account-number').value = selectedOption.dataset.accountNumber || '';
+
+            // Filter table data based on selected bank
+            const bankId = this.value;
+            filteredData = bankId ? bankEntriesData.filter(entry => entry.bank_id == bankId) : [];
+            bankEntriesCurrentPage = 1;
+            renderTable(filteredData, 'bank-entries-table-body', bankEntriesCurrentPage);
+            renderPagination(filteredData, 'bank-entries-pagination', bankEntriesCurrentPage);
+        });
+
+        // Render table
+        function renderTable(data, tableBodyId, currentPage) {
+            const tbody = document.getElementById(tableBodyId);
+            tbody.innerHTML = '';
+            const bankSelect = document.getElementById('bank-select').value;
+
+            if (!bankSelect && !editRowId) {
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">Please select a bank</td></tr>';
+                return;
+            }
+
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const pageData = data.slice(start, end);
+
+            if (pageData.length === 0 && !editRowId) {
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No records found</td></tr>';
+                return;
+            }
+
+            pageData.forEach(record => {
+                const isEditing = editRowId === record.bank_entry_id;
+                const rowId = record.bank_entry_id;
+                const row = document.createElement('tr');
+                row.setAttribute('data-id', rowId);
+                row.innerHTML = `
+                    <td>${isEditing ? `<input type="date" class="editable-field" value="${formatDateForInput(record.date_posted)}" id="edit-date-posted-${rowId}">` : formatDate(record.date_posted)}</td>
+                    <td>${isEditing ? createDropdown(modeOptions, record.mode || '', `edit-mode-${rowId}`) : record.mode || 'N/A'}</td>
+                    <td>${isEditing ? createDropdown(generalLedgerOptions, record.general_ledger || '', `edit-general-ledger-${rowId}`) : record.general_ledger || 'N/A'}</td>
+                    <td>${isEditing ? createDropdown(natureOfTransactionOptions, record.nature_of_transaction || '', `edit-nature-of-transaction-${rowId}`) : record.nature_of_transaction || 'N/A'}</td>
+                    <td>${isEditing ? `<input type="number" class="editable-field" value="${record.withdrawal ?? ''}" id="edit-withdrawal-${rowId}" min="0">` : record.withdrawal || '0'}</td>
+                    <td>${isEditing ? `<input type="number" class="editable-field" value="${record.deposit ?? ''}" id="edit-deposit-${rowId}" min="0">` : record.deposit || '0'}</td>
+                    <td>${isEditing ? `<input type="number" class="editable-field" value="${record.balance ?? ''}" id="edit-balance-${rowId}" min="0">` : record.balance || '0'}</td>
+                    <td>${isEditing ? `<input type="date" class="editable-field" value="${formatDateForInput(record.date_reconciled)}" id="edit-date-reconciled-${rowId}">` : formatDate(record.date_reconciled)}</td>
+                    <td class="action-icons">
+                        ${isEditing ? `
+                            <button title="Save" onclick="saveRow(${rowId})">
+                                <i class="bi bi-save"></i>
+                                <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                            </button>
+                            <button title="Cancel" onclick="cancelEdit()">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        ` : `
+                            <button title="Edit" onclick="editRow(${rowId})">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button title="Delete" onclick="deleteRow(${rowId})">
+                                <i class="bi bi-trash"></i>
+                                <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                            </button>
+                        `}
+                    </td>
+                `;
+                tbody.appendChild(row);
+
+                if (isEditing) {
+                    const modeSelect = document.getElementById(`edit-mode-${rowId}`);
+                    const natureSelect = document.getElementById(`edit-nature-of-transaction-${rowId}`);
+                    const withdrawalInput = document.getElementById(`edit-withdrawal-${rowId}`);
+                    const depositInput = document.getElementById(`edit-deposit-${rowId}`);
+                    const balanceInput = document.getElementById(`edit-balance-${rowId}`);
+                    const datePostedInput = document.getElementById(`edit-date-posted-${rowId}`);
+
+                    function updateFields() {
+                        const modeVal = modeSelect.value;
+                        if (depositModes.includes(modeVal)) {
+                            withdrawalInput.value = 0;
+                            withdrawalInput.disabled = true;
+                            depositInput.disabled = false;
+                            natureSelect.value = 'Deposit';
+                            natureSelect.disabled = true;
+                        } else if (withdrawalModes.includes(modeVal)) {
+                            depositInput.value = 0;
+                            depositInput.disabled = true;
+                            withdrawalInput.disabled = false;
+                            natureSelect.value = 'Withdrawal';
+                            natureSelect.disabled = true;
+                        } else {
+                            withdrawalInput.disabled = false;
+                            depositInput.disabled = false;
+                            natureSelect.disabled = false;
+                        }
+                        updateBalance();
+                    }
+
+                    function updateBalance() {
+                        const currentDate = datePostedInput.value;
+                        if (!currentDate) return;
+                        const prevBalance = getPreviousBalance(currentDate, rowId);
+                        const dep = parseFloat(depositInput.value) || 0;
+                        const withdr = parseFloat(withdrawalInput.value) || 0;
+                        balanceInput.value = prevBalance + dep - withdr;
+                    }
+
+                    modeSelect.addEventListener('change', updateFields);
+                    datePostedInput.addEventListener('change', updateBalance);
+                    depositInput.addEventListener('change', updateBalance);
+                    withdrawalInput.addEventListener('change', updateBalance);
+
+                    // Initial update
+                    updateFields();
+                }
+            });
+        }
+
+        // Render pagination
+        function renderPagination(data, paginationId, currentPage) {
+            const pagination = document.getElementById(paginationId);
+            pagination.innerHTML = '';
+            const totalPages = Math.ceil(data.length / itemsPerPage);
+            if (totalPages <= 1) return;
+
+            const prevLi = document.createElement('li');
+            prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `<a class="page-link" href="#" ${currentPage === 1 ? '' : `onclick="changePage(${currentPage - 1})"`}>Previous</a>`;
+            pagination.appendChild(prevLi);
+
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            if (endPage - startPage + 1 < maxVisiblePages) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+
+            if (startPage > 1) {
+                const firstLi = document.createElement('li');
+                firstLi.className = 'page-item';
+                firstLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(1)">1</a>`;
+                pagination.appendChild(firstLi);
+
+                if (startPage > 2) {
+                    const ellipsisLi = document.createElement('li');
+                    ellipsisLi.className = 'page-item disabled';
+                    ellipsisLi.innerHTML = '<span class="page-link">...</span>';
+                    pagination.appendChild(ellipsisLi);
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                const pageLi = document.createElement('li');
+                pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                pageLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i})">${i}</a>`;
+                pagination.appendChild(pageLi);
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    const ellipsisLi = document.createElement('li');
+                    ellipsisLi.className = 'page-item disabled';
+                    ellipsisLi.innerHTML = '<span class="page-link">...</span>';
+                    pagination.appendChild(ellipsisLi);
+                }
+
+                const lastLi = document.createElement('li');
+                lastLi.className = 'page-item';
+                lastLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${totalPages})">${totalPages}</a>`;
+                pagination.appendChild(lastLi);
+            }
+
+            const nextLi = document.createElement('li');
+            nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+            nextLi.innerHTML = `<a class="page-link" href="#" ${currentPage === totalPages ? '' : `onclick="changePage(${currentPage + 1})"`}>Next</a>`;
+            pagination.appendChild(nextLi);
+        }
+
+        // Change page
+        function changePage(page) {
+            bankEntriesCurrentPage = page;
+            renderTable(filteredData, 'bank-entries-table-body', bankEntriesCurrentPage);
+            renderPagination(filteredData, 'bank-entries-pagination', bankEntriesCurrentPage);
+        }
+
+        // Add new row
+        function addNewRow() {
+            const bankSelect = document.getElementById('bank-select');
+            if (!bankSelect.value) {
+                alert('Please select a bank before adding a new entry.');
+                return;
+            }
+            const newId = `new-${Date.now()}`;
+            const tbody = document.getElementById('bank-entries-table-body');
+            const row = document.createElement('tr');
+            row.setAttribute('data-id', newId);
+            row.innerHTML = `
+                <td><input type="date" class="editable-field" id="edit-date-posted-${newId}"></td>
+                <td>${createDropdown(modeOptions, '', `edit-mode-${newId}`)}</td>
+                <td>${createDropdown(generalLedgerOptions, '', `edit-general-ledger-${newId}`)}</td>
+                <td>${createDropdown(natureOfTransactionOptions, '', `edit-nature-of-transaction-${newId}`)}</td>
+                <td><input type="number" class="editable-field" value="" id="edit-withdrawal-${newId}" min="0"></td>
+                <td><input type="number" class="editable-field" value="" id="edit-deposit-${newId}" min="0"></td>
+                <td><input type="number" class="editable-field" value="" id="edit-balance-${newId}" min="0"></td>
+                <td><input type="date" class="editable-field" id="edit-date-reconciled-${newId}"></td>
+                <td class="action-icons">
+                    <button title="Save" onclick="saveRow('${newId}')">
+                        <i class="bi bi-save"></i>
+                        <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                    </button>
+                    <button title="Cancel" onclick="cancelEdit()">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </td>
+            `;
+            tbody.prepend(row);
+            editRowId = newId;
+
+            // Add event listeners for new row
+            const modeSelect = document.getElementById(`edit-mode-${newId}`);
+            const natureSelect = document.getElementById(`edit-nature-of-transaction-${newId}`);
+            const withdrawalInput = document.getElementById(`edit-withdrawal-${newId}`);
+            const depositInput = document.getElementById(`edit-deposit-${newId}`);
+            const balanceInput = document.getElementById(`edit-balance-${newId}`);
+            const datePostedInput = document.getElementById(`edit-date-posted-${newId}`);
+
+            function updateFields() {
+                const modeVal = modeSelect.value;
+                if (depositModes.includes(modeVal)) {
+                    withdrawalInput.value = 0;
+                    withdrawalInput.disabled = true;
+                    depositInput.disabled = false;
+                    natureSelect.value = 'Deposit';
+                    natureSelect.disabled = true;
+                } else if (withdrawalModes.includes(modeVal)) {
+                    depositInput.value = 0;
+                    depositInput.disabled = true;
+                    withdrawalInput.disabled = false;
+                    natureSelect.value = 'Withdrawal';
+                    natureSelect.disabled = true;
+                } else {
+                    withdrawalInput.disabled = false;
+                    depositInput.disabled = false;
+                    natureSelect.disabled = false;
+                }
+                updateBalance();
+            }
+
+            function updateBalance() {
+                const currentDate = datePostedInput.value;
+                if (!currentDate) return;
+                const prevBalance = getPreviousBalance(currentDate, null); // For new entry
+                const dep = parseFloat(depositInput.value) || 0;
+                const withdr = parseFloat(withdrawalInput.value) || 0;
+                balanceInput.value = prevBalance + dep - withdr;
+            }
+
+            modeSelect.addEventListener('change', updateFields);
+            datePostedInput.addEventListener('change', updateBalance);
+            depositInput.addEventListener('change', updateBalance);
+            withdrawalInput.addEventListener('change', updateBalance);
+
+            // Initial update
+            updateFields();
+        }
+
+        // Edit row
+        function editRow(id) {
+            editRowId = id;
+            renderTable(filteredData, 'bank-entries-table-body', bankEntriesCurrentPage);
+        }
+
+        // Save row
+        async function saveRow(id) {
+            // Show spinner and disable button
+            const button = document.querySelector(`tr[data-id="${id}"] button[title="Save"]`);
+            const icon = button.querySelector('i');
+            const spinner = button.querySelector('.spinner-border');
+            icon.classList.add('d-none');
+            spinner.classList.remove('d-none');
+            button.disabled = true;
+
+            const isNew = id.toString().startsWith('new-');
+            const bankId = document.getElementById('bank-select').value;
+            const data = {
+                bank_id: bankId,
+                date_posted: document.getElementById(`edit-date-posted-${id}`).value,
+                mode: document.getElementById(`edit-mode-${id}`).value,
+                general_ledger: document.getElementById(`edit-general-ledger-${id}`).value,
+                nature_of_transaction: document.getElementById(`edit-nature-of-transaction-${id}`).value,
+                withdrawal: document.getElementById(`edit-withdrawal-${id}`).value,
+                deposit: document.getElementById(`edit-deposit-${id}`).value,
+                balance: document.getElementById(`edit-balance-${id}`).value,
+                date_reconciled: document.getElementById(`edit-date-reconciled-${id}`).value,
+                status: '1'
+            };
+
+            // Client-side validation
+            if (!data.bank_id) {
+                alert('Please select a bank.');
+                resetButton(button, icon, spinner);
+                return;
+            }
+            if (!data.date_posted) {
+                alert('Please enter a valid date posted.');
+                resetButton(button, icon, spinner);
+                return;
+            }
+            if (!data.mode) {
+                alert('Please select a mode.');
+                resetButton(button, icon, spinner);
+                return;
+            }
+            if (!data.general_ledger) {
+                alert('Please select a general ledger.');
+                resetButton(button, icon, spinner);
+                return;
+            }
+            if (!data.nature_of_transaction) {
+                alert('Please select a nature of transaction.');
+                resetButton(button, icon, spinner);
+                return;
+            }
+
+            try {
+                const response = await fetch(isNew ? '/add-bank-entry' : `/edit-bank-entry/${id.replace('new-', '')}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.message);
+                    location.reload(); // Refresh to get updated data
+                } else {
+                    alert(result.error || 'Error saving entry');
+                    resetButton(button, icon, spinner);
+                }
+            } catch (error) {
+                console.error('Save error:', error);
+                alert('Error saving entry');
+                resetButton(button, icon, spinner);
+            }
+            editRowId = null;
+        }
+
+        // Delete row
+        async function deleteRow(id) {
+            if (!confirm('Are you sure you want to delete this record?')) return;
+
+            // Show spinner and disable button
+            const button = document.querySelector(`tr[data-id="${id}"] button[title="Delete"]`);
+            const icon = button.querySelector('i');
+            const spinner = button.querySelector('.spinner-border');
+            icon.classList.add('d-none');
+            spinner.classList.remove('d-none');
+            button.disabled = true;
+
+            try {
+                const response = await fetch(`/delete-bank-entry/${id}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert(result.error || 'Error deleting entry');
+                    resetButton(button, icon, spinner);
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                alert('Error deleting entry');
+                resetButton(button, icon, spinner);
+            }
+        }
+
+        // Reset button state
+        function resetButton(button, icon, spinner) {
+            icon.classList.remove('d-none');
+            spinner.classList.add('d-none');
+            button.disabled = false;
+        }
+
+        // Cancel edit
+        function cancelEdit() {
+            editRowId = null;
+            renderTable(filteredData, 'bank-entries-table-body', bankEntriesCurrentPage);
+        }
+
+        // Initial render
+        renderTable(filteredData, 'bank-entries-table-body', bankEntriesCurrentPage);
+        renderPagination(filteredData, 'bank-entries-pagination', bankEntriesCurrentPage);
+    </script>
+</body>
+</html>
