@@ -349,7 +349,7 @@
         </a>
         <ul class="custom-dropdown-menu">
           <li class="nav-item"><a class="nav-link dropdown-title">Financial Management</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Bank Data Entry</a></li>
+          <li class="nav-item"><a href="{{url_for('manage_bank_entries')}}" class="nav-link dropdown-link">Bank Data Entry</a></li>
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Bank Reconciliation</a></li>
           <li class="nav-item sub-dropdown-container">
             <a href="#" class="nav-link dropdown-link sub-custom-dropdown-toggle">
@@ -442,8 +442,8 @@
         </a>
         <ul class="custom-dropdown-menu">
           <li class="nav-item"><a class="nav-link dropdown-title">Administration/Setting</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Bank Setup</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Loan Assessment (Post)</a></li>
+          <li class="nav-item"><a href="{{url_for('manage_bank_details')}}" class="nav-link">Bank Setup</a></li>
+          <li class="nav-item"><a href="{{url_for('manage_post_disbursement')}}" class="nav-link dropdown-link">Loan Assessment (Post)</a></li>
           <li class="nav-item"><a class="nav-link dropdown-title">Loan Administration</a></li>
           <li class="nav-item"><a href="#" class="nav-link">Loan Matrix Parameters</a></li>
           <li class="nav-item"><a href="#" class="nav-link">Loan Annual Budgets</a></li>
