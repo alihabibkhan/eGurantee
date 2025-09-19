@@ -67,7 +67,7 @@ def add_edit_experience_range(experience_range_id=None):
                 execute_command(insert_query)
                 flash('Experience range added successfully.', 'success')
 
-            return redirect(url_for('manage_loan_metrics'))
+            return redirect(url_for('manage_loan_metrics') + '#experience-ranges')
 
         content = {
             'experience_range': experience_range,
@@ -99,7 +99,7 @@ def delete_experience_range():
         else:
             flash('Invalid experience range ID.', 'danger')
 
-        return redirect(url_for('manage_experience_ranges'))
+        return redirect(url_for('manage_loan_metrics') + '#experience-ranges')
 
     except Exception as e:
         print('delete_experience_range exception:- ', str(e))

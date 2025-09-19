@@ -67,7 +67,7 @@ def add_edit_loan_product(product_id=None):
                 execute_command(insert_query)
                 flash('Loan product added successfully.', 'success')
 
-            return redirect(url_for('manage_loan_metrics'))
+            return redirect(url_for('manage_loan_metrics') + '#loan-products')
 
         content = {
             'loan_product': loan_product,
@@ -99,7 +99,7 @@ def delete_loan_product():
         else:
             flash('Invalid product ID.', 'danger')
 
-        return redirect(url_for('manage_loan_products'))
+        return redirect(url_for('manage_loan_metrics') + '#loan-products')
 
     except Exception as e:
         print('delete_loan_product exception:- ', str(e))

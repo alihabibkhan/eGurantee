@@ -84,7 +84,7 @@ def add_edit_loan_metric(loan_metric_id=None):
                 execute_command(insert_query)
                 flash('Loan metric added successfully.', 'success')
 
-            return redirect(url_for('manage_loan_metrics'))
+            return redirect(url_for('manage_loan_metrics') + "#loan-metrics")
 
         content = {
             'get_all_loan_products': get_all_loan_products(),
@@ -120,7 +120,7 @@ def delete_loan_metric():
         else:
             flash('Invalid loan metric ID.', 'danger')
 
-        return redirect(url_for('manage_loan_metrics'))
+        return redirect(url_for('manage_loan_metrics') + "#loan-metrics")
 
     except Exception as e:
         print('delete_loan_metric exception:- ', str(e))

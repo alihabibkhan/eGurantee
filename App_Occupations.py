@@ -64,7 +64,7 @@ def add_edit_occupation(occupation_id=None):
                 execute_command(insert_query)
                 flash('Occupation added successfully.', 'success')
 
-            return redirect(url_for('manage_loan_metrics'))
+            return redirect(url_for('manage_loan_metrics') + "#occupations")
 
         content = {
             'occupation': occupation,
@@ -96,7 +96,7 @@ def delete_occupation():
         else:
             flash('Invalid occupation ID.', 'danger')
 
-        return redirect(url_for('manage_occupations'))
+        return redirect(url_for('manage_loan_metrics') + "#occupations")
 
     except Exception as e:
         print('delete_occupation exception:- ', str(e))
