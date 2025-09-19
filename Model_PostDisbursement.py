@@ -4,10 +4,10 @@ from imports import *
 def get_all_post_disbursement_info_by_id(id):
     sql_part = """"""
 
-    if get_current_user_role() != 'ADMIN':
+    if get_current_user_role() != '4':
         sql_part = f"""
                 INNER JOIN tbl_branches b ON b.branch_code = p.branch_code AND b.live_branch = '1'
-                INNER JOIN tbl_users u ON u.role = b.role
+                INNER JOIN tbl_users u ON u.assigned_branch = b.role
                 WHERE u.role = '{str(get_current_user_role())}' AND p.id = '{str(id)}'
             """
 
@@ -49,10 +49,10 @@ def get_all_post_disbursement_info():
 
     sql_part = """"""
 
-    if get_current_user_role() != 'ADMIN':
+    if get_current_user_role() != '4':
         sql_part = f"""
             INNER JOIN tbl_branches b ON b.branch_code = p.branch_code AND b.live_branch = '1'
-            INNER JOIN tbl_users u ON u.role = b.role
+            INNER JOIN tbl_users u ON u.assigned_branch = b.role
             WHERE u.role = '{str(get_current_user_role())}'
         """
 
