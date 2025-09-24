@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manager Volunteer Service Hours</title>
     {% include 'head.html' %}
-    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <style>
         .table-responsive {
             margin-bottom: 1rem;
@@ -40,6 +39,11 @@
 
         <!-- Data Table Card -->
         <div class="card">
+            <!--
+            <div class="card-header">
+                <h5 class="mb-0">Manager Volunteer Service Hours</h5>
+            </div>
+            -->
             <div class="card-body">
                 <!-- Accordion 1: Volunteer Information -->
                 <div class="accordion mb-3" id="volunteerAccordion">
@@ -110,32 +114,16 @@
                         </h2>
                         <div id="collapseReporting" class="accordion-collapse collapse show" aria-labelledby="headingReporting" data-bs-parent="#reportingAccordion">
                             <div class="accordion-body">
-                                <form id="reportingPeriodForm">
-                                    <input type="hidden" id="user_reporting_period_id" name="user_reporting_period_id">
-                                    <div class="row mb-3">
-                                        <div class="col-md-6">
-                                            <label class="form-label">Month & Year</label>
-                                            <select class="form-select" id="monthYear" name="month_year" onchange="toggleCalendar()">
-                                                <option value="{{result.get_user_reporting_period_by_user_id.reporting_date}}" selected>{{result.get_user_reporting_period_by_user_id.reporting_date}}</option>
-                                                <option value="new">New</option>
-                                                <option value="edit">Edit Previous</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label">Reporting Date</label>
-                                            <input type="text" class="form-control" id="reporting_date" name="reporting_date" value="{{ '2025-09-23' }}" readonly>
-                                        </div>
-                                        <div class="col-md-6 mt-2">
-                                            <label class="form-label">Modified By</label>
-                                            <input type="text" class="form-control" value="{{result.get_user_reporting_period_by_user_id.modified_by_name or 'N/A'}}" readonly>
-                                        </div>
-                                        <div class="col-md-6 mt-2 d-none" id="calendarContainer">
-                                            <label class="form-label">Select Date</label>
-                                            <input type="text" class="form-control" id="calendar" name="calendar">
-                                        </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Month & Year</label>
+                                        <input type="text" class="form-control" id="monthYear" value="N/A" readonly>
                                     </div>
-                                    <button type="button" class="btn btn-primary" onclick="saveReportingPeriod()">Save</button>
-                                </form>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Reporting Date</label>
+                                        <input type="text" class="form-control" value="{{ result.volunteer_info.date_of_joining or 'N/A' }}" readonly>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -237,48 +225,25 @@
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
     <script>
-        // Initialize datepicker
+        // Format Month & Year from date_of_joining
         $(document).ready(function() {
-            $("#calendar").datepicker({
-                dateFormat: "yy-mm-dd",
-                onSelect: function(dateText) {
-                    $("#reporting_date").val(dateText);
+            const dateOfJoining = "{{ result.volunteer_info.date_of_joining or '' }}";
+            if (dateOfJoining) {
+                try {
+                    const date = new Date(dateOfJoining);
+                    const monthNames = ["January", "February", "March", "April", "May", "June",
+                                        "July", "August", "September", "October", "November", "December"];
+                    const month = monthNames[date.getMonth()];
+                    const year = date.getFullYear();
+                    $('#monthYear').val(`${month} ${year}`);
+                } catch (e) {
+                    $('#monthYear').val('N/A');
                 }
-            });
-
-            // Set current date for Reporting Date
-            const currentDate = new Date().toISOString().split('T')[0];
-            $('#reporting_date').val(currentDate);
-
-            // Set dummy date for Edit Previous
-            if ($('#monthYear').val() === 'edit') {
-                $('#calendar').val('2025-01-01');
-                $('#reporting_date').val('2025-01-01');
-                $('#calendarContainer').removeClass('d-none');
+            } else {
+                $('#monthYear').val('N/A');
             }
         });
-
-        function toggleCalendar() {
-            const monthYear = $('#monthYear').val();
-            if (monthYear === 'new' || monthYear === 'edit') {
-                $('#calendarContainer').removeClass('d-none');
-                if (monthYear === 'edit') {
-                    $('#calendar').val('{{result.get_user_reporting_period_by_user_id.reporting_date or '2025-01-01'}}');
-                    //$('#reporting_date').val('2025-01-01');
-                    $('#reporting_date').val(new Date().toISOString().split('T')[0]);
-                } else {
-                    $('#calendar').val('');
-                    $('#reporting_date').val(new Date().toISOString().split('T')[0]);
-                }
-                $("#calendar").datepicker("show");
-            } else {
-                $('#calendarContainer').addClass('d-none');
-                $('#calendar').val('');
-                $('#reporting_date').val(new Date().toISOString().split('T')[0]);
-            }
-        }
 
         function clearModal() {
             $('#user_service_hours_id').val('');
@@ -288,6 +253,7 @@
         }
 
         function editServiceHours(id, hours, category, desc) {
+            // Escape single quotes in description
             const escapedDesc = desc.replace(/'/g, "\\'");
             $('#user_service_hours_id').val(id);
             $('#service_hours').val(hours);
@@ -313,28 +279,6 @@
                 },
                 error: function(xhr, status, error) {
                     alert('Error saving service hours: ' + (xhr.responseJSON?.error || error));
-                }
-            });
-        }
-
-        function saveReportingPeriod() {
-            const form = document.getElementById('reportingPeriodForm');
-            const formData = new FormData(form);
-            const userReportingPeriodId = formData.get('user_reporting_period_id');
-            const url = userReportingPeriodId ? `/edit-user-reporting-period/${userReportingPeriodId}` : '/add-user-reporting-period';
-
-            $.ajax({
-                url: url,
-                type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function(response) {
-                    alert('Reporting period saved successfully!');
-                    location.reload();
-                },
-                error: function(xhr, status, error) {
-                    alert('Error saving reporting period: ' + (xhr.responseJSON?.error || error));
                 }
             });
         }

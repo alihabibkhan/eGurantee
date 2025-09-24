@@ -97,7 +97,7 @@
                 <tbody>
                     {% for disbursement in result.get_all_post_disbursement_info %}
                     <tr>
-                        <td class="{{disbursement['mis_date']}}">{{disbursement['mis_date']|format_date if disbursement['mis_date']|string != '1900-01-01' else 'N/A'}}</td>
+                        <td title="{{disbursement['mis_date']}}">{{disbursement['mis_date'] if disbursement['mis_date']|string != '1900-01-01' else 'N/A'}}</td>
                         <td>{{disbursement['branch_code']}} - {{disbursement['branch_name']}}</td>
                         <td>{{disbursement['loan_no']}}</td>
                         <td>{{disbursement['loan_title']}}<br><small>{{disbursement['cnic']}}</small></td>

@@ -10,7 +10,8 @@
   body {
     min-height: 100vh;
     #background: linear-gradient(#F1F3FF, #CBD4FF);
-    background: white;
+    background: #e6f3fa; /* Light blue background for a calm, welfare-oriented feel */
+    #background: white;
   }
   .sidebar {
     position: fixed;
@@ -335,7 +336,7 @@
         <ul class="custom-dropdown-menu">
           <li class="nav-item"><a class="nav-link dropdown-title">Volunteers</a></li>
           <li class="nav-item"><a href="{{url_for('profile')}}" class="nav-link dropdown-link">Profile</a></li>
-          <li class="nav-item"><a href="{{url_for('manage_user_service_hours')}}" class="nav-link dropdown-link">Self Service Hours Update</a></li>
+          <li class="nav-item"><a href="{{url_for('manage_user_service_hours')}}" class="nav-link dropdown-link">Service Hours-Self Update</a></li>
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Community Services</a></li>
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Volunteer Report</a></li>
         </ul>

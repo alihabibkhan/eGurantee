@@ -6,12 +6,15 @@
     <title>Manage Pre-Disbursement</title>
     {% include 'head.html' %}
     <style>
+        body {
+            background-color: #f8f9fa; /* Light gray background, consistent with bg-light */
+        }
         .table-responsive {
             margin-bottom: 1rem;
         }
         .pagination .page-item.active .page-link {
-            background-color: #0d6efd;
-            border-color: #0d6efd;
+            background-color: #0d9488; /* Teal from dashboard */
+            border-color: #0d9488;
         }
         .pagination .page-item.disabled .page-link {
             cursor: not-allowed;
@@ -22,6 +25,7 @@
         }
         .modal-body label {
             font-weight: bold;
+            color: #1e3a8a; /* Deep blue for labels */
         }
         .group-heading {
             margin-top: 1rem;
@@ -37,10 +41,10 @@
             display: block;
         }
         .letter-iframe.loading {
-            background: #f8f9fa url('data:image/svg+xml,%3csvg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"%3e%3cpath opacity=".5" fill="%23000" d="M20 3.333A16.667 16.667 0 1036.667 20 16.68 16.68 0 0020 3.333zm0 30A13.333 13.333 0 1133.333 20 13.34 13.34 0 0120 33.333z"/%3e%3cpath fill="%23000" d="M26.667 12.667h-4l-6 10h4z"/%3e%3c/svg%3e') no-repeat center;
+            background: #f8f9fa url('data:image/svg+xml,%3csvg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"%3e%3cpath opacity=".5" fill="%231e3a8a" d="M20 3.333A16.667 16.667 0 1036.667 20 16.68 16.68 0 0020 3.333zm0 30A13.333 13.333 0 1133.333 20 13.34 13.34 0 0120 33.333z"/%3e%3cpath fill="%231e3a8a" d="M26.667 12.667h-4l-6 10h4z"/%3e%3c/svg%3e') no-repeat center; /* Deep blue spinner */
         }
-        .letter-error {
-            color: #dc3545;
+        .letter-error, #ongoing-error {
+            color: #dc3545; /* Red for errors, consistent with dashboard */
             text-align: center;
             padding: 20px;
         }
@@ -52,6 +56,23 @@
         }
         .card {
             margin-top: 1rem;
+            background-color: #ffffff; /* White card background */
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1); /* Shadow from dashboard */
+        }
+        .card-header {
+            background-color: #1e3a8a; /* Deep blue header */
+            color: #ffffff; /* White text */
+        }
+        .modal-content {
+            background-color: #ffffff; /* White modal background */
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1); /* Shadow from dashboard */
+        }
+        .modal-header {
+            background-color: #1e3a8a; /* Deep blue modal header */
+            color: #ffffff; /* White text */
+        }
+        .modal-title, .card-header h5 {
+            color: #ffffff; /* White text for headers */
         }
         #ongoingLoanModal .modal-body {
             position: relative;
@@ -61,7 +82,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: #f8f9fa url('data:image/svg+xml,%3csvg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"%3e%3cpath opacity=".5" fill="%23000" d="M20 3.333A16.667 16.667 0 1036.667 20 16.68 16.68 0 0020 3.333zm0 30A13.333 13.333 0 1133.333 20 13.34 13.34 0 0120 33.333z"/%3e%3cpath fill="%23000" d="M26.667 12.667h-4l-6 10h4z"/%3e%3c/svg%3e') no-repeat center;
+            background: #f8f9fa url('data:image/svg+xml,%3csvg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"%3e%3cpath opacity=".5" fill="%231e3a8a" d="M20 3.333A16.667 16.667 0 1036.667 20 16.68 16.68 0 0020 3.333zm0 30A13.333 13.333 0 1133.333 20 13.34 13.34 0 0120 33.333z"/%3e%3cpath fill="%231e3a8a" d="M26.667 12.667h-4l-6 10h4z"/%3e%3c/svg%3e') no-repeat center; /* Deep blue spinner */
             width: 100%;
             height: 100%;
             z-index: 1000;
@@ -76,14 +97,70 @@
             margin-bottom: 0;
         }
         .badge-approved {
-            background-color: #28a745;
-            color: white;
+            background-color: #34d399; /* Green from dashboard */
+            color: #ffffff;
             margin-left: 5px;
         }
         .badge-rejected {
-            background-color: #dc3545;
-            color: white;
+            background-color: #dc3545; /* Red for rejected */
+            color: #ffffff;
             margin-left: 5px;
+        }
+        .table-light {
+            background-color: #f8f9fa; /* Light gray for table header */
+        }
+        .table tbody tr:nth-child(odd) {
+            background-color: #e6fff7; /* Pale green for odd rows */
+        }
+        .table tbody tr:nth-child(even) {
+            background-color: #ffffff; /* White for even rows */
+        }
+        .btn-primary {
+            background-color: #0d9488; /* Teal from dashboard */
+            border-color: #0d9488;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #0b8278; /* Darker teal on hover */
+            border-color: #0b8278;
+        }
+        .btn-secondary {
+            background-color: #6c757d; /* Bootstrap secondary gray */
+            border-color: #6c757d;
+        }
+        .btn-secondary:hover {
+            background-color: #5a6268; /* Darker gray on hover */
+            border-color: #5a6268;
+        }
+        .btn-info {
+            background-color: #2bcdc3; /* Lighter teal for info buttons */
+            border-color: #2bcdc3;
+        }
+        .btn-info:hover {
+            background-color: #26b7ae; /* Darker teal on hover */
+            border-color: #26b7ae;
+        }
+        .btn-success {
+            background-color: #34d399; /* Green from dashboard */
+            border-color: #34d399;
+        }
+        .btn-success:hover {
+            background-color: #2ab88a; /* Darker green on hover */
+            border-color: #2ab88a;
+        }
+        .form-control, .form-select {
+            border-color: #1e3a8a; /* Deep blue for input borders */
+            color: #1e3a8a; /* Deep blue for input text */
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #0d9488; /* Teal on focus */
+            box-shadow: 0 0 0 0.2rem rgba(13, 148, 136, 0.25); /* Teal shadow */
+        }
+        .bi, .fas {
+            color: #1e3a8a; /* Deep blue for icons */
+        }
+        h1.text-muted {
+            color: #1e3a8a !important; /* Deep blue for main heading */
         }
     </style>
 </head>
@@ -112,12 +189,10 @@
                                 {% if result.is_reviewer or result.is_approver or result.is_executive_approver or result.is_admin %}
                                     <option value="1">Under Review</option>
                                 {% endif %}
-
                                 {% if result.is_approver or result.is_executive_approver or result.is_admin %}
                                     <option value="2">Agreed</option>
                                     <option value="3">Disagreed</option>
                                 {% endif %}
-
                                 {% if result.is_reviewer or result.is_admin %}
                                     <option value="4">Recommended for Agreement</option>
                                     <option value="5">Recommended for Disagreement</option>
@@ -183,7 +258,6 @@
                     <div class="modal-body" id="temp-modal-body"></div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <!--<button type="button" class="btn btn-info" id="ongoing-loan-btn" onclick="viewOngoingLoan(event)">View On-going Loan</button>-->
                         <button type="button" class="btn btn-primary" id="temp-save-btn">Save</button>
                     </div>
                 </div>
@@ -310,8 +384,6 @@
         function formatDate(dateStr) {
           if (!dateStr) return 'Not Received';
           const date = new Date(dateStr);
-
-          // Check for invalid or placeholder dates
           if (
             isNaN(date) ||
             date.toLocaleDateString() === '1/1/1900' ||
@@ -320,16 +392,10 @@
           ) {
             return 'Not Received';
           }
-
-          // Format: Apr/21/2025
           const options = { month: 'short', day: '2-digit', year: 'numeric' };
           const formatted = date.toLocaleDateString('en-US', options);
-
-          // Replace comma with slash
-          console.log('formatted:- ', formatted)
           return formatted.replace(', ', '/').replace(' ', '/');
         }
-
 
         // Apply filters
         function applyFilters() {
@@ -602,16 +668,12 @@
                     loadingDiv.style.display = 'none';
                     if (data.success && data.records.length > 0) {
                         table.style.display = 'table';
-
-                        // Create header row with static headings and dynamic cycle columns
                         const headerRow = document.createElement('tr');
-                        headerRow.innerHTML = `<th> </th>`; // Static empty header
+                        headerRow.innerHTML = `<th> </th>`;
                         data.records.forEach((record, index) => {
                             headerRow.innerHTML += `<th>${index + 1}st Cycle</th>`;
                         });
                         thead.appendChild(headerRow);
-
-                        // Create rows with static headings and dynamic data
                         const headings = [
                             'Product Name:', 'Date Disbursed On:',
                             'Date Loan Closed on / Last Payment Received on:', 'Loan Amount:',
@@ -666,12 +728,12 @@
             `;
             modalBody.appendChild(keyLoanHeading);
 
-            // Table for Business Indicators with three columns
+            // Table for Business Indicators
             const businessIndicators = document.createElement('div');
             businessIndicators.className = 'row mt-3';
             businessIndicators.innerHTML = `
                 <div class="col-md-12">
-                    <h5 class="bg-info text-white p-2 mb-2 rounded" style="font-weight: bold; border-left: 4px solid #007bff;">
+                    <h5 class="bg-info text-white p-2 mb-2 rounded" style="font-weight: bold; border-left: 4px solid #2bcdc3;">
                         Business Indicators
                     </h5>
                     <table class="table table-sm">
@@ -714,7 +776,7 @@
             familyInfo.className = 'row mt-3';
             familyInfo.innerHTML = `
                 <div class="col-md-12">
-                    <h5 class="bg-success text-white p-2 mb-2 rounded" style="font-weight: bold; border-left: 4px solid #28a745;">
+                    <h5 class="bg-success text-white p-2 mb-2 rounded" style="font-weight: bold; border-left: 4px solid #34d399;">
                         Family Information
                     </h5>
                     <table class="table table-sm">
@@ -725,30 +787,6 @@
                 </div>
             `;
             modalBody.appendChild(familyInfo);
-
-            // Table for Loan Terms
-            /*
-            const loanTerms = document.createElement('div');
-            loanTerms.className = 'row mt-3';
-            loanTerms.innerHTML = `
-                <div class="col-md-12">
-                    <h5 class="bg-warning text-dark p-2 mb-2 rounded" style="font-weight: bold; border-left: 4px solid #ffc107;">
-                        Loan Calculator
-                    </h5>
-                    <table class="table table-sm">
-                        <tr>
-                            <th>Purpose of the Loan:</th>
-                            <td>${record.Purpose_Of_Loan || 'Not Received'}</td>
-                        </tr>
-                        <tr><th>Borrower Requested Loan Amount:</th><td>${record.Requested_Loan_Amount || 'Not Received'}</td></tr>
-                        <tr><th>BCC Approved Loan Amount:</th><td>${record.Loan_Amount || 'Not Received'}</td></tr>
-                        <tr><th>Bank Tenur of Loan (In Months):</th><td>${record.Tenor_Of_Month || 'Not Received'}</td></tr>
-                        <tr><th>Bank Repayment Term (Monthly / Quarterly / Bullet):</th><td>Not Applicable</td></tr>
-                    </table>
-                </div>
-            `;
-            modalBody.appendChild(loanTerms);
-            */
 
             // Heading for KFT ACCEPTED Loan Terms
             const kftLoanHeading = document.createElement('div');
@@ -764,10 +802,9 @@
             calculatorMathsPaidOff.className = 'row mt-3';
             calculatorMathsPaidOff.innerHTML = `
                 <div class="col-md-12">
-                    <h5 class="bg-info text-white p-2 mb-2 rounded" style="font-weight: bold; border-left: 4px solid #007bff;">
+                    <h5 class="bg-info text-white p-2 mb-2 rounded" style="font-weight: bold; border-left: 4px solid #2bcdc3;">
                         KFT Required Paid off % for Repeat Loan
                     </h5>
-
                     <table class="table table-sm" id="tableCalculatorMathsPaidOff">
                     </table>
                 </div>
@@ -779,7 +816,7 @@
             calculatorMathsLoanCeiling.className = 'row mt-3';
             calculatorMathsLoanCeiling.innerHTML = `
                 <div class="col-md-12">
-                    <h5 class="bg-info text-white p-2 mb-2 rounded" style="font-weight: bold; border-left: 4px solid #007bff;">
+                    <h5 class="bg-info text-white p-2 mb-2 rounded" style="font-weight: bold; border-left: 4px solid #2bcdc3;">
                         KFT Required Loan Exposure
                     </h5>
                     <table class="table table-sm" id="tableCalculatorMathsLoanCeiling">
@@ -793,7 +830,7 @@
             calculatorMathsLoanLimit.className = 'row mt-3';
             calculatorMathsLoanLimit.innerHTML = `
                 <div class="col-md-12">
-                    <h5 class="bg-info text-white p-2 mb-2 rounded" style="font-weight: bold; border-left: 4px solid #007bff;">
+                    <h5 class="bg-info text-white p-2 mb-2 rounded" style="font-weight: bold; border-left: 4px solid #2bcdc3;">
                         Loan Limit Per KFT Matrix
                     </h5>
                     <table class="table table-sm" id="tableCalculatorMathsLoanLimit">
@@ -807,14 +844,13 @@
             kftAcceptedLoanTerms.className = 'row mt-3';
             kftAcceptedLoanTerms.innerHTML = `
                 <div class="col-md-12">
-                    <h5 class="bg-success text-white p-2 mb-2 rounded" style="font-weight: bold; border-left: 4px solid #28a745;">
+                    <h5 class="bg-success text-white p-2 mb-2 rounded" style="font-weight: bold; border-left: 4px solid #34d399;">
                         KFT Agreed Terms
                     </h5>
                     <table class="table table-sm">
                         <tr><th>KFT Approved Loan Limit:</th><td>
                             <div class="input-group">
                                 <input class="form-control form-control-sm" type="text" value="${record.kft_approved_loan_limit !== null ? record.kft_approved_loan_limit : record.Loan_Amount}" id="amount-accepted">
-
                                 <button class="btn btn-danger btn-sm" type="button" id="reset-button" title="Reset">
                                     <i class="bi bi-arrow-counterclockwise"></i>
                                 </button>
@@ -824,7 +860,7 @@
                         <tr><th>Collateral Type:</th><td>${record.Collateral_Type || 'Not Received'}</td></tr>
                         <tr><th>Bank Approved Interest Rate (Yet to Receive):</th><td>Not Received</td></tr>
                         <tr><th>KFT Subsidized Interest Rate:</th><td id="td-interest-rate">${interest_rate}%</td></tr>
-                         <tr><th>Repayment Terms (Yet to Receive):</th><td>Not Received</td></tr>
+                        <tr><th>Repayment Terms (Yet to Receive):</th><td>Not Received</td></tr>
                         <tr><th>Reviewed By (Reviewed Date):</th><td>${record.reviewed_by || 'Not Received'} (${formatDate(record.reviewed_date)})</td></tr>
                         <tr><th>Approved By (Approved Date):</th><td>${record.approved_by || 'Not Received'} (${formatDate(record.approved_date)})</td></tr>
                         <tr><th>Status:</th><td>
@@ -832,12 +868,10 @@
                                 {% if result.is_reviewer or result.is_approver or result.is_executive_approver or result.is_admin %}
                                     <option value="1" ${record.status === '1' ? 'selected' : ''}>Under Review</option>
                                 {% endif %}
-
                                 {% if result.is_approver or result.is_executive_approver or result.is_admin %}
                                     <option value="2" ${record.status === '2' ? 'selected' : ''}>Agreed</option>
                                     <option value="3" ${record.status === '3' ? 'selected' : ''}>Disagreed</option>
                                 {% endif %}
-
                                 {% if result.is_reviewer or result.is_admin %}
                                     <option value="4" ${record.status === '5' ? 'selected' : ''}>Recommended for Agreement</option>
                                     <option value="5" ${record.status === '6' ? 'selected' : ''}>Recommended for Disagreement</option>
@@ -913,7 +947,6 @@
 
               console.log('natureOfBusiness, experience')
               console.log(natureOfBusiness, experience)
-              // Pass them into your existing check function
               checkAgainstLoanMetrics(record, natureOfBusiness, experience);
             }
 
@@ -936,29 +969,19 @@
 
         // Helper function to format numbers or return Not Received
         function formatNumber(value) {
-        console.log('formatNumber value:- ', value)
+          console.log('formatNumber value:- ', value)
           if (value === undefined || value === null || isNaN(value)) return 'Not Received';
-
           let strValue = value.toString();
-
-          // If the value contains a decimal point
           if (strValue.includes(".")) {
               let [intPart, decimalPart] = strValue.split(".");
               intPart = intPart.replace(',','');
-
-              // Format only the integer part
               let formattedInt = Number(intPart.replace(/,/g, "")).toLocaleString("en-US");
               console.log('formattedInt:- ', formattedInt)
-              // Limit decimal part to 2 digits
               decimalPart = decimalPart.length > 2 ? decimalPart.substring(0, 2) : decimalPart;
               return `${formattedInt}.${decimalPart}`;
           }
-
-          // If no decimal, format normally with 2 decimals
           return Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
-
-
 
         // Helper function to format percentage
         function formatPercentage(value) {
@@ -970,28 +993,15 @@
             requiredPaidOffPerLoanMetricsDecimal = parseFloat(requiredPaidOffPerLoanMetrics) / 100
             console.log(requiredPaidOffPerLoanMetricsDecimal)
 
-
-            // Extract input values or set to null if Not Received
             const existingLoanLimit = record.Existing_Loan_Limit && !isNaN(record.Existing_Loan_Limit) ? parseFloat(record.Existing_Loan_Limit) : null;
             const outstandingLoan = record.Existing_Outstanding_Loan_Schedules && !isNaN(record.Existing_Outstanding_Loan_Schedules) ? parseFloat(record.Existing_Outstanding_Loan_Schedules) : null;
-
-            // Calculate Loan Outstanding (%)
             const loanOutstandingPercent = (existingLoanLimit && outstandingLoan) ? (outstandingLoan / existingLoanLimit) * 100 : 0;
-
-            // Calculate Paid Off
             const paidOff = (existingLoanLimit && outstandingLoan) ? existingLoanLimit - outstandingLoan : 0;
-
-            // Calculate Paid Off (%)
             const paidOffPercent = (existingLoanLimit && paidOff) ? (paidOff / existingLoanLimit) * 100 : 0;
-
-            // Calculate Required Paid-Off (75% of Loan Limit)
             const requiredPaidOff = existingLoanLimit ? existingLoanLimit * requiredPaidOffPerLoanMetricsDecimal : 0;
-
-            // Calculate Paid Off Actual vs Required
             const paidOffVsRequired = (paidOff && requiredPaidOff) ? paidOff - requiredPaidOff : 0;
             const paidOffVsRequiredPercent = (existingLoanLimit && paidOffVsRequired) ? (paidOffVsRequired / existingLoanLimit) * 100 : 0;
 
-            // Generate HTML table
             html = `
                 <tr>
                     <th>Existing Loan Status:</th>
@@ -1029,15 +1039,12 @@
                     <td class='paid-off-vs-required-field-percent'>${formatPercentage(paidOffVsRequiredPercent)}</td>
                 </tr>
             `;
-
             document.getElementById("tableCalculatorMathsPaidOff").innerHTML = html;
         }
 
-
         function generateTurnaroundTable(record) {
-    // Helper function to calculate days between two dates
-    function calculateDaysBetween(date1, date2) {
-        if (!date1 || !date2 || date1 === "Not Received" || date2 === "Not Received") return 0;
+            function calculateDaysBetween(date1, date2) {
+                if (!date1 || !date2 || date1 === "Not Received" || date2 === "Not Received") return 0;
                 const d1 = new Date(date1);
                 const d2 = new Date(date2);
                 if (isNaN(d1) || isNaN(d2)) return 0;
@@ -1045,24 +1052,19 @@
                 return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             }
 
-            // Format dates
             const applicationDate = formatDate(record.ApplicationDate);
             const appraisalDate = formatDate(record.appraisal_date || "Not Received");
             const bankVerifiedDate = formatDate(record.bank_verified_date || "Not Received");
             const bankProcessedDate = formatDate(record.uploaded_date);
             const approvedDate = formatDate(record.approved_date);
 
-            // Calculate days for each step
-            const applicationDays = 0; // Loan Application Date always has 0 days
+            const applicationDays = 0;
             const appraisalDays = record.appraisal_date && record.appraisal_date !== "Not Received" ? calculateDaysBetween(record.ApplicationDate, record.appraisal_date) : 0;
             const bankVerifiedDays = record.bank_verified_date && record.bank_verified_date !== "Not Received" ? calculateDaysBetween(record.appraisal_date || record.ApplicationDate, record.bank_verified_date) : 0;
             const bankProcessedDays = record.uploaded_date ? calculateDaysBetween(record.bank_verified_date || record.appraisal_date || record.ApplicationDate, record.uploaded_date) : 0;
             const approvedDays = record.approved_date ? calculateDaysBetween(record.uploaded_date, record.approved_date) : 0;
-
-            // Calculate total turnaround time
             const totalDays = appraisalDays + bankVerifiedDays + bankProcessedDays + approvedDays;
 
-            // Generate HTML table
             return `
                 <table class="table table-sm" id="tableTurnaroundTime">
                     <tr>
@@ -1104,28 +1106,14 @@
             `;
         }
 
-
         function generateLoanCeilingTable(record, loanCeilingLoanMetrics) {
-
-            // Check if record is defined and is an object; if not, use empty object
             const safeRecord = (record && typeof record === 'object') ? record : {};
-
-            // Extract input values or set to null if Not Received or invalid
-            console.log(safeRecord.existing_loan_exposure_per_ecib)
             const loanExposureECIB = safeRecord.existing_loan_exposure_per_ecib && !isNaN(safeRecord.existing_loan_exposure_per_ecib) ? parseFloat(safeRecord.existing_loan_exposure_per_ecib) : null;
-            console.log('loanExposureECIB:- ', loanExposureECIB)
             const outstandingLoan = safeRecord.Existing_Outstanding_Loan_Schedules && !isNaN(safeRecord.Existing_Outstanding_Loan_Schedules) ? parseFloat(safeRecord.Existing_Outstanding_Loan_Schedules) : null;
             const loanCeilingMatrix = loanCeilingLoanMetrics && !isNaN(loanCeilingLoanMetrics) ? parseFloat(loanCeilingLoanMetrics) : null;
-
-            // Calculate Considered Loan Exposure
-            // Only calculate if loanExposureECIB is valid; otherwise, set to 0
             const consideredLoanExposure = loanExposureECIB && outstandingLoan ? loanExposureECIB - outstandingLoan : 0;
-
-            // Calculate Cushion for New Loan
-            // Only calculate if both loanExposureECIB and loanCeilingMatrix are valid; otherwise, set to 0
             const cushionForNewLoan = loanExposureECIB && loanCeilingMatrix ? loanCeilingMatrix - consideredLoanExposure : 0;
 
-            // Generate HTML table
             html = `
                 <tr>
                     <th>Existing Loan Exposure Per ECIB (Yet to Receive):</th>
@@ -1148,41 +1136,24 @@
                     <td>${formatNumber(cushionForNewLoan)}</td>
                 </tr>
             `;
-
             document.getElementById("tableCalculatorMathsLoanCeiling").innerHTML = html;
         }
-
 
         function generateLoanLimitTable(record, repeatIncrementPerLoanMetrics) {
             repeatIncrementPerLoanMetrics = parseInt(repeatIncrementPerLoanMetrics);
             repeatIncrementPerLoanMetricsDecimal = parseFloat(repeatIncrementPerLoanMetrics) / 100
             console.log('repeatIncrementPerLoanMetricsDecimal:- ', repeatIncrementPerLoanMetricsDecimal)
-
-
-            // Check if record is defined and is an object; if not, use empty object
             const safeRecord = (record && typeof record === 'object') ? record : {};
-
-            // Extract input values or set to null if Not Received or invalid
             const loanAmount = safeRecord.Loan_Amount && !isNaN(safeRecord.Loan_Amount) ? parseFloat(safeRecord.Loan_Amount) : null;
             const existingLoanLimit = safeRecord.Existing_Loan_Limit && !isNaN(safeRecord.Existing_Loan_Limit) ? parseFloat(safeRecord.Existing_Loan_Limit) : null;
-
-            // Calculate BCC Approved Loan Amount Percentage
             const bccApprovedPercent = (loanAmount && existingLoanLimit) ? (loanAmount / existingLoanLimit) * 100 : 0;
-
-            // Calculate Increment of Repeat Loan from Existing Limit (Amount and %)
             const incrementLoanAmount = (loanAmount && existingLoanLimit) ? loanAmount - existingLoanLimit : 0;
             const incrementLoanPercent = (incrementLoanAmount && existingLoanLimit) ? (incrementLoanAmount / existingLoanLimit) * 100 : 0;
-
-            // Calculate Required Repeat Loan Limit per Loan Matrix (Amount and %)
             const requiredRepeatLoanLimit = existingLoanLimit ? existingLoanLimit * repeatIncrementPerLoanMetricsDecimal : 0;
             const requiredRepeatLoanPercent = repeatIncrementPerLoanMetrics;
-            console.log('repeatIncrementPerLoanMetrics:- ', repeatIncrementPerLoanMetrics)
-
-            // Calculate Required vs Repeat Loan Limit (Amount and %)
             const requiredVsRepeatLoan = (loanAmount && requiredRepeatLoanLimit) ? requiredRepeatLoanLimit - loanAmount : 0;
             const requiredVsRepeatLoanPercent = (requiredVsRepeatLoan && existingLoanLimit) ? (requiredVsRepeatLoan / existingLoanLimit) * 100 : 0;
 
-            // Generate HTML table
             html = `
                 <tr>
                     <th>BCC Approved Loan Amount:</th>
@@ -1205,7 +1176,6 @@
                     <td>${formatPercentage(requiredVsRepeatLoanPercent)}</td>
                 </tr>
             `;
-
             document.getElementById("tableCalculatorMathsLoanLimit").innerHTML = html;
         }
 
@@ -1220,64 +1190,47 @@
             console.log('data:- ', data)
             console.log('productCode, applicantGender, natureOfBusiness, experienceYear');
             console.log(productCode, applicantGender, natureOfBusiness, experienceYear);
-
-          // helper to normalize values
           const normalize = (val) =>
             val === undefined || val === null
               ? ""
               : val.toString().trim().toLowerCase().replace(/\s+/g, "_");
-
           return data.find((record) => {
             const matchProduct =
               normalize(record.product_name || "") === normalize(productCode);
             const matchGender =
               normalize(record.gender || "") === normalize(applicantGender);
-
             const matchBusiness = !natureOfBusiness || normalize(record.occupation_name || "") === normalize(natureOfBusiness);
-
-            const matchExperience =!experienceYear || normalize(record.experience_label || "") === normalize(experienceYear);
-
+            const matchExperience = !experienceYear || normalize(record.experience_label || "") === normalize(experienceYear);
             return matchProduct && matchGender && matchBusiness && matchExperience;
           });
         }
 
-
-        // Function to check against loan metrics via AJAX
         function checkAgainstLoanMetrics(data, natureOfBusiness, experience) {
             console.log('---checkAgainstLoanMetrics---')
             console.log('data:- ', data)
             const productCode = data.LoanProductCode;
             const applicantGender = data.Gender;
-
             console.log(productCode, applicantGender, natureOfBusiness, experience);
-
             const proposedLoanMetric = findMatchingLoanMetric(loanMetrics, productCode, applicantGender, natureOfBusiness, experience);
             console.log(proposedLoanMetric);
-
             let interest_rate = 0;
             let loanCeilingLoanMetrics = 0;
             let requiredPaidOffPerLoanMetrics = 0;
             let repeatIncrementPerLoanMetrics = 0;
-
             if(proposedLoanMetric)
             {
                 interest_rate = proposedLoanMetric.interest_rate || 0;
                 console.log(interest_rate);
-
                 loanCeilingLoanMetrics = proposedLoanMetric.global_loan_ceiling || 0;
                 console.log(loanCeilingLoanMetrics);
-
                 requiredPaidOffPerLoanMetrics =  proposedLoanMetric.required_paid_off || 0;
                 console.log(requiredPaidOffPerLoanMetrics);
-
                 repeatIncrementPerLoanMetrics = proposedLoanMetric.repeat_increment || 0;
                 console.log(repeatIncrementPerLoanMetrics);
             }
-
             generateLoanStatusTable(data, requiredPaidOffPerLoanMetrics);
             generateLoanCeilingTable(data, loanCeilingLoanMetrics);
             generateLoanLimitTable(data, repeatIncrementPerLoanMetrics);
-
             document.getElementById('td-interest-rate').innerHTML = interest_rate + "%";
         }
 
@@ -1291,7 +1244,6 @@
             errorDiv.style.display = 'none';
             sendEmailBtn.style.display = 'none';
             iframe.src = `/approval-letter/${pre_disb_temp_id}`;
-
             iframe.onload = function() {
                 iframe.classList.remove('loading');
                 if (iframe.contentDocument.body.innerHTML.trim() === '') {
@@ -1307,13 +1259,11 @@
                     }
                 }
             };
-
             iframe.onerror = function() {
                 iframe.classList.remove('loading');
                 errorDiv.style.display = 'block';
                 iframe.style.display = 'none';
             };
-
             const modal = new bootstrap.Modal(document.getElementById('letterModal'));
             modal.show();
         }
@@ -1328,7 +1278,6 @@
         document.getElementById('send-email-confirm-btn').addEventListener('click', function() {
             this.disabled = true;
             this.innerHTML = `Sending... <i class="fas fa-spinner fa-spin ml-2 ms-2"></i>`;
-
             const iframe = document.getElementById('letter-iframe');
             const recipientEmail = document.getElementById('recipient-email').value;
             const appNo = iframe.src.split('/approval-letter/')[1];
@@ -1338,7 +1287,6 @@
                 showToast('Please enter a valid email address.', 3000);
                 return;
             }
-
             fetch('/send-email', {
                 method: 'POST',
                 headers: {
@@ -1370,11 +1318,9 @@
         function saveTempRecord(pre_disb_temp_id, saveBtn) {
             saveBtn.disabled = true;
             saveBtn.innerHTML = `Saving... <i class="fas fa-spinner fa-spin ml-2 ms-2"></i>`;
-
             const status = document.getElementById('temp-status').value;
             const notes = document.getElementById('temp-notes').value;
             const amount_accepted = document.getElementById('amount-accepted').value;
-
             fetch('/update-pre-disbursement-temp', {
                 method: 'POST',
                 headers: {
@@ -1394,11 +1340,10 @@
                     if (record) {
                         record.status = status;
                         record.Notes = notes;
-                        applyFilters(); // Re-apply filters to update the table
+                        applyFilters();
                         saveBtn.disabled = false;
                         saveBtn.innerHTML = `Save`;
                         showToast('Record updated successfully', 3000);
-
                         setTimeout(function(){
                             window.location.reload();
                         }, 3000);
@@ -1422,12 +1367,10 @@
             const modalBody = document.getElementById('temp-modal-body');
             const index = parseInt(modalBody.getAttribute('data-index'), 10);
             const record = filteredData[index];
-
             if (!record || !record.CNIC) {
                 showToast('No valid record found to fetch on-going loan details.', 3000, 'warning');
                 return;
             }
-
             const cnic = record.CNIC;
             const appNo = record.Application_No;
             const modalTitle = document.getElementById('ongoingLoanModalLabel');
@@ -1437,12 +1380,10 @@
             const table = document.getElementById('ongoing-loan-table');
             const errorDiv = document.getElementById('ongoing-error');
             const tbody = document.getElementById('ongoing-loan-table-body');
-
             loadingDiv.style.display = 'block';
             table.style.display = 'none';
             errorDiv.style.display = 'none';
             tbody.innerHTML = '';
-
             fetch(`/get_on_going_loan_details?cnic=${encodeURIComponent(cnic)}`, {
                 method: 'GET',
                 headers: {

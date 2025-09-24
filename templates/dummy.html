@@ -59,16 +59,7 @@
         .metrics-container {
             display: flex;
             flex-wrap: wrap;
-            justify-content: center;
-        }
-        .metrics-container .row {
-            width: 100%;
-            margin-bottom: 1rem;
-        }
-        .metrics-container .col {
-            flex: 1;
-            min-width: 120px;
-            padding: 0 0.5rem;
+            justify-content: space-between;
         }
         .metrics-left {
             flex: 1;
@@ -99,26 +90,10 @@
                     <div class="card h-100">
                         <h2>Loan Disbursement</h2>
                         {% if result.get_disbursed_loan_count %}
-                            <div class="metrics-container">
-                                {% for row in result.get_disbursed_loan_count %}
-                                    {% if loop.index0 % 2 == 0 %}
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <h3>{{ row.count }}</h3>
-                                                <p>{{ row.LoanProductCode }}</p>
-                                            </div>
-                                            {% if not loop.last %}
-                                                <div class="col-md-6">
-                                                    <h3>{{ result.get_disbursed_loan_count[loop.index0 + 1].count }}</h3>
-                                                    <p>{{ result.get_disbursed_loan_count[loop.index0 + 1].LoanProductCode }}</p>
-                                                </div>
-                                            {% else %}
-                                                <div class="col"></div>
-                                            {% endif %}
-                                        </div>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
+                            {% for row in result.get_disbursed_loan_count %}
+                                <h3>{{ row.count }}</h3>
+                                <p>{{ row.LoanProductCode }}</p>
+                            {% endfor %}
                         {% else %}
                             <p class="no-data">No data to display</p>
                         {% endif %}
@@ -130,26 +105,10 @@
                     <div class="card h-100">
                         <h2>Active Loan</h2>
                         {% if result.get_active_loan_count %}
-                            <div class="metrics-container">
-                                {% for row in result.get_active_loan_count %}
-                                    {% if loop.index0 % 2 == 0 %}
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <h3>{{ row.count }}</h3>
-                                                <p>{{ row.LoanProductCode }}</p>
-                                            </div>
-                                            {% if not loop.last %}
-                                                <div class="col-md-6">
-                                                    <h3>{{ result.get_active_loan_count[loop.index0 + 1].count }}</h3>
-                                                    <p>{{ result.get_active_loan_count[loop.index0 + 1].LoanProductCode }}</p>
-                                                </div>
-                                            {% else %}
-                                                <div class="col"></div>
-                                            {% endif %}
-                                        </div>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
+                            {% for row in result.get_active_loan_count %}
+                                <h3>{{ row.count }}</h3>
+                                <p>{{ row.LoanProductCode }}</p>
+                            {% endfor %}
                         {% else %}
                             <p class="no-data">No data to display</p>
                         {% endif %}
@@ -161,26 +120,10 @@
                     <div class="card h-100">
                         <h2>Non-Active Loan</h2>
                         {% if result.get_non_performing_loan_count %}
-                            <div class="metrics-container">
-                                {% for row in result.get_non_performing_loan_count %}
-                                    {% if loop.index0 % 2 == 0 %}
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <h3>{{ row.count }}</h3>
-                                                <p>{{ row.LoanProductCode }}</p>
-                                            </div>
-                                            {% if not loop.last %}
-                                                <div class="col-md-6">
-                                                    <h3>{{ result.get_non_performing_loan_count[loop.index0 + 1].count }}</h3>
-                                                    <p>{{ result.get_non_performing_loan_count[loop.index0 + 1].LoanProductCode }}</p>
-                                                </div>
-                                            {% else %}
-                                                <div class="col"></div>
-                                            {% endif %}
-                                        </div>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
+                            {% for row in result.get_non_performing_loan_count %}
+                                <h3>{{ row.count }}</h3>
+                                <p>{{ row.LoanProductCode }}</p>
+                            {% endfor %}
                         {% else %}
                             <p class="no-data">No data to display</p>
                         {% endif %}
@@ -192,26 +135,10 @@
                     <div class="card h-100">
                         <h2>Loan Beneficiaries</h2>
                         {% if result.total_loan_beneficiary_count %}
-                            <div class="metrics-container">
-                                {% for row in result.total_loan_beneficiary_count %}
-                                    {% if loop.index0 % 2 == 0 %}
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <h3>{{ row.count }}</h3>
-                                                <p>{{ row.Gender }}</p>
-                                            </div>
-                                            {% if not loop.last %}
-                                                <div class="col-md-6">
-                                                    <h3>{{ result.total_loan_beneficiary_count[loop.index0 + 1].count }}</h3>
-                                                    <p>{{ result.total_loan_beneficiary_count[loop.index0 + 1].Gender }}</p>
-                                                </div>
-                                            {% else %}
-                                                <div class="col"></div>
-                                            {% endif %}
-                                        </div>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
+                            {% for row in result.total_loan_beneficiary_count %}
+                                <h3>{{ row.count }}</h3>
+                                <p>{{ row.Gender }}</p>
+                            {% endfor %}
                         {% else %}
                             <p class="no-data">No data to display</p>
                         {% endif %}
@@ -258,10 +185,12 @@
                 {% if result.is_admin %}
                     <div class="col">
                         <div class="card h-100 text-center">
-                            <a class="card-body text-decoration-none" href="{{url_for('manage_users')}}">
+                            <div class="card-body">
                                 <i class="fas fa-users fa-3x mb-3"></i>
                                 <h5 class="card-title">Volunteers</h5>
-                            </a>
+                                <p class="card-text">Manage and track your Volunteers' activity, permissions, and interactions within the system for better oversight and control.</p>
+                                <a href="{{url_for('manage_users')}}" class="btn btn-primary">View Volunteers Data</a>
+                            </div>
                         </div>
                     </div>
                 {% endif %}
@@ -270,10 +199,12 @@
                 {% if result.is_admin %}
                     <div class="col">
                         <div class="card h-100 text-center">
-                            <a class="card-body text-decoration-none" href="{{url_for('manage_budget')}}">
+                            <div class="card-body">
                                 <i class="fas fa-wallet fa-3x mb-3"></i>
                                 <h5 class="card-title">Budget</h5>
-                            </a>
+                                <p class="card-text">Track your organization's budget, expenditures, and financial allocations to ensure proper resource management.</p>
+                                <a href="{{url_for('manage_budget')}}" class="btn btn-primary">Manage Budget</a>
+                            </div>
                         </div>
                     </div>
                 {% endif %}
@@ -282,10 +213,12 @@
                 {% if result.is_admin %}
                     <div class="col">
                         <div class="card h-100 text-center">
-                            <a class="card-body text-decoration-none"  href="{{url_for('manage_branches')}}">
+                            <div class="card-body">
                                 <i class="fas fa-sitemap fa-3x mb-3"></i>
                                 <h5 class="card-title">Branches</h5>
-                            </a>
+                                <p class="card-text">Manage and monitor the operations of various branches or locations within your organization to streamline operations.</p>
+                                <a href="{{url_for('manage_branches')}}" class="btn btn-primary">View Branch Info</a>
+                            </div>
                         </div>
                     </div>
                 {% endif %}
@@ -293,10 +226,12 @@
                 <!-- PreDisbursement Card -->
                 <div class="col">
                     <div class="card h-100 text-center">
-                        <a class="card-body text-decoration-none" href="{{url_for('manage_pre_disbursement')}}">
+                        <div class="card-body">
                             <i class="fas fa-money-check-alt fa-3x mb-3"></i>
                             <h5 class="card-title">PreDisbursement</h5>
-                        </a>
+                            <p class="card-text">Track and manage all the necessary steps before disbursements are made, including approvals and verifications.</p>
+                            <a href="{{url_for('manage_pre_disbursement')}}" class="btn btn-primary">Prepare Disbursement</a>
+                        </div>
                     </div>
                 </div>
 
@@ -304,10 +239,12 @@
                 {% if result.is_admin %}
                     <div class="col">
                         <div class="card h-100 text-center">
-                            <a class="card-body text-decoration-none" href="{{url_for('manage_post_disbursement')}}">
+                            <div class="card-body">
                                 <i class="fas fa-money-bill-wave fa-3x mb-3"></i>
                                 <h5 class="card-title">PostDisbursement</h5>
-                            </a>
+                                <p class="card-text">Manage the processes and reports after disbursements, including tracking, reconciliation, and auditing steps.</p>
+                                <a href="{{url_for('manage_post_disbursement')}}" class="btn btn-primary">Review Disbursement</a>
+                            </div>
                         </div>
                     </div>
                 {% endif %}
@@ -316,10 +253,12 @@
                 {% if result.is_admin %}
                     <div class="col">
                         <div class="card h-100 text-center">
-                            <a class="card-body text-decoration-none" href="{{url_for('manage_file')}}">
+                            <div class="card-body">
                                 <i class="fa-solid fa-upload fa-3x mb-3"></i>
                                 <h5 class="card-title">File Uploading/Validation</h5>
-                            </a>
+                                <p class="card-text">Manage file validation and uploading. Prevents from duplicate/discrepancies records, as well as get the summary report for duplicate/discrepancies</p>
+                                <a href="{{url_for('manage_file')}}" class="btn btn-primary">Upload/Validate</a>
+                            </div>
                         </div>
                     </div>
                 {% endif %}
@@ -328,10 +267,12 @@
                 {% if result.is_admin %}
                     <div class="col">
                         <div class="card h-100 text-center">
-                            <a class="card-body text-decoration-none" href="{{url_for('manage_loan_metrics')}}">
+                            <div class="card-body">
                                 <i class="fa-solid fa-cubes fa-3x mb-3"></i>
                                 <h5 class="card-title">Manage Loan Metrics</h5>
-                            </a>
+                                <p class="card-text">Manage Loan Metrics. Handles loan applications more efficiently.</p>
+                                <a href="{{url_for('manage_loan_metrics')}}" class="btn btn-primary">Manage Loan Metrics</a>
+                            </div>
                         </div>
                     </div>
                 {% endif %}

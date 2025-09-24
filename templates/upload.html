@@ -78,6 +78,10 @@
                                         <option value="both">Both</option>
                                     </select>
                                 </div>
+                                <div class="mb-3" id="div_timestamp" style="display: none;">
+                                    <label for="category" class="form-label">File Of The Month</label>
+                                    <input type="datetime-local" id="input_timestamp" name="input_timestamp" class="form-control" required disabled>
+                                </div>
                                 <div class="mb-3">
                                     <label for="file" class="form-label">Select Excel File (.xlsx only)</label>
                                     <input class="form-control" type="file" id="file" name="file" accept=".xlsx" required disabled>
@@ -183,6 +187,8 @@
             const fileHelp = document.getElementById('fileHelp');
             const categoryDiv = document.getElementById('category_div');
             const categorySelect = document.getElementById('category');
+            const timestampDiv = document.getElementById('div_timestamp');
+            const timestampInput = document.getElementById('input_timestamp');
 
             if (this.value === 'pre_disbursement') {
                 fileInput.removeAttribute('multiple');
@@ -192,12 +198,19 @@
                 categoryDiv.style.display = 'none';
                 categorySelect.setAttribute('disabled', 'disabled');
                 categorySelect.value = '';
+
+                timestampDiv.style.display = 'none';
+                timestampInput.setAttribute('disabled', 'disabled');
+                timestampInput.value = '';
             } else if (this.value === 'post_disbursement') {
                 fileInput.setAttribute('accept', '.xlsx');
                 fileInput.removeAttribute('disabled');
                 categoryDiv.style.display = 'block';
                 categorySelect.removeAttribute('disabled');
                 fileHelp.textContent = 'Select a category first.';
+
+                timestampDiv.style.display = 'block';
+                timestampInput.removeAttribute('disabled');
             } else {
                 fileInput.removeAttribute('multiple');
                 fileInput.setAttribute('disabled', 'disabled');
