@@ -12,7 +12,8 @@ def manage_user_service_hours():
             content = {
                 'get_user_service_hours': get_user_service_hours_by_user_id(user_id),
                 'get_all_user_privileges_by_user_id': get_all_user_privileges_by_user_id(user_id),
-                'volunteer_info': get_all_user_data_by_id(user_id)
+                'volunteer_info': get_all_user_data_by_id(user_id),
+                'get_user_reporting_period_by_user_id': get_user_reporting_period_by_user_id(user_id)
             }
 
             return render_template('manage_user_service_hours.html', result=content)
@@ -103,6 +104,80 @@ def add_edit_user_service_hours(user_service_hours_id=None):
                                       'get_user_service_hours': get_user_service_hours_by_user_id(get_current_user_id())})
     except Exception as e:
         print('add/edit user service hours exception:- ', str(e))
+        return jsonify({'error': str(e)}), 500
+
+
+@application.route('/add-user-reporting-period', methods=['GET', 'POST'])
+@application.route('/edit-user-reporting-period/<int:user_reporting_period_id>', methods=['GET', 'POST'])
+def add_edit_user_reporting_period(user_reporting_period_id=None):
+    try:
+        if not (is_login() and is_admin()):
+            return jsonify({'error': 'Unauthorized'}), 401
+
+        reporting_period_details = None
+
+        if user_reporting_period_id:
+            query = f"""
+                SELECT user_reporting_period_id, user_id, reporting_date, status, 
+                       created_by, created_date, modified_by, modified_date
+                FROM tbl_user_reporting_period 
+                WHERE user_reporting_period_id = {user_reporting_period_id} AND status != '2'
+            """
+            result = fetch_records(query)
+            reporting_period_details = result[0] if result else None
+            if not reporting_period_details:
+                return jsonify({'error': 'Record not found'}), 404
+
+        if request.method == 'POST':
+            user_id = str(get_current_user_id())
+            reporting_date = request.form['reporting_date']
+            status = '1'
+            current_user_id = get_current_user_id()
+            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+            reporting_date_escaped = escape_sql_string(reporting_date)
+            status_escaped = escape_sql_string(status)
+
+            user_id = int(user_id)
+            if user_id <= 0:
+                return jsonify({'error': 'Invalid user_id'}), 400
+
+            # Check if record exists for user_id
+            check_query = f"""
+                SELECT user_reporting_period_id 
+                FROM tbl_user_reporting_period 
+                WHERE user_id = {user_id} AND status != '2'
+            """
+            existing_record = fetch_records(check_query)
+
+            if existing_record and not user_reporting_period_id:
+                # Update existing record
+                query = f"""
+                    UPDATE tbl_user_reporting_period 
+                    SET reporting_date = {reporting_date_escaped},
+                        status = {status_escaped},
+                        modified_by = {current_user_id},
+                        modified_date = '{current_time}'
+                    WHERE user_id = {user_id}
+                """
+                execute_command(query)
+            else:
+                # Insert new record
+                query = f"""
+                    INSERT INTO tbl_user_reporting_period 
+                    (user_id, reporting_date, status, created_by, created_date, modified_by, modified_date)
+                    VALUES ({user_id}, {reporting_date_escaped}, {status_escaped}, 
+                            {current_user_id}, '{current_time}', {current_user_id}, '{current_time}')
+                    RETURNING user_reporting_period_id
+                """
+                execute_command(query)
+
+            return jsonify({'success': 'Reporting period saved'}), 200
+
+        return render_template('manager_volunteer_service_hours.html',
+                            result={'reporting_period_details': reporting_period_details})
+    except Exception as e:
+        print('add/edit user reporting period exception:- ', str(e))
         return jsonify({'error': str(e)}), 500
 
 

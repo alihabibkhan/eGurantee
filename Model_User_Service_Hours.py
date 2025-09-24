@@ -31,3 +31,19 @@ def get_user_service_hours_by_user_id(user_id):
     result = fetch_records(query)
     print(result)
     return result
+
+
+def get_user_reporting_period_by_user_id(user_id):
+    query = f"""
+        SELECT urp.user_reporting_period_id, urp.user_id, urp.reporting_date, urp.status, 
+               u1.name AS created_by_name, urp.created_date, 
+               u2.name AS modified_by_name, urp.modified_date
+        FROM tbl_user_reporting_period urp
+        LEFT JOIN tbl_users u1 ON u1.user_id = urp.created_by AND u1.active = '1'
+        LEFT JOIN tbl_users u2 ON u2.user_id = urp.modified_by AND u2.active = '1'
+        WHERE urp.user_id = {user_id} AND urp.status = '1'
+    """
+    result = fetch_records(query)
+    print(result)
+    return result[0]
+

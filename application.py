@@ -72,26 +72,22 @@ def internal_server_error(e):
 def index():
     try:
         if is_login():
-            content = {'is_admin':is_admin()}
+            content = {
+                'is_admin':is_admin(),
+                'is_reviewer': is_reviewer(),
+                'is_approver': is_approver(),
+                'is_executive_approver': is_executive_approver(),
+                'get_disbursed_loan_count': get_disbursed_loan_count(),
+                'get_active_loan_count': get_active_loan_count(),
+                'get_non_performing_loan_count': get_non_performing_loan_count(),
+                'total_loan_beneficiary_count': total_loan_beneficiary_count(),
+                'area_metrics': get_loan_details_by_branch_area()
+            }
             return render_template('dashboard.html', result=content)
     except Exception as e:
         print('dashboard exception:- ', str(e))
     return redirect(url_for('login'))
 
-@application.route('/dummy')
-def dummy():
-    try:
-        if is_login():
-            content = {
-                'is_admin':is_admin(),
-                'is_reviewer': is_reviewer(),
-                'is_approver': is_approver(),
-                'is_executive_approver': is_executive_approver()
-            }
-            return render_template('dummy_template.html', result=content)
-    except Exception as e:
-        print('dashboard exception:- ', str(e))
-    return redirect(url_for('login'))
 
 
 from App_Auth import *

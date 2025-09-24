@@ -13,6 +13,9 @@ def manage_file():
         file_type = request.form.get('file_type') or session.get('file_type')
         print(f"manage_file: file_type={file_type}")
 
+        input_timestamp = str(request.form.get('input_timestamp')) or str(session.get('input_timestamp'))
+        print(f"manage_file: input_timestamp={input_timestamp}")
+
         if not file_type:
             print("manage_file: No file_type provided, flashing error")
             flash('Please select a file type.', 'danger')
@@ -20,7 +23,7 @@ def manage_file():
 
         if action_type == 'validate':
             print("manage_file: Action is validate, calling handle_validation")
-            return handle_validation(file_type)
+            return handle_validation(file_type, input_timestamp)
         elif action_type == 'upload':
             print("manage_file: Action is upload, calling handle_upload")
             return handle_upload()
@@ -29,7 +32,7 @@ def manage_file():
     return render_template('upload.html', view='upload')
 
 
-def handle_validation(file_type):
+def handle_validation(file_type, input_timestamp=None):
     print(f"handle_validation: Entering function with file_type={file_type}")
     if 'file' not in request.files:
         print("handle_validation: No file in request.files, flashing error")
@@ -133,6 +136,11 @@ def handle_validation(file_type):
     print(f"handle_validation: Set session['file_type']={file_type}")
     session['category'] = category
     print(f"handle_validation: Set session['category']={category}")
+
+    if input_timestamp:
+        session['input_timestamp'] = input_timestamp
+        print(f"handle_validation: Set session['input_timestamp']={input_timestamp}")
+
     print(f"handle_validation: Rendering upload.html with view='validation_result', files={len(saved_files)}")
     return render_template('upload.html',
                            view='validation_result',
@@ -301,7 +309,9 @@ def handle_upload():
     has_pre = session.get('has_pre', False)
     has_post = session.get('has_post', False)
     category = session.get('category')
-    print(f"handle_upload: file_type={file_type}, category={category}, files={len(filepaths)}, has_pre={has_pre}, has_post={has_post}")
+    input_timestamp = session.get('input_timestamp')
+
+    print(f"handle_upload: file_type={file_type}, category={category}, files={len(filepaths)}, has_pre={has_pre}, has_post={has_post}, input_timestamp={input_timestamp}")
 
     success, result = process_upload()
     print(f"handle_upload: process_upload returned success={success}, result={result}")
@@ -329,6 +339,8 @@ def handle_upload():
     print("handle_upload: Cleared session['file_type']")
     session.pop('category', None)
     print("handle_upload: Cleared session['category']")
+    session.pop('input_timestamp', None)
+    print("handle_upload: Cleared session['input_timestamp']")
 
     if result['summary_path']:
         session['summary_file'] = result['summary_path']
@@ -347,7 +359,8 @@ def process_upload():
     file_type = session.get('file_type')
     category = session.get('category')
     filepaths = session['current_files']
-    print(f"process_upload: file_type={file_type}, category={category}, files={len(filepaths)}")
+    input_timestamp = session['input_timestamp']
+    print(f"process_upload: file_type={file_type}, category={category}, files={len(filepaths)}, input_timestamp={input_timestamp}")
     duplicates = {}
     new_records = {}
     summary_path = None
@@ -473,10 +486,10 @@ def process_upload():
                     table_name = 'tbl_post_disbursement'
                     key_column = 'loan_no'
                     print(f"process_upload: Set post_disbursement settings: table_name={table_name}, key_column={key_column}")
-                    existing_records = fetch_records(f'SELECT "{key_column}" FROM {table_name}')
-                    print(f"process_upload: Fetched {len(existing_records)} existing records for post_disbursement")
-                    existing_app_nos = {str(row[key_column]): None for row in existing_records}
-                    print(f"process_upload: Created existing_app_nos with {len(existing_app_nos)} entries")
+                    # existing_records = fetch_records(f'SELECT "{key_column}" FROM {table_name}')
+                    # print(f"process_upload: Fetched {len(existing_records)} existing records for post_disbursement")
+                    # existing_app_nos = {str(row[key_column]): None for row in existing_records}
+                    # print(f"process_upload: Created existing_app_nos with {len(existing_app_nos)} entries")
 
                     # Apply column mapping based on category and file index
                     if category == 'los' or (category == 'both' and file_idx == 0):
@@ -516,18 +529,23 @@ def process_upload():
                 new_records[sheet_name] = []
                 print(f"process_upload: Initialized duplicates and new_records for sheet '{sheet_name}'")
 
-                for _, row in df.iterrows():
-                    key = str(row[key_column])
-                    print(f"process_upload: Checking row with {key_column}={key}")
-                    if key in existing_app_nos and (file_type != 'pre_disbursement' or existing_app_nos[key] != '3'):
-                        duplicates[sheet_name].append(row)
-                        print(f"process_upload: Added row to duplicates for sheet '{sheet_name}'")
-                    else:
-                        new_records[sheet_name].append(row)
-                        print(f"process_upload: Added row to new_records for sheet '{sheet_name}'")
+                # for _, row in df.iterrows():
+                #     key = str(row[key_column])
+                #     print(f"process_upload: Checking row with {key_column}={key}")
+                #     if key in existing_app_nos and (file_type != 'pre_disbursement' or existing_app_nos[key] != '3'):
+                #         duplicates[sheet_name].append(row)
+                #         print(f"process_upload: Added row to duplicates for sheet '{sheet_name}'")
+                #     else:
+                #         new_records[sheet_name].append(row)
+                #         print(f"process_upload: Added row to new_records for sheet '{sheet_name}'")
 
-                duplicates[sheet_name] = pd.DataFrame(duplicates[sheet_name], columns=df.columns)
-                print(f"process_upload: Converted duplicates for sheet '{sheet_name}' to DataFrame with {len(duplicates[sheet_name])} rows")
+                for _, row in df.iterrows():
+                    new_records[sheet_name].append(row)
+                    print(f"process_upload: Added row to new_records for sheet '{sheet_name}'")
+
+
+                # duplicates[sheet_name] = pd.DataFrame(duplicates[sheet_name], columns=df.columns)
+                # print(f"process_upload: Converted duplicates for sheet '{sheet_name}' to DataFrame with {len(duplicates[sheet_name])} rows")
                 new_records[sheet_name] = pd.DataFrame(new_records[sheet_name], columns=df.columns)
                 print(f"process_upload: Converted new_records for sheet '{sheet_name}' to DataFrame with {len(new_records[sheet_name])} rows")
                 all_dfs.append(new_records[sheet_name])
@@ -541,13 +559,17 @@ def process_upload():
                 print(f"process_upload: Combined {len(all_dfs)} DataFrames into combined_df with {len(combined_df)} rows")
                 new_records = {f'combined_{category}': combined_df}
                 print(f"process_upload: Set new_records to combined DataFrame for 'both'")
-                duplicates = {f'combined_{category}': pd.concat([duplicates[s] for s in duplicates if len(duplicates[s]) > 0], ignore_index=True)}
-                print(f"process_upload: Set duplicates to combined DataFrame for 'both' with {len(duplicates[f'combined_{category}'])} rows")
+                # duplicates = {f'combined_{category}': pd.concat([duplicates[s] for s in duplicates if len(duplicates[s]) > 0], ignore_index=True)}
+                # duplicates[f'combined_{category}'] = pd.concat(
+                #     [duplicates[s] for s in duplicates if len(duplicates[s]) > 0],
+                #     ignore_index=True
+                # ) if any(len(duplicates[s]) > 0 for s in duplicates) else pd.DataFrame()
+                # print(f"process_upload: Set duplicates to combined DataFrame for 'both' with {len(duplicates[f'combined_{category}'])} rows")
         else:
             new_records = {k: v for k, v in new_records.items() if len(v) > 0}
             print(f"process_upload: Filtered new_records: {list(new_records.keys())}")
-            duplicates = {k: v for k, v in duplicates.items() if len(v) > 0}
-            print(f"process_upload: Filtered duplicates: {list(duplicates.keys())}")
+            # duplicates = {k: v for k, v in duplicates.items() if len(v) > 0}
+            # print(f"process_upload: Filtered duplicates: {list(duplicates.keys())}")
 
         if len(new_records) > 0:
             print(f"process_upload: Processing {len(new_records)} new_records for insertion")
@@ -662,10 +684,10 @@ def process_upload():
 
                         # Query to fetch the latest record from tbl_pre_disbursement_temp for the given CNIC
                         query = f"""
-                                SELECT pdt.pre_disb_temp_id, pdt.Borrower_Name, pdt.Gender, pdt.Branch_Name, 
-                                       pdt.Student_Name, pdt.Student_Co_Borrower_Gender, pdt.Collage_Univeristy
+                                SELECT pdt.pre_disb_temp_id, pdt."Borrower_Name", pdt."Gender", pdt."Branch_Name", 
+                                       pdt."Student_Name", pdt."Student_Co_Borrower_Gender", pdt."Collage_Univeristy"
                                 FROM tbl_pre_disbursement_temp pdt 
-                                WHERE pdt.CNIC = '{cnic}' 
+                                WHERE pdt."CNIC" = '{cnic}' 
                                 ORDER BY pdt.pre_disb_temp_id DESC 
                                 LIMIT 1
                             """
@@ -780,8 +802,22 @@ def process_upload():
                         print(
                             f"process_upload: Preparing INSERT query for pre_disbursement, application_no={rec.get('application_no', '')}")
                     else:
+                        loan_closed_on = str(rec.get('loan_closed_on', ''))
+                        booked_on = str(rec.get('booked_on', ''))
+                        clo_on = str(rec.get('clo_on', ''))
+
+                        if loan_closed_on in ['None', 'NaN', 'Nan', '']:
+                            loan_closed_on = '1900-01-01'
+
+                        if booked_on in ['None', 'NaN', 'Nan', '']:
+                            booked_on = '1900-01-01'
+
+                        if clo_on in ['None', 'NaN', 'Nan', '']:
+                            clo_on = '1900-01-01'
+
                         loan_no = rec.get('loan_no', '').replace("'", '')
                         if loan_no not in ['', 'NaN', 'None']:
+                            mis_date = input_timestamp or '1900-01-01'
                             query = f"""
                                     INSERT INTO tbl_post_disbursement (
                                         mis_date, area, sector_code, branch_code, branch_name, cnic, gender,
@@ -792,21 +828,21 @@ def process_upload():
                                         markup_outstanding, lo, fc_los, dtf, dtt, customer_id, application_num,
                                         clo_on, liab_id, pool_id, account_number, created_by, created_date
                                     ) VALUES (
-                                        '{rec.get('mis_date', '1900-01-01')}', '{rec.get('area', '')}', '{rec.get('sector_code', '')}',
+                                        '{mis_date}', '{rec.get('area', '')}', '{rec.get('sector_code', '')}',
                                         '{rec.get('branch_code', '')}', '{rec.get('branch_name', '')}', '{rec.get('cnic', '')}',
-                                        '{rec.get('gender', '')}', '{rec.get('address', '')}', '{rec.get('mobile_no', '')}',
+                                        '{rec.get('gender', '')}', '{sanitize_address(str(rec.get('address', '')))}', '{rec.get('mobile_no', '')}',
                                         '{rec.get('loan_title', '')}', '{rec.get('rt', '')}', '{loan_no}',
-                                        '{rec.get('product_code', '')}', '{rec.get('booked_on', '1900-01-01')}',
+                                        '{rec.get('product_code', '')}', '{booked_on}',
                                         '{rec.get('disbursed_amount', '')}', '{rec.get('repayment_type', '')}',
                                         '{rec.get('sector', '')}', '{rec.get('purpose', '')}', '{rec.get('loan_status', '')}',
-                                        '{rec.get('loan_closed_on', '1900-01-01')}', '{rec.get('act_clo', '')}',
+                                        '{loan_closed_on}', '{rec.get('act_clo', '')}',
                                         '{rec.get('colloanno', '')}', '{rec.get('coll_id', '')}', '{rec.get('lrno', '')}',
                                         '{rec.get('collat', '')}', '{rec.get('coll_stat', '')}', '{rec.get('collateral_value', '')}',
                                         '{rec.get('collateral_title', '')}', '{rec.get('overdue_days', '')}',
                                         '{rec.get('principal_outstanding', '')}', '{rec.get('total_outstand_other', '')}',
                                         '{rec.get('markup_outstanding', '')}', '{rec.get('lo', '')}', '{rec.get('fc_los', '')}',
                                         '{rec.get('dtf', '')}', '{rec.get('dtt', '')}', '{rec.get('customer_id', '')}',
-                                        '{rec.get('application_num', '')}', '{rec.get('clo_on', '1900-01-01')}',
+                                        '{rec.get('application_num', '')}', '{clo_on}',
                                         '{rec.get('liab_id', '')}', '{rec.get('pool_id', '')}', '{rec.get('account_number', '')}',
                                         '{str(get_current_user_id())}', '{str(datetime.now())}'
                                     )
@@ -840,7 +876,7 @@ def process_upload():
                 if not pre_disbursement_queries and not post_disbursement_queries:
                     print("process_upload: No valid records to insert")
 
-        if any(len(duplicates[sheet]) > 0 for sheet in duplicates):
+        if file_type == 'pre_disbursement' and any(len(duplicates[sheet]) > 0 for sheet in duplicates):
             print("process_upload: Found duplicates, generating summary file")
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             print(f"process_upload: Generated timestamp={timestamp}")
@@ -867,21 +903,21 @@ def process_upload():
 
 
 def parse_excel_date(date_str):
-    print(f"parse_excel_date: Entering function with date_str={date_str}")
+    # print(f"parse_excel_date: Entering function with date_str={date_str}")
     if pd.isnull(date_str):
-        print("parse_excel_date: Date is null, returning '1900-01-01'")
+        # print("parse_excel_date: Date is null, returning '1900-01-01'")
         return '1900-01-01'
 
     if not date_str:
-        print("parse_excel_date: Date is empty, returning '1900-01-01'")
+        # print("parse_excel_date: Date is empty, returning '1900-01-01'")
         return '1900-01-01'
 
     if isinstance(date_str, datetime):
-        print("parse_excel_date: Date is datetime, returning date part")
+        # print("parse_excel_date: Date is datetime, returning date part")
         return date_str.date()
 
     clean_date = str(date_str).strip().replace('\r', '').replace('\n', '')
-    print(f"parse_excel_date: Cleaned date string: {clean_date}")
+    # print(f"parse_excel_date: Cleaned date string: {clean_date}")
 
     # Try known formats first
     for fmt in (
@@ -890,16 +926,16 @@ def parse_excel_date(date_str):
     ):
         try:
             result = datetime.strptime(clean_date, fmt).date()
-            print(f"parse_excel_date: Parsed date with format {fmt}: {result}")
+            # print(f"parse_excel_date: Parsed date with format {fmt}: {result}")
             return result
         except ValueError:
-            print(f"parse_excel_date: Failed to parse with format {fmt}")
+            # print(f"parse_excel_date: Failed to parse with format {fmt}")
             continue
 
     # Try ISO and other common formats using dateutil
     try:
         result = parse(clean_date).date()
-        print(f"parse_excel_date: Parsed date with dateutil: {result}")
+        # print(f"parse_excel_date: Parsed date with dateutil: {result}")
         return result
     except Exception:
         print("parse_excel_date: Failed to parse with dateutil, returning None")
@@ -971,3 +1007,23 @@ def download_summary():
         print("download_summary: Flashing download error")
         flash('Could not prepare the download. Please try again.', 'danger')
         return redirect(url_for('manage_file'))
+
+
+def sanitize_address(address: str) -> str:
+    """
+    Sanitize address string to prevent SQL query issues.
+    Removes or escapes problematic characters and handles None/empty values.
+    """
+    if not address or not isinstance(address, str):
+        print("Address is None or not a string, returning empty string")
+        return ''
+
+    # Remove or replace problematic characters (e.g., #, ;, --)
+    # You can customize this regex based on specific needs
+    cleaned_address = re.sub(r'[;\'"\--]', '', address.strip())
+
+    # Log if significant cleaning was done
+    if cleaned_address != address.strip():
+        print(f"Cleaned address from '{address}' to '{cleaned_address}'")
+
+    return cleaned_address
