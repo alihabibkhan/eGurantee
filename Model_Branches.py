@@ -19,7 +19,7 @@ def get_all_branches_info():
 
 def get_distinct_branches_roles():
     query = """
-        select b.role
+        select  DISTINCT(b.role)
         from tbl_branches b 
     """
     result = fetch_records(query)
