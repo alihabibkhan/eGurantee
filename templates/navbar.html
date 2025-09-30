@@ -13,6 +13,10 @@
     background: #e6f3fa; /* Light blue background for a calm, welfare-oriented feel */
     #background: white;
   }
+  body.sidebar-expanded {
+    position: relative;
+    left: 13rem;
+  }
   .sidebar {
     position: fixed;
     top: 0;
@@ -26,6 +30,7 @@
   .sidebar.collapsed {
     width: 85px;
   }
+
   .sidebar .sidebar-header {
     display: flex;
     position: relative;
@@ -254,6 +259,12 @@
       transform: translateY(15px);
     }
   }
+
+  @media screen and (min-width: 1350px) {
+    body {
+      margin-left: 5rem;
+    }
+  }
 </style>
 <!-- Mobile Sidebar Menu Button -->
 <button class="sidebar-menu-button">
@@ -263,7 +274,7 @@
   <!-- Sidebar Header -->
   <header class="sidebar-header">
     <a href="{{url_for('index')}}" class="header-logo">
-      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSppuj7o6w9JtnVgpSWZuzf6dd5K3UsYozGZg&s"/>
+      <img src="{{ url_for('static', filename='images/khushali-logo-transparent-1.png') }}"/>
     </a>
     <button class="sidebar-toggler">
       <span class="material-symbols-rounded">chevron_left</span>
@@ -382,7 +393,7 @@
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Loan Limit Exceptions</a></li>
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Loan Budgets Variation</a></li>
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Meeting Action Items</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Volunteers</a></li>
+          <li class="nav-item"><a href="{{url_for('manage_users')}}" class="nav-link dropdown-link">Volunteers</a></li>
         </ul>
       </li>
       <!-- Dropdown -->
@@ -444,12 +455,13 @@
         <ul class="custom-dropdown-menu">
           <li class="nav-item"><a class="nav-link dropdown-title">Administration/Setting</a></li>
           <li class="nav-item"><a href="{{url_for('manage_bank_details')}}" class="nav-link">Bank Setup</a></li>
+          <li class="nav-item"><a href="{{url_for('manage_branches')}}" class="nav-link">Branch Setup</a></li>
           <li class="nav-item"><a href="{{url_for('manage_post_disbursement')}}" class="nav-link dropdown-link">Loan Assessment (Post)</a></li>
           <li class="nav-item"><a class="nav-link dropdown-title">Loan Administration</a></li>
-          <li class="nav-item"><a href="#" class="nav-link">Loan Matrix Parameters</a></li>
-          <li class="nav-item"><a href="#" class="nav-link">Loan Annual Budgets</a></li>
-          <li class="nav-item"><a href="#" class="nav-link">Loan Assessment File Uploading</a></li>
-          <li class="nav-item"><a class="nav-link dropdown-title" href="#">Volunteer Administration</a></li>
+          <li class="nav-item"><a href="{{url_for('manage_loan_metrics')}}" class="nav-link">Loan Matrix Parameters</a></li>
+          <li class="nav-item"><a href="{{url_for('manage_budget')}}" class="nav-link">Loan Annual Budgets</a></li>
+          <li class="nav-item"><a href="{{url_for('manage_file')}}" class="nav-link">Loan Assessment File Uploading</a></li>
+          <li class="nav-item"><a class="nav-link dropdown-title" href="{{url_for('manage_users')}}">Volunteer Administration</a></li>
           <li class="nav-item"><a href="#" class="nav-link">Volunteers Roles Update</a></li>
           <li class="nav-item"><a href="#" class="nav-link">Partner Organization</a></li>
         </ul>
@@ -471,6 +483,17 @@
 </aside>
 
 <script>
+  const sidebar = document.querySelector('.sidebar');
+  const body = document.body;
+
+  function updateBodyPosition() {
+    if (!sidebar.classList.contains('collapsed')) {
+      body.classList.add('sidebar-expanded');
+    } else {
+      body.classList.remove('sidebar-expanded');
+    }
+  }
+
   // Toggle the visibility of a dropdown or sub-dropdown menu
   const toggleMenu = (container, menu, isOpen, isSubmenu = false) => {
     console.log("Toggling menu...");
@@ -555,9 +578,13 @@
   document.querySelectorAll(".sidebar-toggler, .sidebar-menu-button").forEach((button) => {
     button.addEventListener("click", () => {
       closeAllMenus(); // Close all open dropdowns and sub-dropdowns
-      document.querySelector(".sidebar").classList.toggle("collapsed"); // Toggle collapsed class on sidebar
+      //document.querySelector(".sidebar").classList.toggle("collapsed"); // Toggle collapsed class on sidebar
+      sidebar.classList.toggle("collapsed"); // Toggle collapsed class on sidebar
+      updateBodyPosition(); // Update body class based on sidebar state
     });
   });
+
+  updateBodyPosition();
 
   // Collapse sidebar by default on small screens
   if (window.innerWidth <= 1024) document.querySelector(".sidebar").classList.add("collapsed");
