@@ -203,7 +203,7 @@
                                     {% endif %}
                                 </td>
                                 <td title="{{ user.volunteer_id or '-' }}">{{ user.volunteer_id or '-' }}</td>
-                                <td title="{{ user.createdBy or '-' }}">{{ user.createdBy or '-' }}</td>
+                                <td title="{{ user.created_by_name or '-' }}">{{ user.created_by_name or '-' }}</td>
                                 <td title="{{ user.created_date or '-' }}">{{ user.created_date or '-' }}</td>
                                 <td>
                                     <a href="#" class="details-link"
@@ -223,7 +223,7 @@
                                        data-manager-id="{{ user.manager_id or '-' }}"
                                        data-branch="{{ user.assigned_branch or '-' }}"
                                        data-active="{{ 'Active' if user.active == '1' else 'In-Active' }}"
-                                       data-created-by="{{ user.createdBy or '-' }}"
+                                       data-created-by="{{ user.created_by_name or '-' }}"
                                        data-created-date="{{ user.created_date or '-' }}"
                                        data-date-of-retirement="{{ user.date_of_retirement or '-' }}"
                                        data-reason="{{ user.reason or '-' }}">

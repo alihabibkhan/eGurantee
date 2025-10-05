@@ -369,6 +369,7 @@
 
     <script>
         // Toggle 'required' attribute for manager_id based on rights selection
+        /*
         document.getElementById('rights').addEventListener('change', function() {
             const managerIdSelect = document.getElementById('manager_id');
             if (this.value === '1') { // Reviewer
@@ -377,6 +378,7 @@
                 managerIdSelect.removeAttribute('required');
             }
         });
+
 
         // Set initial state on page load
         document.addEventListener('DOMContentLoaded', function() {
@@ -388,6 +390,7 @@
                 managerIdSelect.removeAttribute('required');
             }
         });
+        */
 
         // Confirm deletion of user privilege
         function confirmDeletePrivilege(privilegeId, userId) {

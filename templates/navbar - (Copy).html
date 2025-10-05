@@ -10,7 +10,12 @@
   body {
     min-height: 100vh;
     #background: linear-gradient(#F1F3FF, #CBD4FF);
-    background: white;
+    background: #E9F0D5; /* Light blue background for a calm, welfare-oriented feel */
+    #background: white;
+  }
+  body.sidebar-expanded {
+    position: relative;
+    left: 13rem;
   }
   .sidebar {
     position: fixed;
@@ -25,6 +30,7 @@
   .sidebar.collapsed {
     width: 85px;
   }
+
   .sidebar .sidebar-header {
     display: flex;
     position: relative;
@@ -253,6 +259,12 @@
       transform: translateY(15px);
     }
   }
+
+  @media screen and (min-width: 1350px) {
+    body {
+      margin-left: 5rem;
+    }
+  }
 </style>
 <!-- Mobile Sidebar Menu Button -->
 <button class="sidebar-menu-button">
@@ -261,8 +273,8 @@
 <aside class="sidebar collapsed">
   <!-- Sidebar Header -->
   <header class="sidebar-header">
-    <a href="#" class="header-logo">
-      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSppuj7o6w9JtnVgpSWZuzf6dd5K3UsYozGZg&s"/>
+    <a href="{{url_for('index')}}" class="header-logo">
+      <img src="{{ url_for('static', filename='images/khushali-logo-transparent-1.png') }}"/>
     </a>
     <button class="sidebar-toggler">
       <span class="material-symbols-rounded">chevron_left</span>
@@ -277,7 +289,7 @@
           <span class="nav-label">Dashboard</span>
         </a>
         <ul class="custom-dropdown-menu">
-          <li class="nav-item"><a class="nav-link dropdown-title" href="{{ url_for('index') }}">Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link dropdown-title" href="{{url_for('index')}}">Dashboard</a></li>
         </ul>
       </li>
       <!-- Dropdown -->
@@ -287,7 +299,6 @@
           <span class="nav-label">Home</span>
           <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
         </a>
-        <!-- Dropdown Menu -->
         <ul class="custom-dropdown-menu">
           <li class="nav-item"><a class="nav-link dropdown-title">Home</a></li>
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Chairman Message</a></li>
@@ -299,14 +310,13 @@
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Partners Institutions</a></li>
         </ul>
       </li>
-      <!-- Dropdown -->
-      <li class="nav-item dropdown-container">
+      <!-- Dropdown with Sub-Dropdown (Static Height: 500px) -->
+      <li class="nav-item dropdown-container" data-parent-close-height="134" data-parent-height="340">
         <a href="#" class="nav-link custom-dropdown-toggle">
           <i class="fa-classic fa-solid fa-wallet fa-xl"></i>
           <span class="nav-label">Loan Portfolio</span>
           <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
         </a>
-        <!-- Dropdown Menu -->
         <ul class="custom-dropdown-menu">
           <li class="nav-item"><a class="nav-link dropdown-title">Loan Portfolio</a></li>
           <li class="nav-item"><a href="{{url_for('manage_pre_disbursement')}}" class="nav-link dropdown-link">Loan Application Analysis</a></li>
@@ -315,11 +325,10 @@
               <span class="">Loan Portfolio Reports</span>
               <span class="sub-dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
             </a>
-            <!-- Sub-Dropdown Menu -->
             <ul class="sub-dropdown-menu">
               <li class="nav-item"><a class="nav-link dropdown-title">Loan Portfolio Reports</a></li>
               <li class="nav-item"><a href="#" class="nav-link">Gross / Net Loans Reports</a></li>
-              <li class="nav-item"><a href="#" class="nav-link">Loan Projections Report </a></li>
+              <li class="nav-item"><a href="#" class="nav-link">Loan Projections Report</a></li>
               <li class="nav-item"><a href="{{url_for('view_rejected_applications')}}" class="nav-link">Disagreed Loans Report</a></li>
               <li class="nav-item"><a href="#" class="nav-link">Non Performance Loan Report</a></li>
               <li class="nav-item"><a href="#" class="nav-link">Loan Budget Vs Disbursed</a></li>
@@ -335,24 +344,21 @@
           <span class="nav-label">Volunteers</span>
           <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
         </a>
-        <!-- Dropdown Menu -->
         <ul class="custom-dropdown-menu">
           <li class="nav-item"><a class="nav-link dropdown-title">Volunteers</a></li>
           <li class="nav-item"><a href="{{url_for('profile')}}" class="nav-link dropdown-link">Profile</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Self Service Hours Update</a></li>
+          <li class="nav-item"><a href="{{url_for('manage_user_service_hours')}}" class="nav-link dropdown-link">Service Hours-Self Update</a></li>
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Community Services</a></li>
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Volunteer Report</a></li>
         </ul>
       </li>
-
-      <!-- Dropdown with Sub-Dropdown -->
-      <li class="nav-item dropdown-container">
+      <!-- Dropdown with Sub-Dropdown (Static Height: 1000px) -->
+      <li class="nav-item dropdown-container" data-parent-close-height="216"  data-parent-height="378">
         <a href="#" class="nav-link custom-dropdown-toggle">
           <i class="fa-solid fa-coins fa-xl"></i>
           <span class="nav-label">Financial Management</span>
           <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
         </a>
-        <!-- Dropdown Menu -->
         <ul class="custom-dropdown-menu">
           <li class="nav-item"><a class="nav-link dropdown-title">Financial Management</a></li>
           <li class="nav-item"><a href="{{url_for('manage_bank_entries')}}" class="nav-link dropdown-link">Bank Data Entry</a></li>
@@ -362,20 +368,18 @@
               <span class="">Financial Reports</span>
               <span class="sub-dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
             </a>
-            <!-- Sub-Dropdown Menu -->
             <ul class="sub-dropdown-menu">
               <li class="nav-item"><a class="nav-link dropdown-title">Financial Reports</a></li>
-              <li class="nav-item"><a href="#" class="nav-link">Bank Account Statement</a></li>
-              <li class="nav-item"><a href="#" class="nav-link">Loan to Value Report</a></li>
-              <li class="nav-item"><a href="#" class="nav-link">Loan Projection Analysis</a></li>
-              <li class="nav-item"><a href="#" class="nav-link">Funds Projection Analysis</a></li>
+              <li class="nav-item"><a href="#" class="nav-link dropdown-link">Bank Account Statement</a></li>
+              <li class="nav-item"><a href="#" class="nav-link dropdown-link">Loan to Value Report</a></li>
+              <li class="nav-item"><a href="#" class="nav-link dropdown-link">Loan Projection Analysis</a></li>
+              <li class="nav-item"><a href="#" class="nav-link dropdown-link">Funds Projection Analysis</a></li>
             </ul>
           </li>
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Data Archive</a></li>
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Volunteer Report</a></li>
         </ul>
       </li>
-
       <!-- Dropdown -->
       <li class="nav-item dropdown-container">
         <a href="#" class="nav-link custom-dropdown-toggle">
@@ -383,17 +387,15 @@
           <span class="nav-label">Risk Management</span>
           <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
         </a>
-        <!-- Dropdown Menu -->
         <ul class="custom-dropdown-menu">
           <li class="nav-item"><a class="nav-link dropdown-title">Risk Management</a></li>
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Exception Reports</a></li>
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Loan Limit Exceptions</a></li>
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Loan Budgets Variation</a></li>
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Meeting Action Items</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Volunteers</a></li>
+          <li class="nav-item"><a href="{{url_for('manage_users')}}" class="nav-link dropdown-link">Volunteers</a></li>
         </ul>
       </li>
-
       <!-- Dropdown -->
       <li class="nav-item dropdown-container">
         <a href="#" class="nav-link custom-dropdown-toggle">
@@ -401,14 +403,12 @@
           <span class="nav-label">Meetings</span>
           <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
         </a>
-        <!-- Dropdown Menu -->
         <ul class="custom-dropdown-menu">
           <li class="nav-item"><a class="nav-link dropdown-title">Meetings</a></li>
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Calendars</a></li>
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Meeting Action Items</a></li>
         </ul>
       </li>
-
       <!-- Dropdown -->
       <li class="nav-item dropdown-container">
         <a href="#" class="nav-link custom-dropdown-toggle">
@@ -416,7 +416,6 @@
           <span class="nav-label">Research & Development</span>
           <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
         </a>
-        <!-- Dropdown Menu -->
         <ul class="custom-dropdown-menu">
           <li class="nav-item"><a class="nav-link dropdown-title">Research & Development</a></li>
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">KFT Regional Newsletters</a></li>
@@ -429,7 +428,6 @@
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">AKSWBP Intervention, Indicators</a></li>
         </ul>
       </li>
-
       <!-- Dropdown -->
       <li class="nav-item dropdown-container">
         <a href="#" class="nav-link custom-dropdown-toggle">
@@ -437,7 +435,6 @@
           <span class="nav-label">Program Impact</span>
           <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
         </a>
-        <!-- Dropdown Menu -->
         <ul class="custom-dropdown-menu">
           <li class="nav-item"><a class="nav-link dropdown-title">Program Impact</a></li>
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Cash flow / Baseline Data</a></li>
@@ -448,21 +445,21 @@
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Pakistan Poverty</a></li>
         </ul>
       </li>
-      <!-- Dropdown with Sub-Dropdown -->
+      <!-- Dropdown -->
       <li class="nav-item dropdown-container">
         <a href="#" class="nav-link custom-dropdown-toggle">
           <i class="fa-solid fa-gear fa-xl"></i>
           <span class="nav-label">Administration/Setting</span>
           <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
         </a>
-        <!-- Dropdown Menu -->
         <ul class="custom-dropdown-menu">
           <li class="nav-item"><a class="nav-link dropdown-title">Administration/Setting</a></li>
-          <li class="nav-item"><a href="{{url_for('manage_bank_details')}}" class="nav-link dropdown-link">Bank Setup</a></li>
+          <li class="nav-item"><a href="{{url_for('manage_bank_details')}}" class="nav-link">Bank Setup</a></li>
+          <li class="nav-item"><a href="{{url_for('manage_branches')}}" class="nav-link">Branch Setup</a></li>
           <li class="nav-item"><a href="{{url_for('manage_post_disbursement')}}" class="nav-link dropdown-link">Loan Assessment (Post)</a></li>
           <li class="nav-item"><a class="nav-link dropdown-title">Loan Administration</a></li>
           <li class="nav-item"><a href="{{url_for('manage_loan_metrics')}}" class="nav-link">Loan Matrix Parameters</a></li>
-          <li class="nav-item"><a href="#" class="nav-link">Loan Annual Budgets</a></li>
+          <li class="nav-item"><a href="{{url_for('manage_budget')}}" class="nav-link">Loan Annual Budgets</a></li>
           <li class="nav-item"><a href="{{url_for('manage_file')}}" class="nav-link">Loan Assessment File Uploading</a></li>
           <li class="nav-item"><a class="nav-link dropdown-title" href="{{url_for('manage_users')}}">Volunteer Administration</a></li>
           <li class="nav-item"><a href="#" class="nav-link">Volunteers Roles Update</a></li>
@@ -478,19 +475,65 @@
           <span class="nav-label">Sign Out</span>
         </a>
         <ul class="custom-dropdown-menu">
-          <li class="nav-item"><a class="nav-link dropdown-title" href="{{ url_for('logout') }}">Sign Out</a></li>
+          <li class="nav-item"><a class="nav-link dropdown-title" href="#">Sign Out</a></li>
         </ul>
       </li>
     </ul>
   </nav>
 </aside>
 
-
 <script>
+  const sidebar = document.querySelector('.sidebar');
+  const body = document.body;
+
+  function updateBodyPosition() {
+    if (!sidebar.classList.contains('collapsed')) {
+      body.classList.add('sidebar-expanded');
+    } else {
+      body.classList.remove('sidebar-expanded');
+    }
+  }
+
   // Toggle the visibility of a dropdown or sub-dropdown menu
-  const toggleMenu = (container, menu, isOpen) => {
+  const toggleMenu = (container, menu, isOpen, isSubmenu = false) => {
+    console.log("Toggling menu...");
+    console.log("Container:", container);
+    console.log("Menu:", menu);
+    console.log("Is Open:", isOpen);
+    console.log("Is Submenu:", isSubmenu);
+
     container.classList.toggle("open", isOpen);
-    menu.style.height = isOpen ? `${menu.scrollHeight}px` : 0;
+
+    const height = isOpen ? `${menu.scrollHeight}px` : '0';
+
+    console.log("Calculated height:", height);
+
+    menu.style.height = height;
+
+    // If this is a sub-dropdown, apply a static height to the parent dropdown if specified
+    if (isSubmenu && isOpen) {
+      const parentDropdown = container.closest('.custom-dropdown-menu');
+      if (parentDropdown) {
+        const parentContainer = parentDropdown.closest('.dropdown-container');
+        const parentMenu = parentContainer.querySelector('.custom-dropdown-menu');
+
+        // Use data-parent-height if available, otherwise fall back to scrollHeight
+        const staticHeight = parentContainer.dataset.parentHeight || parentMenu.scrollHeight;
+        parentMenu.style.height = `${staticHeight}px`;
+      }
+    }
+
+    // If closing a sub-dropdown, reset parent dropdown height to its natural scrollHeight
+    if (isSubmenu && !isOpen) {
+      const parentDropdown = container.closest('.custom-dropdown-menu');
+      if (parentDropdown) {
+        const parentContainer = parentDropdown.closest('.dropdown-container');
+        const parentMenu = parentContainer.querySelector('.custom-dropdown-menu');
+        const closeHeight = parentContainer.dataset.parentCloseHeight || parentMenu.scrollHeight;
+        console.log('closeHeight:- ', closeHeight)
+        parentMenu.style.height = `${closeHeight}px`;
+      }
+    }
   };
 
   // Close all open dropdowns and sub-dropdowns
@@ -524,10 +567,10 @@
       subDropdown.closest(".custom-dropdown-menu").querySelectorAll(".sub-dropdown-container.open").forEach((openSub) => {
         if (openSub !== subDropdown) {
           const subMenu = openSub.querySelector(".sub-dropdown-menu");
-          toggleMenu(openSub, subMenu, false);
+          toggleMenu(openSub, subMenu, false, true);
         }
       });
-      toggleMenu(subDropdown, menu, !isOpen); // Toggle current sub-dropdown visibility
+      toggleMenu(subDropdown, menu, !isOpen, true); // Toggle current sub-dropdown visibility
     });
   });
 
@@ -535,9 +578,13 @@
   document.querySelectorAll(".sidebar-toggler, .sidebar-menu-button").forEach((button) => {
     button.addEventListener("click", () => {
       closeAllMenus(); // Close all open dropdowns and sub-dropdowns
-      document.querySelector(".sidebar").classList.toggle("collapsed"); // Toggle collapsed class on sidebar
+      //document.querySelector(".sidebar").classList.toggle("collapsed"); // Toggle collapsed class on sidebar
+      sidebar.classList.toggle("collapsed"); // Toggle collapsed class on sidebar
+      updateBodyPosition(); // Update body class based on sidebar state
     });
   });
+
+  updateBodyPosition();
 
   // Collapse sidebar by default on small screens
   if (window.innerWidth <= 1024) document.querySelector(".sidebar").classList.add("collapsed");

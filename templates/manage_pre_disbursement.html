@@ -6,9 +6,6 @@
     <title>Manage Pre-Disbursement</title>
     {% include 'head.html' %}
     <style>
-        body {
-            background-color: #f8f9fa; /* Light gray background, consistent with bg-light */
-        }
         .table-responsive {
             margin-bottom: 1rem;
         }
@@ -60,7 +57,7 @@
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1); /* Shadow from dashboard */
         }
         .card-header {
-            background-color: #1e3a8a; /* Deep blue header */
+            background-color: #162E2A; /* Deep olive green header */
             color: #ffffff; /* White text */
         }
         .modal-content {
@@ -160,11 +157,11 @@
             color: #1e3a8a; /* Deep blue for icons */
         }
         h1.text-muted {
-            color: #1e3a8a !important; /* Deep blue for main heading */
+            color: #162E2A !important; /* Deep olive green for main heading */
         }
     </style>
 </head>
-<body class="bg-light">
+<body>
     {% include 'navbar.html' %}
 
     {% import 'breadcrumbs.html' as brd %}
@@ -186,16 +183,16 @@
                             <label for="status-filter" class="form-label">Status</label>
                             <select class="form-select form-select-sm" id="status-filter">
                                 <option value="all" selected>All</option>
-                                {% if result.is_reviewer or result.is_approver or result.is_executive_approver or result.is_admin %}
+                                {% if result.is_reviewer or result.is_executive_approver or result.is_admin %}
                                     <option value="1">Under Review</option>
                                 {% endif %}
                                 {% if result.is_approver or result.is_executive_approver or result.is_admin %}
                                     <option value="2">Agreed</option>
                                     <option value="3">Disagreed</option>
                                 {% endif %}
-                                {% if result.is_reviewer or result.is_admin %}
-                                    <option value="4">Recommended for Agreement</option>
-                                    <option value="5">Recommended for Disagreement</option>
+                                {% if result.is_reviewer or result.is_approver or result.is_executive_approver or result.is_admin %}
+                                    <option value="5">Recommended for Agreement</option>
+                                    <option value="6">Recommended for Disagreement</option>
                                 {% endif %}
                             </select>
                         </div>
@@ -225,9 +222,11 @@
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-bordered table-hover">
+                    <table class="table table-bordered table-hover tbl_records text-nowrap text-center  table-responsive table-responsive-sm table-responsive-md table-responsive-lg table-responsive-xl table-responsive-xxl m-auto">
                         <thead class="table-light">
                             <tr>
+                                <th scope="col">Branch</th>
+                                <th scope="col">Role</th>
                                 <th scope="col">Application No</th>
                                 <th scope="col">Borrower Name</th>
                                 <th scope="col">Loan Amount</th>
@@ -358,10 +357,11 @@
 
         // Status mapping
         const statusMap = {
-            '1': 'Pending',
-            '2': 'Approved',
-            '3': 'Rejected',
-            '4': 'Reviewed'
+            '1': 'Under Review',
+            '2': 'Agreed',
+            '3': 'Disagreed',
+            '5': 'Recommended For Agreement',
+            '6': 'Recommended For Disagreement'
         };
 
         // All possible fields for display
@@ -388,9 +388,10 @@
             isNaN(date) ||
             date.toLocaleDateString() === '1/1/1900' ||
             date.toLocaleDateString() === '1900/1/1' ||
-            dateStr === '1900-01-01 00:00:00'
+            dateStr === '1900-01-01 00:00:00' ||
+            dateStr === 'Mon, 01 Jan 1900 00:00:00 GMT'
           ) {
-            return 'Not Received';
+            return '-';
           }
           const options = { month: 'short', day: '2-digit', year: 'numeric' };
           const formatted = date.toLocaleDateString('en-US', options);
@@ -458,12 +459,14 @@
                     }
                 {% endif %}
                 row.innerHTML = `
+                    <td>${record.branch || 'Not Received'}</td>
+                    <td>${record.role || 'Not Received'}</td>
                     <td>${record.Application_No || 'Not Received'}</td>
                     <td>${record['Borrower_Name'] || 'Not Received'}</td>
                     <td>${record['Loan_Amount'] || 'Not Received'}</td>
                     <td>${formatDate(record.ApplicationDate)}</td>
-                    <td>${record.approved_by || 'Not Received'}</td>
-                    <td title='${record.approved_date}'>${formatDate(record.approved_date)}</td>
+                    <td>${record.approved_by || '-'}</td>
+                    <td title='${record.approved_date}'>${formatDate(String(record.approved_date))}</td>
                     <td>${statusText}</td>
                     <td>
                         <button class="btn btn-sm btn-primary" onclick="viewRecord(${start + index})">View</button>
@@ -865,16 +868,16 @@
                         <tr><th>Approved By (Approved Date):</th><td>${record.approved_by || 'Not Received'} (${formatDate(record.approved_date)})</td></tr>
                         <tr><th>Status:</th><td>
                             <select class="form-select form-select-sm" id="temp-status">
-                                {% if result.is_reviewer or result.is_approver or result.is_executive_approver or result.is_admin %}
-                                    <option value="1" ${record.status === '1' ? 'selected' : ''}>Under Review</option>
+                                {% if result.is_reviewer or result.is_executive_approver or result.is_admin %}
+                                    <option value="1" ${String(record.status) === '1' ? 'selected' : ''}>Under Review</option>
                                 {% endif %}
                                 {% if result.is_approver or result.is_executive_approver or result.is_admin %}
-                                    <option value="2" ${record.status === '2' ? 'selected' : ''}>Agreed</option>
-                                    <option value="3" ${record.status === '3' ? 'selected' : ''}>Disagreed</option>
+                                    <option value="2" ${String(record.status) === '2' ? 'selected' : ''}>Agreed</option>
+                                    <option value="3" ${String(record.status) === '3' ? 'selected' : ''}>Disagreed</option>
                                 {% endif %}
-                                {% if result.is_reviewer or result.is_admin %}
-                                    <option value="4" ${record.status === '5' ? 'selected' : ''}>Recommended for Agreement</option>
-                                    <option value="5" ${record.status === '6' ? 'selected' : ''}>Recommended for Disagreement</option>
+                                {% if result.is_reviewer or result.is_approver or result.is_executive_approver or result.is_admin %}
+                                    <option value="5" ${String(record.status) === '5' ? 'selected' : ''}>Recommended for Agreement</option>
+                                    <option value="6" ${String(record.status) === '6' ? 'selected' : ''}>Recommended for Disagreement</option>
                                 {% endif %}
                             </select>
                         </td></tr>

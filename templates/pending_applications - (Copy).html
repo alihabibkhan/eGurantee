@@ -257,28 +257,20 @@
                     <table class="table table-bordered table-hover">
                         <thead class="table-light">
                             <tr>
-                                <th>Southern RC</th>
-                                <th>Central RC</th>
-                                <th>Upper Chitral RC</th>
-                                <th>Lower Chitral RC</th>
-                                <th>Hunza RC</th>
-                                <th>Gilgit RC</th>
-                                <th>Iskoman Puniyal RC</th>
-                                <th>Gupis Yasin RC</th>
-                                <th>Total</th>
+                                <th>NC Distribution</th>
+                                <th># of Cases</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>{{ data_agreed.get(('Southern RC',), 0) }}</td>
-                                <td>{{ data_agreed.get(('Central RC',), 0) }}</td>
-                                <td>{{ data_agreed.get(('Upper Chitral RC',), 0) }}</td>
-                                <td>{{ data_agreed.get(('Lower Chitral RC',), 0) }}</td>
-                                <td>{{ data_agreed.get(('Hunza RC',), 0) }}</td>
-                                <td>{{ data_agreed.get(('Gilgit RC',), 0) }}</td>
-                                <td>{{ data_agreed.get(('Iskoman Puniyal RC',), 0) }}</td>
-                                <td>{{ data_agreed.get(('Gupis Yasin RC',), 0) }}</td>
-                                <td class="total">{{ data_agreed.get(('Southern RC',), 0) + data_agreed.get(('Central RC',), 0) + data_agreed.get(('Upper Chitral RC',), 0) + data_agreed.get(('Lower Chitral RC',), 0) + data_agreed.get(('Hunza RC',), 0) + data_agreed.get(('Gilgit RC',), 0) + data_agreed.get(('Iskoman Puniyal RC',), 0) + data_agreed.get(('Gupis Yasin RC',), 0) }}</td>
+                            {% for dist in ['Southern RC', 'Central RC', 'Upper Chitral RC', 'Lower Chitral RC', 'Hunza RC', 'Gilgit RC', 'Iskoman Puniyal RC', 'Gupis Yasin RC'] %}
+                                <tr>
+                                    <td>{{ dist }}</td>
+                                    <td>{{ data_agreed.get((dist,), 0) }}</td>
+                                </tr>
+                            {% endfor %}
+                            <tr class="total">
+                                <td>Total</td>
+                                <td>{{ data_agreed.get(('Southern RC',), 0) + data_agreed.get(('Central RC',), 0) + data_agreed.get(('Upper Chitral RC',), 0) + data_agreed.get(('Lower Chitral RC',), 0) + data_agreed.get(('Hunza RC',), 0) + data_agreed.get(('Gilgit RC',), 0) + data_agreed.get(('Iskoman Puniyal RC',), 0) + data_agreed.get(('Gupis Yasin RC',), 0) }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -296,28 +288,20 @@
                     <table class="table table-bordered table-hover">
                         <thead class="table-light">
                             <tr>
-                                <th>Southern RC</th>
-                                <th>Central RC</th>
-                                <th>Upper Chitral RC</th>
-                                <th>Lower Chitral RC</th>
-                                <th>Hunza RC</th>
-                                <th>Gilgit RC</th>
-                                <th>Iskoman Puniyal RC</th>
-                                <th>Gupis Yasin RC</th>
-                                <th>Total</th>
+                                <th>NC Distribution</th>
+                                <th># of Cases</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>{{ data_rejected.get(('Southern RC',), 0) }}</td>
-                                <td>{{ data_rejected.get(('Central RC',), 0) }}</td>
-                                <td>{{ data_rejected.get(('Upper Chitral RC',), 0) }}</td>
-                                <td>{{ data_rejected.get(('Lower Chitral RC',), 0) }}</td>
-                                <td>{{ data_rejected.get(('Hunza RC',), 0) }}</td>
-                                <td>{{ data_rejected.get(('Gilgit RC',), 0) }}</td>
-                                <td>{{ data_rejected.get(('Iskoman Puniyal RC',), 0) }}</td>
-                                <td>{{ data_rejected.get(('Gupis Yasin RC',), 0) }}</td>
-                                <td class="total">{{ data_rejected.get(('Southern RC',), 0) + data_rejected.get(('Central RC',), 0) + data_rejected.get(('Upper Chitral RC',), 0) + data_rejected.get(('Lower Chitral RC',), 0) + data_rejected.get(('Hunza RC',), 0) + data_rejected.get(('Gilgit RC',), 0) + data_rejected.get(('Iskoman Puniyal RC',), 0) + data_rejected.get(('Gupis Yasin RC',), 0) }}</td>
+                            {% for dist in ['Southern RC', 'Central RC', 'Upper Chitral RC', 'Lower Chitral RC', 'Hunza RC', 'Gilgit RC', 'Iskoman Puniyal RC', 'Gupis Yasin RC'] %}
+                                <tr>
+                                    <td>{{ dist }}</td>
+                                    <td>{{ data_rejected.get((dist,), 0) }}</td>
+                                </tr>
+                            {% endfor %}
+                            <tr class="total">
+                                <td>Total</td>
+                                <td>{{ data_rejected.get(('Southern RC',), 0) + data_rejected.get(('Central RC',), 0) + data_rejected.get(('Upper Chitral RC',), 0) + data_rejected.get(('Lower Chitral RC',), 0) + data_rejected.get(('Hunza RC',), 0) + data_rejected.get(('Gilgit RC',), 0) + data_rejected.get(('Iskoman Puniyal RC',), 0) + data_rejected.get(('Gupis Yasin RC',), 0) }}</td>
                             </tr>
                         </tbody>
                     </table>

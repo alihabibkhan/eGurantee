@@ -5,123 +5,91 @@
     <title>Dashboard</title>
     {% include 'head.html' %}
     <style>
-        /* General container styling */
-        .parent-card {
-            background: linear-gradient(145deg, #ffffff, #e6f0fa); /* White to light blue gradient */
+        /* New dashboard parent card styling */
+        .dashboard-parent-card {
+            background: #f8f9fa;
             border-radius: 1rem;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08); /* Softer, deeper shadow */
-            padding: 2.5rem;
-            margin: 2rem;
-            animation: fadeIn 0.8s ease-out; /* Fade-in animation for parent card */
-        }
-
-        /* Card styling with modern gradient and hover effects */
-        .card {
-            background: linear-gradient(135deg, #38bdf8, #818cf8); /* Sky blue to indigo gradient */
-            border: none;
-            border-radius: 0.75rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
             padding: 2rem;
-            text-align: center;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .card:hover {
-            transform: translateY(-8px) scale(1.02); /* Lift and slight zoom on hover */
-            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15); /* Enhanced shadow on hover */
-        }
-
-        /* Subtle background effect for cards */
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
+            margin: 2rem 0;
             width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.2), transparent);
-            opacity: 0.3;
-            transition: opacity 0.3s ease;
+            max-width: 100%;
+            animation: fadeIn 0.8s ease-out;
         }
 
-        .card:hover::before {
-            opacity: 0.5; /* Subtle glow effect on hover */
-        }
-
-        .card h2, .card h5 {
-            color: #ffffff; /* White for contrast and readability */
-            font-size: 1rem; /* Reverted to previous size */
-            font-weight: 600;
-            margin-bottom: 1.2rem;
-            position: relative;
-            z-index: 1;
-        }
-
-        .card h3 {
-            color: #ffffff; /* White for strong contrast on gradient */
-            font-size: 1.2rem; /* Reverted to previous size */
-            font-weight: 700;
-            position: relative;
-            z-index: 1;
-        }
-
-        .card p {
-            color: #e6f0fa; /* Light blue-gray for readability */
-            font-size: 14px;
-            font-weight: 500;
-            position: relative;
-            z-index: 1;
-        }
-
-        .no-data {
-            color: #e6f0fa; /* Light blue-gray for no-data message */
-            font-style: italic;
-            font-size: 1rem;
-            position: relative;
-            z-index: 1;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #38bdf8, #818cf8); /* Vibrant coral for buttons */
-            border-color: linear-gradient(135deg, #38bdf8, #818cf8);
-            color: #ffffff;
+        /* New dashboard metric card styling */
+        .dashboard-metric-card {
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
             border-radius: 0.5rem;
-            padding: 0.75rem 1.5rem;
-            transition: background-color 0.3s ease, transform 0.2s ease;
+            padding: 1rem;
+            text-align: center;
+            min-height: 150px;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            transition: box-shadow 0.3s ease;
+            width: 100%;
         }
 
-        .btn-primary:hover {
-            background: linear-gradient(135deg, #38bdf8, #818cf8); /* Deeper coral on hover */
-            border-color: linear-gradient(135deg, #38bdf8, #818cf8);
-            transform: scale(1.05); /* Slight scale-up on hover */
+        .dashboard-metric-card:hover {
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
         }
 
-        .fa-3x {
-            color: #ffffff; /* White for icons */
-            transition: transform 0.3s ease;
+        .dashboard-metric-card .metric-content {
+            text-align: left;
+            flex: 1;
         }
 
-        .card:hover .fa-3x {
-            transform: rotate(10deg); /* Subtle icon rotation on hover */
+        .dashboard-metric-card h2 {
+            color: #2d3748;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1.25rem;
+        }
+
+        .dashboard-metric-card h3 {
+            color: #1a202c;
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .dashboard-metric-card p {
+            color: #718096;
+            font-size: 0.70rem;
+            margin: 0;
+        }
+
+        .dashboard-metric-card .no-data {
+            color: #a0aec0;
+            font-style: italic;
+            font-size: 0.9rem;
+        }
+
+        .dashboard-metric-card .icon {
+            font-size: 1.5rem;
+            color: #718096;
+            margin-right: 1rem;
         }
 
         .metrics-container {
             display: flex;
             flex-wrap: wrap;
-            justify-content: center;
-            gap: 1rem;
+            justify-content: space-between;
+            gap: 0.5rem;
         }
 
         .metrics-container .row {
             width: 100%;
-            margin-bottom: 1.5rem;
+            margin-bottom: 0;
         }
 
         .metrics-container .col {
             flex: 1;
-            min-width: 140px;
-            padding: 0 0.75rem;
+            min-width: 0;
+            padding: 0;
         }
 
         .metrics-left {
@@ -136,15 +104,29 @@
             min-width: 160px;
         }
 
-        /* Header styling */
-        .parent-card > .d-flex > div > h3 {
-            color: #1e293b; /* Dark slate for header text */
-            font-size: 1.8rem; /* Reverted to previous size */
-            font-weight: 700;
-            letter-spacing: 0.02em;
+        /* Custom style for currency readability */
+        .currency {
+            font-family: 'Arial', sans-serif;
+            font-weight: 600;
+            letter-spacing: 0.5px;
         }
 
-        /* Keyframe for fade-in animation */
+        /* Existing styles (unchanged) */
+        .btn-primary {
+            background: #597E6E;
+            border-color: linear-gradient(135deg, #38bdf8, #818cf8);
+            color: #ffffff;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            background: #97B6A8;
+            border-color: linear-gradient(135deg, #38bdf8, #818cf8);
+            transform: scale(1.05);
+        }
+
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -156,26 +138,28 @@
             }
         }
 
-        /* Responsive adjustments */
         @media (max-width: 768px) {
-            .parent-card {
-                margin: 1rem;
+            .dashboard-parent-card {
+                margin: 1rem 0;
                 padding: 1.5rem;
             }
-            .card {
-                padding: 1.2rem;
+            .dashboard-metric-card {
+                min-height: 120px;
+                flex-direction: column;
+                text-align: center;
             }
-            .card h2, .card h5 {
-                font-size: 1rem; /* Reverted to previous size */
+            .dashboard-metric-card .icon {
+                margin-right: 0;
+                margin-bottom: 0.5rem;
             }
-            .card h3 {
-                font-size: 1.2rem; /* Reverted to previous size */
+            .dashboard-metric-card h2 {
+                font-size: 0.9rem;
             }
-            .metrics-container .col {
-                min-width: 100%;
+            .dashboard-metric-card h3 {
+                font-size: 1.1rem;
             }
-            .parent-card > .d-flex > div > h3 {
-                font-size: 1.5rem; /* Reverted to previous size */
+            .dashboard-metric-card p {
+                font-size: 0.75rem;
             }
         }
     </style>
@@ -191,7 +175,6 @@
     </div>
 
     <div class="container mt-5">
-
         <div class="container mb-3">
             <div class="row me-5 ps-5">
                 <div class="d-flex justify-content-between">
@@ -201,7 +184,7 @@
             </div>
         </div>
 
-        <div class="parent-card">
+        <div class="dashboard-parent-card shadow-lg">
             <div class="d-flex justify-content-between mb-3">
                 <div>
                     <h3>Khushali Foundation at a Glance</h3>
@@ -213,168 +196,103 @@
             <div class="row row-cols-1 row-cols-md-4 g-4">
                 <!-- Loan Beneficiaries -->
                 <div class="col">
-                    <div class="card h-100">
-                        <h2>Loan Beneficiaries</h2>
-                        {% if result.total_loan_beneficiary_count %}
-                            {# Extract total from data #}
-                            {% set ns = namespace(total=0, total_row=None) %}
-                            {% for row in result.total_loan_beneficiary_count %}
-                                {% if row.gender == 'Total' %}
-                                    {% set ns.total = row.unique_cnic_count %}
-                                    {% set ns.total_row = row %}
-                                {% endif %}
-                            {% endfor %}
-
-                            <div class="metrics-container">
-                                {# Loop through genders except Total #}
+                    <div class="dashboard-metric-card">
+                        <div class="icon">👥</div>
+                        <div class="metric-content">
+                            <h2>Loan Beneficiaries</h2>
+                            {% if result.total_loan_beneficiary_count %}
+                                {% set ns = namespace(total=0, total_row=None, male_count=0, female_count=0) %}
                                 {% for row in result.total_loan_beneficiary_count %}
-                                    {% if row.gender != 'Total' and loop.index0 % 2 == 0 %}
-                                        <div class="row d-flex justify-content-center">
-                                            <!-- Left Column -->
-                                            <div class="col-md-6">
-                                                <h3>#{{ row.unique_cnic_count }}</h3>
-                                                <p>
-                                                    {{ row.gender }}
-                                                    <small>({{ ((row.unique_cnic_count / ns.total) * 100) | round(1) }}%)</small>
-                                                </p>
-                                            </div>
-
-                                            <!-- Right Column -->
-                                            {% set next = result.total_loan_beneficiary_count[loop.index0 + 1] if not loop.last else None %}
-                                            {% if next and next.gender != 'Total' %}
-                                                <div class="col-md-6">
-                                                    <h3>#{{ next.unique_cnic_count }}</h3>
-                                                    <p>
-                                                        {{ next.gender }}
-                                                        <small>({{ ((next.unique_cnic_count / ns.total) * 100) | round(1) }}%)</small>
-                                                    </p>
-                                                </div>
-                                            {% else %}
-                                                <div class="col-md-6"></div>
-                                            {% endif %}
-                                        </div>
+                                    {% if row.gender == 'Total' %}
+                                        {% set ns.total = row.unique_cnic_count %}
+                                        {% set ns.total_row = row %}
+                                    {% elif row.gender == 'Male' %}
+                                        {% set ns.male_count = row.unique_cnic_count %}
+                                    {% elif row.gender == 'Female' %}
+                                        {% set ns.female_count = row.unique_cnic_count %}
                                     {% endif %}
                                 {% endfor %}
-
-                                {# Total Row (Centered) #}
                                 {% if ns.total_row %}
-                                    <div class="row d-flex justify-content-center" style="margin-top:-39px;">
-                                        <div class="col-md-6 text-center border-top pt-3">
-                                            <h3>#{{ ns.total_row.unique_cnic_count }}</h3>
-                                            <p><strong>Total</strong></p>
-                                        </div>
-                                    </div>
+                                    <h3>#{{ ns.total_row.unique_cnic_count }}</h3>
+                                    <p>Total <a href="#" class="text-primary" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="top" title="<b>Male:</b> #{{ ns.male_count }} ({{ ((ns.male_count / ns.total) * 100) | round(1) }}%)<br><b>Female:</b> #{{ ns.female_count }} ({{ ((ns.female_count / ns.total) * 100) | round(1) }}%)">View Details</a></p>
                                 {% endif %}
-                            </div>
-                        {% else %}
-                            <p class="no-data">No data to display</p>
-                        {% endif %}
+                            {% else %}
+                                <p class="no-data">No data to display</p>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
 
                 <!-- Loan Disbursement -->
                 <div class="col">
-                    <div class="card h-100">
-                        <h2>Loan Disbursement</h2>
-                        {% if result.get_disbursed_loan_count %}
-                            <div class="metrics-container">
+                    <div class="dashboard-metric-card">
+                        <div class="icon">💰</div>
+                        <div class="metric-content">
+                            <h2>Loan Disbursement</h2>
+                            {% if result.get_disbursed_loan_count %}
                                 {% for row in result.get_disbursed_loan_count %}
-                                    {% if loop.index0 % 2 == 0 %}
-                                        <div class="row">
-                                            <div class="col">
-                                                <h3>Rs: {{ row.total_disbursed_amount }}</h3>
-                                                <p>Sum Of Loan Disbursed</p>
-                                            </div>
-                                            {% if not loop.last %}
-                                                <div class="col">
-                                                    <h3>#{{row.total_disbursements }}</h3>
-                                                </div>
-                                            {% else %}
-                                                <div class="col text-center border-top pt-3">
-                                                    <h3>#{{row.total_disbursements }}</h3>
-                                                    <p>Total</p>
-                                                </div>
-                                            {% endif %}
-                                        </div>
+                                    {% if loop.first %}
+                                        {% set disbursed_amount = row.total_disbursed_amount | round(2) %}
+                                        {% set formatted_amount = "%d,%03d,%03d" | format(disbursed_amount // 1000000, (disbursed_amount % 1000000) // 1000, disbursed_amount % 1000) if disbursed_amount >= 1000 else disbursed_amount %}
+                                        <h3 class="currency">Rs: {{ formatted_amount }}</h3>
+                                        <p>Sum Of Loan Disbursed</p>
                                     {% endif %}
                                 {% endfor %}
-                            </div>
-                        {% else %}
-                            <p class="no-data">No data to display</p>
-                        {% endif %}
+                            {% else %}
+                                <p class="no-data">No data to display</p>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
 
-                <!-- Outstanding Loan -->
+                <!-- Outstanding Loans -->
                 <div class="col">
-                    <div class="card h-100">
-                        <h2>Outstanding Loans</h2>
-                        {% if result.get_outstanding_loans %}
-                            <div class="metrics-container">
+                    <div class="dashboard-metric-card">
+                        <div class="icon">📈</div>
+                        <div class="metric-content">
+                            <h2>Outstanding Loans</h2>
+                            {% if result.get_outstanding_loans %}
                                 {% for row in result.get_outstanding_loans %}
-                                    {% if loop.index0 % 2 == 0 %}
-                                        <div class="row">
-                                            <div class="col">
-                                                <h3>Rs: {{ row.total_principal_outstanding | round(3) }}</h3>
-                                                <p>Sum Of Outstanding Loans</p>
-                                            </div>
-                                            {% if not loop.last %}
-                                                <div class="col">
-                                                    <h3>#{{row.total_principal_outstanding_count }}</h3>
-                                                </div>
-                                            {% else %}
-                                                <div class="col text-center border-top pt-3">
-                                                    <h3>#{{row.total_principal_outstanding_count }}</h3>
-                                                    <p>Total</p>
-                                                </div>
-                                            {% endif %}
-                                        </div>
+                                    {% if loop.first %}
+                                        {% set outstanding_amount = row.total_principal_outstanding | round(2) %}
+                                        {% set formatted_amount = "%d,%03d,%03d" | format(outstanding_amount // 1000000, (outstanding_amount % 1000000) // 1000, outstanding_amount % 1000) if outstanding_amount >= 1000 else outstanding_amount %}
+                                        <h3 class="currency">Rs: {{ formatted_amount }}</h3>
+                                        <p>Sum Of Outstanding Loans</p>
                                     {% endif %}
                                 {% endfor %}
-                            </div>
-                        {% else %}
-                            <p class="no-data">No data to display</p>
-                        {% endif %}
+                            {% else %}
+                                <p class="no-data">No data to display</p>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
 
                 <!-- Non Performing Loans -->
                 <div class="col">
-                    <div class="card h-100">
-                        <h2>Non Performing Loans</h2>
-                        {% if result.get_non_performing_loan_count %}
-                            <div class="metrics-container">
+                    <div class="dashboard-metric-card">
+                        <div class="icon">⚠️</div>
+                        <div class="metric-content">
+                            <h2>Non Performing Loans</h2>
+                            {% if result.get_non_performing_loan_count %}
                                 {% for row in result.get_non_performing_loan_count %}
-                                    {% if loop.index0 % 2 == 0 %}
-                                        <div class="row">
-                                            <div class="col">
-                                                <h3>Rs: {{ row.non_performing_loans | round(3) }}</h3>
-                                                <p>Sum Of Non Performing Loans</p>
-                                            </div>
-                                            {% if not loop.last %}
-                                                <div class="col">
-                                                    <h3>#{{row.non_performing_loans_count }}</h3>
-                                                </div>
-                                            {% else %}
-                                                <div class="col text-center border-top pt-3">
-                                                    <h3>#{{row.non_performing_loans_count }}</h3>
-                                                    <p>Total</p>
-                                                </div>
-                                            {% endif %}
-                                        </div>
+                                    {% if loop.first %}
+                                        {% set non_performing_amount = row.non_performing_loans | round(2) %}
+                                        {% set formatted_amount = "%d,%03d,%03d" | format(non_performing_amount // 1000000, (non_performing_amount % 1000000) // 1000, non_performing_amount % 1000) if non_performing_amount >= 1000 else non_performing_amount %}
+                                        <h3 class="currency">Rs: {{ formatted_amount }}</h3>
+                                        <p>Sum Of Non Performing Loans</p>
                                     {% endif %}
                                 {% endfor %}
-                            </div>
-                        {% else %}
-                            <p class="no-data">No data to display</p>
-                        {% endif %}
+                            {% else %}
+                                <p class="no-data">No data to display</p>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    <div class="container my-4">
-        <div class="parent-card">
+
+
+        <div class="dashboard-parent-card shadow-lg">
             <div class="d-flex justify-content-center mb-3">
                 <div>
                     <h3>National Council Distribution</h3>
@@ -383,21 +301,24 @@
             <div class="row row-cols-1 row-cols-md-4 g-4">
                 {% for row in result.area_metrics %}
                     <div class="col">
-                        <div class="card h-100">
-                            <h2>{{ row.national_council_distribution }}</h2>
-                            <div class="metrics-container">
-                                <div class="metrics-left">
-                                    <h3>#{{ row.total_beneficiaries }}</h3>
-                                    <p>Beneficiaries (#)</p>
-                                </div>
-                                <div class="metrics-right">
-                                    <div>
-                                        <h3>#{{ row.disbursed_count }}</h3>
-                                        <p>Loan Disbursed (#)</p>
+                        <div class="dashboard-metric-card">
+                            <div class="icon">🏛️</div>
+                            <div class="metric-content">
+                                <h2>{{ row.national_council_distribution }}</h2>
+                                <div class="metrics-container">
+                                    <div class="metrics-left">
+                                        <h3>#{{ row.total_beneficiaries }}</h3>
+                                        <p>Beneficiaries (#)</p>
                                     </div>
-                                    <div>
-                                        <h3>#{{ row.active_loan_count }}</h3>
-                                        <p>Active Loan (#)</p>
+                                    <div class="metrics-right">
+                                        <div>
+                                            <h3>#{{ row.disbursed_count }}</h3>
+                                            <p>Loan Disbursed (#)</p>
+                                        </div>
+                                        <div>
+                                            <h3>#{{ row.active_loan_count }}</h3>
+                                            <p>Active Loan (#)</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -406,6 +327,13 @@
                 {% endfor %}
             </div>
         </div>
+
     </div>
+    <script>
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    </script>
 </body>
 </html>
