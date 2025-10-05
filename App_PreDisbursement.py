@@ -67,7 +67,7 @@ def update_pre_disbursement_temp():
 
         query = ''
 
-        if status != '4':
+        if status in ['2']:
             query = f"""
                UPDATE tbl_pre_disbursement_temp
                SET status = '{str(status)}', Notes = '{str(notes)}', KFT_Approved_Loan_Limit = '{str(amount_accepted)}',
@@ -77,14 +77,14 @@ def update_pre_disbursement_temp():
         else:
             query = f"""
                UPDATE tbl_pre_disbursement_temp
-               SET status = '{str(status)}', Notes = '{str(notes)}',
+               SET status = '{str(status)}', Notes = '{str(notes)}', KFT_Approved_Loan_Limit = '{str(amount_accepted)}',
                reviewed_by = '{str(approved_by)}', reviewed_date = '{str(approved_date)}'
                WHERE pre_disb_temp_id = '{str(pre_disb_temp_id)}'
             """
 
         execute_command(query)
 
-        if status == '2':
+        if status in ['2', '5']:
             # Check if record already exists in main table
             print('status is 2 proceeding to insert record in main.')
             check_query = f"""

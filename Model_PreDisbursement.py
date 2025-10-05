@@ -88,22 +88,26 @@ from imports import *
 def get_all_pre_disbursement_temp():
     sql_part_temp = ''
 
-    if get_current_user_role() == '1':
+    if get_current_user_role() in ['1', '2']:
         sql_part_temp = f"""
             INNER JOIN tbl_branches b on pdt."Branch_Name" LIKE CONCAT('%', b."branch_code", '%') AND b."live_branch" = '1'
             INNER JOIN tbl_users u on u.assigned_branch = b.role and u."active" = '1'
             LEFT JOIN tbl_users u1 ON u1."user_id" = pdt."uploaded_by"
             LEFT JOIN tbl_users u2 ON u2."user_id" = pdt."approved_by"
-            pdt.status in ('1', '4')
+            LEFT JOIN tbl_users u3 ON u3."user_id" = pdt."reviewed_by"
+            WHERE pdt.status in {("('1', '5', '6')" if get_current_user_role() == '1' else "('2', '3', '5', '6')")}
         """
     else:
         sql_part_temp = """
+            LEFT JOIN tbl_branches b on pdt."Branch_Name" LIKE CONCAT('%', b."branch_code", '%') AND b."live_branch" = '1'
             LEFT JOIN tbl_users u1 ON u1."user_id" = pdt."uploaded_by"
             LEFT JOIN tbl_users u2 ON u2."user_id" = pdt."approved_by"
+            LEFT JOIN tbl_users u3 ON u3."user_id" = pdt."reviewed_by"
         """
 
     query = f"""
         SELECT 
+            {("DISTINCT" if get_current_user_role() in ['1', '2'] else "")}
             pdt."pre_disb_temp_id",
             pdt."Application_No",
             pdt."Annual_Business_Incomes",
@@ -154,7 +158,6 @@ def get_all_pre_disbursement_temp():
             pdt."Tenor_Of_Month",
             pdt."Type_of_Business",
             pdt.reviewed_date,
-            pdt.reviewed_by,
             pdt.Existing_Loan_Exposure_Per_ECIB,
             pdt.KFT_Approved_Loan_Limit,
             pdt."annual_income",
@@ -164,7 +167,10 @@ def get_all_pre_disbursement_temp():
             pdt."approved_date",
             pdt."email_status",
             u1."name" AS uploaded_by,
-            u2."name" AS approved_by
+            u2."name" AS approved_by,
+            u3."name" AS reviewed_by,
+            b.branch,
+            b.role
         FROM 
             tbl_pre_disbursement_temp pdt
         {sql_part_temp}    
