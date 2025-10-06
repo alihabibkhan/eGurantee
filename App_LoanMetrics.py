@@ -5,7 +5,7 @@ from application import application
 @application.route('/manage_loan_metrics')
 def manage_loan_metrics():
     try:
-        if is_login() and is_admin():
+        if is_login() and (is_admin() or is_executive_approver()):
             content = {
                 'get_all_loan_products': get_all_loan_products(),
                 'get_all_occupations': get_all_occupations(),
@@ -23,7 +23,7 @@ def manage_loan_metrics():
 @application.route('/add-edit-loan-metric/<int:loan_metric_id>', methods=['GET', 'POST'])
 def add_edit_loan_metric(loan_metric_id=None):
     try:
-        if not is_login() or not is_admin():
+        if not (is_login() and (is_admin() or is_executive_approver())):
             return redirect(url_for('login'))
 
         loan_metric = None
@@ -105,7 +105,7 @@ def add_edit_loan_metric(loan_metric_id=None):
 @application.route('/delete-loan-metric', methods=['GET'])
 def delete_loan_metric():
     try:
-        if not is_login() or not is_admin():
+        if not (is_login() and (is_admin() or is_executive_approver())):
             return redirect(url_for('login'))
 
         loan_metric_id = request.args.get('loan_metric_id')

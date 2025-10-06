@@ -5,7 +5,7 @@ from application import application
 @application.route('/manage-branches')
 def manage_branches():
     try:
-        if is_login() and is_admin():
+        if is_login() and (is_admin() or is_executive_approver()):
             content = {'get_all_branches_info': get_all_branches_info()}
             return render_template('manage_branches.html', result=content)
     except Exception as e:
@@ -18,7 +18,7 @@ def manage_branches():
 @application.route('/edit-branch/<int:branch_id>', methods=['GET', 'POST'])
 def add_edit_branch(branch_id=None):
     try:
-        if not (is_login() and is_admin()):
+        if not (is_login() and (is_admin() or is_executive_approver())):
             return redirect(url_for('login'))
 
         branch_details = None
@@ -114,7 +114,7 @@ def add_edit_branch(branch_id=None):
 @application.route('/delete-branch/<int:branch_id>', methods=['POST', 'GET'])
 def delete_branch(branch_id):
     try:
-        if not (is_login() and is_admin()):
+        if not (is_login() and (is_admin() or is_executive_approver())):
             return redirect(url_for('login'))
 
         current_user_id = get_current_user_id()

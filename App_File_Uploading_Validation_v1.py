@@ -5,14 +5,18 @@ from application import allowed_file
 
 @application.route('/manage-file', methods=['GET', 'POST'])
 def manage_file():
-    if request.method == 'POST':
-        action_type = request.form.get('action_type')
-        if action_type == 'validate':
-            return handle_validation()
-        elif action_type == 'upload':
-            return handle_upload()
+    try:
+        if request.method == 'POST':
+            action_type = request.form.get('action_type')
+            if action_type == 'validate':
+                return handle_validation()
+            elif action_type == 'upload':
+                return handle_upload()
 
-    return render_template('upload.html', view='upload')
+        return render_template('upload.html', view='upload')
+    except Exception as e:
+        print('file uploading exception:- ', e)
+    return redirect(url_for('login'))
 
 
 def handle_validation():

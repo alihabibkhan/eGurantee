@@ -5,7 +5,7 @@ from application import application
 @application.route('/manage-budget')
 def manage_budget():
     try:
-        if is_login() and is_admin():
+        if is_login() and (is_admin() or is_executive_approver()):
             content = {'get_all_budget_info': get_all_budget_info_grouped_by_branch()}
             return render_template('manage_budget.html', result=content)
     except Exception as e:

@@ -6,30 +6,36 @@ from application import allowed_file
 @application.route('/manage-file', methods=['GET', 'POST'])
 def manage_file():
     print("manage_file: Entering function")
-    if request.method == 'POST':
-        print("manage_file: Request method is POST")
-        action_type = request.form.get('action_type')
-        print(f"manage_file: action_type={action_type}")
-        file_type = request.form.get('file_type') or session.get('file_type')
-        print(f"manage_file: file_type={file_type}")
+    if is_login() and (is_admin() or is_executive_approver()):
+        try:
+            if request.method == 'POST':
+                print("manage_file: Request method is POST")
+                action_type = request.form.get('action_type')
+                print(f"manage_file: action_type={action_type}")
+                file_type = request.form.get('file_type') or session.get('file_type')
+                print(f"manage_file: file_type={file_type}")
 
-        input_timestamp = str(request.form.get('input_timestamp')) or str(session.get('input_timestamp'))
-        print(f"manage_file: input_timestamp={input_timestamp}")
+                input_timestamp = str(request.form.get('input_timestamp')) or str(session.get('input_timestamp'))
+                print(f"manage_file: input_timestamp={input_timestamp}")
 
-        if not file_type:
-            print("manage_file: No file_type provided, flashing error")
-            flash('Please select a file type.', 'danger')
-            return redirect(url_for('manage_file'))
+                if not file_type:
+                    print("manage_file: No file_type provided, flashing error")
+                    flash('Please select a file type.', 'danger')
+                    return redirect(url_for('manage_file'))
 
-        if action_type == 'validate':
-            print("manage_file: Action is validate, calling handle_validation")
-            return handle_validation(file_type, input_timestamp)
-        elif action_type == 'upload':
-            print("manage_file: Action is upload, calling handle_upload")
-            return handle_upload()
+                if action_type == 'validate':
+                    print("manage_file: Action is validate, calling handle_validation")
+                    return handle_validation(file_type, input_timestamp)
+                elif action_type == 'upload':
+                    print("manage_file: Action is upload, calling handle_upload")
+                    return handle_upload()
 
-    print("manage_file: Rendering upload.html with view='upload'")
-    return render_template('upload.html', view='upload')
+            print("manage_file: Rendering upload.html with view='upload'")
+            return render_template('upload.html', view='upload')
+        except Exception as e:
+            print('file uploading exception:- ', e)
+
+    return redirect(url_for('login'))
 
 
 def handle_validation(file_type, input_timestamp=None):

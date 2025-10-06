@@ -5,7 +5,7 @@ from application import application
 @application.route('/manage_loan_products')
 def manage_loan_products():
     try:
-        if is_login() and is_admin():
+        if is_login() and (is_admin() or is_executive_approver()):
             content = {
                 'get_all_loan_products': get_all_loan_products()
             }
@@ -19,7 +19,7 @@ def manage_loan_products():
 @application.route('/add-edit-loan-product/<int:product_id>', methods=['GET', 'POST'])
 def add_edit_loan_product(product_id=None):
     try:
-        if not is_login() or not is_admin():
+        if not (is_login() and (is_admin() or is_executive_approver())):
             return redirect(url_for('login'))
 
         loan_product = None
@@ -84,7 +84,7 @@ def add_edit_loan_product(product_id=None):
 @application.route('/delete-loan-product', methods=['GET'])
 def delete_loan_product():
     try:
-        if not is_login() or not is_admin():
+        if not (is_login() and (is_admin() or is_executive_approver())):
             return redirect(url_for('login'))
 
         product_id = request.args.get('product_id')

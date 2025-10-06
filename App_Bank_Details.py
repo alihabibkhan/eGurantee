@@ -5,7 +5,7 @@ from application import application
 @application.route('/manage-bank-details')
 def manage_bank_details():
     try:
-        if is_login() and is_admin():
+        if is_login() and (is_admin() or is_executive_approver()):
             content = {'get_all_bank_details': get_all_bank_details()}
             return render_template('manage_bank_details.html', result=content)
     except Exception as e:
@@ -17,7 +17,7 @@ def manage_bank_details():
 @application.route('/edit-bank-details/<int:bank_id>', methods=['GET', 'POST'])
 def add_edit_bank_details(bank_id=None):
     try:
-        if not (is_login() and is_admin()):
+        if not (is_login() and (is_admin() or is_executive_approver())):
             return redirect(url_for('login'))
 
         bank_details = None
@@ -95,7 +95,7 @@ def add_edit_bank_details(bank_id=None):
 @application.route('/delete-bank-details/<int:bank_id>', methods=['POST'])
 def delete_bank_details(bank_id):
     try:
-        if not (is_login() and is_admin()):
+        if not (is_login() and (is_admin() or is_executive_approver())):
             return redirect(url_for('login'))
 
         current_user_id = get_current_user_id()  # Assumed function to get logged-in user ID
