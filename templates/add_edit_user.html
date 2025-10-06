@@ -229,8 +229,8 @@
                                 <div class="mb-3">
                                     <label class="form-label">Signature</label>
                                     <select class="form-select" name="signature" required>
-                                        <option value="1" {{ 'selected' if result.user and result.user.signature == '1' else '' }}>Yes</option>
-                                        <option value="0" {{ 'selected' if result.user and result.user.signature == '0' else '' }}>No</option>
+                                        <option value="1" {{ 'selected' if result.user and result.user.signature|string == '1' else '' }}>Yes</option>
+                                        <option value="0" {{ 'selected' if result.user and result.user.signature|string == '0'  else '' }}>No</option>
 
                                     </select>
                                 </div>

@@ -598,7 +598,7 @@
             </a>
             <ul class="sub-dropdown-menu">
               <li class="nav-item"><a class="nav-link dropdown-title">Loan Portfolio Reports</a></li>
-              {% if result.is_admin or result.is_approver or result.is_executive_approver %}
+              {% if session['rights']|string == '4' or session['rights']|string == '2' or session['rights']|string == '3' %}
                 <li class="nav-item"><a href="#" class="nav-link">Gross / Net Loans Reports</a></li>
                 <li class="nav-item"><a href="#" class="nav-link">Loan Projections Report</a></li>
                 <li class="nav-item"><a href="{{url_for('view_rejected_applications')}}" class="nav-link">Disagreed Loans Report</a></li>
@@ -620,7 +620,7 @@
         <ul class="custom-dropdown-menu">
           <li class="nav-item"><a class="nav-link dropdown-title">Volunteers</a></li>
           <li class="nav-item"><a href="{{url_for('profile')}}" class="nav-link dropdown-link">Profile</a></li>
-          {% if result.is_executive_approver or result.is_admin %}
+          {% if session['rights']|string == '3' or session['rights']|string == '4' %}
             <li class="nav-item"><a href="#" class="nav-link dropdown-link">Roles & Service Term Update</a></li>
           {% endif %}
           <li class="nav-item"><a href="{{url_for('manage_user_service_hours')}}" class="nav-link dropdown-link">Service Hours-Self Update</a></li>
@@ -636,7 +636,7 @@
         </a>
         <ul class="custom-dropdown-menu">
           <li class="nav-item"><a class="nav-link dropdown-title">Financial Management</a></li>
-          {% if result.is_executive_approver or result.is_admin %}
+          {% if session['rights']|string == '3' or session['rights']|string == '4' %}
             <li class="nav-item"><a href="{{url_for('manage_bank_entries')}}" class="nav-link dropdown-link">Bank Data Entry</a></li>
             <li class="nav-item"><a href="#" class="nav-link dropdown-link">Bank Reconciliation</a></li>
           {% endif %}
@@ -647,24 +647,24 @@
             </a>
             <ul class="sub-dropdown-menu">
               <li class="nav-item"><a class="nav-link dropdown-title">Financial Reports</a></li>
-              {% if result.is_executive_approver or result.is_admin %}
+              {% if session['rights']|string == '3' or session['rights']|string == '4' %}
                 <li class="nav-item"><a href="#" class="nav-link dropdown-link">Bank Account Statement</a></li>
                 <li class="nav-item"><a href="#" class="nav-link dropdown-link">Loan to Value Report</a></li>
               {% endif %}
               <li class="nav-item"><a href="#" class="nav-link dropdown-link">Loan Projection Analysis</a></li>
-              {% if result.is_executive_approver or result.is_admin %}
+              {% if session['rights']|string == '3' or session['rights']|string == '4' %}
                 <li class="nav-item"><a href="#" class="nav-link dropdown-link">Funds Projection Analysis</a></li>
               {% endif %}
 
             </ul>
           </li>
-          {% if result.is_executive_approver or result.is_admin %}
+          {% if session['rights']|string == '3' or session['rights']|string == '4' %}
             <li class="nav-item"><a href="#" class="nav-link dropdown-link">Data Archive</a></li>
           {% endif %}
         </ul>
       </li>
 
-      {% if result.is_executive_approver or result.is_admin %}
+      {% if session['rights']|string == '3' or session['rights']|string == '4' %}
         <!-- Dropdown -->
         <li class="nav-item dropdown-container">
           <a href="#" class="nav-link custom-dropdown-toggle">
@@ -690,7 +690,7 @@
         <ul class="custom-dropdown-menu">
           <li class="nav-item"><a class="nav-link dropdown-title">Meetings</a></li>
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Calendars</a></li>
-          {% if result.is_executive_approver or result.is_admin or result.is_approver %}
+          {% if session['rights']|string == '3' or session['rights']|string == '4' or session['rights']|string == '2' %}
             <li class="nav-item"><a href="#" class="nav-link dropdown-link">Meeting Minutes Update</a></li>
           {% endif %}
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Meeting Action Items List</a></li>
@@ -730,7 +730,7 @@
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Pakistan Poverty</a></li>
         </ul>
       </li>
-      {% if result.is_executive_approver or result.is_admin %}
+      {% if session['rights']|string == '3' or session['rights']|string == '4' %}
         <!-- Dropdown -->
         <li class="nav-item dropdown-container">
           <a href="#" class="nav-link custom-dropdown-toggle">

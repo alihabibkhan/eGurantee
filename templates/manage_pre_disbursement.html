@@ -277,7 +277,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        {% if result.is_user_have_sign and result.is_reviewer == False %}
+                        {% if result.is_user_have_sign and (result.is_admin or result.is_approver or result.is_executive_approver) %}
                             <button id="send-email-btn" class="btn btn-success" style="display: none;" onclick="showEmailModal()">Send Email</button>
                         {% endif %}
                     </div>
