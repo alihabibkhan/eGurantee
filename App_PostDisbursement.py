@@ -232,7 +232,7 @@ def get_post_disbursement_report_data():
 
         # Apply filters using f-strings
         if filters.get('mis_date'):
-            query += f" AND p.mis_date = '{filters['mis_date']}'"
+            query += f" AND DATE(p.mis_date) = '{filters['mis_date']}'"
 
         if filters.get('product_code'):
             product_codes = "', '".join(filters['product_code'])
