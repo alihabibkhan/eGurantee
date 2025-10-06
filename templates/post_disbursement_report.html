@@ -308,7 +308,7 @@
             </div>
             <div class="card-body">
                 <div class="mb-3">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#columnsModal">Customize Columns</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openColumnsModal()">Customize Columns</button>
                     <button type="button" class="btn btn-success btn-sm" onclick="exportToExcel()">Export as Excel</button>
                     <button type="button" class="btn btn-info btn-sm" onclick="printTable()">Print</button>
                     <button type="button" class="btn btn-danger btn-sm" onclick="exportToPDF()">Export as PDF</button>
@@ -628,6 +628,24 @@
             pagination.appendChild(nextLi);
         }
 
+        function openColumnsModal() {
+            const modalElement = document.getElementById('columnsModal');
+
+            // Dispose of any existing modal instance
+            const existingInstance = bootstrap.Modal.getInstance(modalElement);
+            if (existingInstance) {
+                existingInstance.dispose();
+            }
+
+            // Reinitialize and show the modal
+            const newModalInstance = new bootstrap.Modal(modalElement, {
+                backdrop: true,
+                keyboard: true,
+                focus: true // Ensure focus is managed by Bootstrap
+            });
+            newModalInstance.show();
+        }
+
         // Change page
         function changePage(page) {
             currentPage = page;
@@ -635,12 +653,13 @@
             renderPagination(filteredData, 'post-disbursement-pagination', currentPage);
         }
 
-        // Apply column visibility
         function applyColumnVisibility() {
             const table = document.querySelector('.table');
             const ths = table.querySelectorAll('th');
             const trs = table.querySelectorAll('tbody tr');
             const checkboxes = document.querySelectorAll('#columnsCheckboxes input');
+
+            // Apply column visibility
             checkboxes.forEach(cb => {
                 const index = parseInt(cb.dataset.index);
                 const visible = cb.checked;
@@ -654,13 +673,25 @@
                 });
             });
 
-            // Hide the modal and clean up backdrop
+            // Get the modal element and its current instance
             const modalElement = document.getElementById('columnsModal');
-            try {
-                const modalInstance = bootstrap.Modal.getOrCreateInstance(modalElement);
+            const modalInstance = bootstrap.Modal.getInstance(modalElement);
+
+            if (modalInstance) {
+                // Move focus to the body or a safe element before hiding
+                document.body.focus();
+
+                // Hide the modal and handle the hidden event
                 modalInstance.hide();
-                // Forcefully remove backdrop and body classes
-                setTimeout(() => {
+
+                modalElement.addEventListener('hidden.bs.modal', function handler() {
+                    // Remove focus from any modal descendants
+                    const focusedElement = document.activeElement;
+                    if (modalElement.contains(focusedElement)) {
+                        document.body.focus();
+                    }
+
+                    // Clean up backdrop and body classes
                     const backdrop = document.querySelector('.modal-backdrop');
                     if (backdrop) {
                         backdrop.remove();
@@ -668,10 +699,21 @@
                     document.body.classList.remove('modal-open');
                     document.body.style.overflow = '';
                     document.body.style.paddingRight = '';
-                }, 300); // Delay to allow modal animation to complete
-            } catch (error) {
-                console.error('Error hiding modal:', error);
-                // Fallback: manually hide modal and clean up
+
+                    // Reset modal state
+                    modalElement.classList.remove('show');
+                    modalElement.style.display = '';
+                    modalElement.removeAttribute('aria-modal');
+                    modalElement.setAttribute('aria-hidden', 'true');
+
+                    // Dispose of the modal instance
+                    modalInstance.dispose();
+
+                    // Remove the event listener
+                    modalElement.removeEventListener('hidden.bs.modal', handler);
+                }, { once: true });
+            } else {
+                // Fallback if no instance exists
                 modalElement.classList.remove('show');
                 modalElement.style.display = 'none';
                 modalElement.setAttribute('aria-hidden', 'true');
