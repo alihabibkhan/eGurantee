@@ -5,7 +5,7 @@ from application import application
 @application.route('/send-email', methods=['POST'])
 def send_email():
     try:
-        if not is_login() or not is_admin():
+        if not is_login() and not (is_admin() or is_executive_approver() or is_approver()):
             return jsonify({'success': False, 'error': 'Unauthorized'}), 401
         data = request.get_json()
         pre_disb_temp_id = data.get('app_no')
@@ -21,7 +21,7 @@ def send_email():
         #     WHERE pre_disb_temp_id = '{str(pre_disb_temp_id)}' AND status = '2'
         # """
         query = f"""
-            SELECT "Borrower_Name", "Application_No", "Loan_Amount", "ApplicationDate", "Father_Husband_Name", "CNIC", "approved_date" 
+            SELECT "Borrower_Name", "Application_No", "Loan_Amount", "ApplicationDate", "Father_Husband_Name", "CNIC", "approved_date" , KFT_Approved_Loan_Limit
             FROM tbl_pre_disbursement_temp 
             WHERE "pre_disb_temp_id" = '{str(pre_disb_temp_id)}' AND "status" = '2'
         """

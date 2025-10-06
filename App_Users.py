@@ -133,7 +133,7 @@ def add_edit_user(user_id=None):
                     update_query = f"""
                         UPDATE tbl_users 
                         SET name = '{name}', email = '{email}', rights = {rights}, signature = {signature}, 
-                            active = {active}, scan_sign = %s, gender = {gender}, dob = {dob}, phone = {phone}, 
+                            active = {active}, scan_sign = {scan_sign_data}, gender = {gender}, dob = {dob}, phone = {phone}, 
                             country_of_residence = {country_of_residence}, date_of_joining = {date_of_joining}, 
                             orientation_completed_on = {orientation_completed_on}, manager_id = {manager_id}, 
                             date_of_retirement = {date_of_retirement}, reason = {reason},
@@ -141,7 +141,7 @@ def add_edit_user(user_id=None):
                         WHERE user_id = '{user_id}'
                     """
                     print(f"Executing update query with scan_sign: {update_query}")
-                    execute_command(update_query, (scan_sign_data,))
+                    execute_command(update_query)
                 else:
                     update_query = f"""
                         UPDATE tbl_users 
@@ -173,14 +173,14 @@ def add_edit_user(user_id=None):
                             gender, dob, phone, country_of_residence, date_of_joining, orientation_completed_on,
                             manager_id, assigned_branch, date_of_retirement, reason
                         ) VALUES (
-                            '{name}', '{email}', {rights}, '{hashed_password}', {signature}, %s, {active}, 
+                            '{name}', '{email}', {rights}, '{hashed_password}', {signature}, {scan_sign_data}, {active}, 
                             '{str(get_current_user_id())}', '{str(datetime.now())}', {gender}, {dob}, {phone}, 
                             {country_of_residence}, {date_of_joining}, {orientation_completed_on}, 
                             {manager_id}, {assigned_branch}, {date_of_retirement}, {reason}
                         )
                     """
                     print(f"Executing insert query with scan_sign: {insert_query}")
-                    execute_command(insert_query, (scan_sign_data,))
+                    execute_command(insert_query)
                 else:
                     insert_query = f"""
                         INSERT INTO tbl_users (
