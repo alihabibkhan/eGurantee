@@ -598,11 +598,13 @@
             </a>
             <ul class="sub-dropdown-menu">
               <li class="nav-item"><a class="nav-link dropdown-title">Loan Portfolio Reports</a></li>
-              <li class="nav-item"><a href="#" class="nav-link">Gross / Net Loans Reports</a></li>
-              <li class="nav-item"><a href="#" class="nav-link">Loan Projections Report</a></li>
-              <li class="nav-item"><a href="{{url_for('view_rejected_applications')}}" class="nav-link">Disagreed Loans Report</a></li>
+              {% if result.is_admin or result.is_approver or result.is_executive_approver %}
+                <li class="nav-item"><a href="#" class="nav-link">Gross / Net Loans Reports</a></li>
+                <li class="nav-item"><a href="#" class="nav-link">Loan Projections Report</a></li>
+                <li class="nav-item"><a href="{{url_for('view_rejected_applications')}}" class="nav-link">Disagreed Loans Report</a></li>
+                <li class="nav-item"><a href="#" class="nav-link">Loan Budget Vs Disbursed</a></li>
+              {% endif %}
               <li class="nav-item"><a href="#" class="nav-link">Non Performance Loan Report</a></li>
-              <li class="nav-item"><a href="#" class="nav-link">Loan Budget Vs Disbursed</a></li>
             </ul>
           </li>
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Loan</a></li>
@@ -618,8 +620,10 @@
         <ul class="custom-dropdown-menu">
           <li class="nav-item"><a class="nav-link dropdown-title">Volunteers</a></li>
           <li class="nav-item"><a href="{{url_for('profile')}}" class="nav-link dropdown-link">Profile</a></li>
+          {% if result.is_executive_approver or result.is_admin %}
+            <li class="nav-item"><a href="#" class="nav-link dropdown-link">Roles & Service Term Update</a></li>
+          {% endif %}
           <li class="nav-item"><a href="{{url_for('manage_user_service_hours')}}" class="nav-link dropdown-link">Service Hours-Self Update</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Community Services</a></li>
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Volunteer Report</a></li>
         </ul>
       </li>
@@ -632,8 +636,10 @@
         </a>
         <ul class="custom-dropdown-menu">
           <li class="nav-item"><a class="nav-link dropdown-title">Financial Management</a></li>
-          <li class="nav-item"><a href="{{url_for('manage_bank_entries')}}" class="nav-link dropdown-link">Bank Data Entry</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Bank Reconciliation</a></li>
+          {% if result.is_executive_approver or result.is_admin %}
+            <li class="nav-item"><a href="{{url_for('manage_bank_entries')}}" class="nav-link dropdown-link">Bank Data Entry</a></li>
+            <li class="nav-item"><a href="#" class="nav-link dropdown-link">Bank Reconciliation</a></li>
+          {% endif %}
           <li class="nav-item sub-dropdown-container">
             <a href="#" class="nav-link dropdown-link sub-custom-dropdown-toggle">
               <span class="">Financial Reports</span>
@@ -641,32 +647,39 @@
             </a>
             <ul class="sub-dropdown-menu">
               <li class="nav-item"><a class="nav-link dropdown-title">Financial Reports</a></li>
-              <li class="nav-item"><a href="#" class="nav-link dropdown-link">Bank Account Statement</a></li>
-              <li class="nav-item"><a href="#" class="nav-link dropdown-link">Loan to Value Report</a></li>
+              {% if result.is_executive_approver or result.is_admin %}
+                <li class="nav-item"><a href="#" class="nav-link dropdown-link">Bank Account Statement</a></li>
+                <li class="nav-item"><a href="#" class="nav-link dropdown-link">Loan to Value Report</a></li>
+              {% endif %}
               <li class="nav-item"><a href="#" class="nav-link dropdown-link">Loan Projection Analysis</a></li>
-              <li class="nav-item"><a href="#" class="nav-link dropdown-link">Funds Projection Analysis</a></li>
+              {% if result.is_executive_approver or result.is_admin %}
+                <li class="nav-item"><a href="#" class="nav-link dropdown-link">Funds Projection Analysis</a></li>
+              {% endif %}
+
             </ul>
           </li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Data Archive</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Volunteer Report</a></li>
+          {% if result.is_executive_approver or result.is_admin %}
+            <li class="nav-item"><a href="#" class="nav-link dropdown-link">Data Archive</a></li>
+          {% endif %}
         </ul>
       </li>
-      <!-- Dropdown -->
-      <li class="nav-item dropdown-container">
-        <a href="#" class="nav-link custom-dropdown-toggle">
-          <i class="fa-solid fa-list-check fa-xl"></i>
-          <span class="nav-label">Risk Management</span>
-          <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
-        </a>
-        <ul class="custom-dropdown-menu">
-          <li class="nav-item"><a class="nav-link dropdown-title">Risk Management</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Exception Reports</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Loan Limit Exceptions</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Loan Budgets Variation</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Meeting Action Items</a></li>
-          <li class="nav-item"><a href="{{url_for('manage_users')}}" class="nav-link dropdown-link">Volunteers</a></li>
-        </ul>
-      </li>
+
+      {% if result.is_executive_approver or result.is_admin %}
+        <!-- Dropdown -->
+        <li class="nav-item dropdown-container">
+          <a href="#" class="nav-link custom-dropdown-toggle">
+            <i class="fa-solid fa-list-check fa-xl"></i>
+            <span class="nav-label">Risk Management</span>
+            <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
+          </a>
+          <ul class="custom-dropdown-menu">
+            <li class="nav-item"><a class="nav-link dropdown-title">Risk Management</a></li>
+            <li class="nav-item"><a href="#" class="nav-link dropdown-link">TAT Exception Reports</a></li>
+            <li class="nav-item"><a href="#" class="nav-link dropdown-link">Loan Matrix Exceptions Report</a></li>
+          </ul>
+        </li>
+      {% endif %}
+
       <!-- Dropdown -->
       <li class="nav-item dropdown-container">
         <a href="#" class="nav-link custom-dropdown-toggle">
@@ -677,7 +690,10 @@
         <ul class="custom-dropdown-menu">
           <li class="nav-item"><a class="nav-link dropdown-title">Meetings</a></li>
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Calendars</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Meeting Action Items</a></li>
+          {% if result.is_executive_approver or result.is_admin or result.is_approver %}
+            <li class="nav-item"><a href="#" class="nav-link dropdown-link">Meeting Minutes Update</a></li>
+          {% endif %}
+          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Meeting Action Items List</a></li>
         </ul>
       </li>
       <!-- Dropdown -->
@@ -695,8 +711,6 @@
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">SAJDA Best Practices</a></li>
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Other Program Best Practices</a></li>
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Pakistan Poverty</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">AKEPBP Intervention Indicators</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">AKSWBP Intervention, Indicators</a></li>
         </ul>
       </li>
       <!-- Dropdown -->
@@ -716,32 +730,33 @@
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Pakistan Poverty</a></li>
         </ul>
       </li>
-      <!-- Dropdown -->
-      <li class="nav-item dropdown-container">
-        <a href="#" class="nav-link custom-dropdown-toggle">
-          <i class="fa-solid fa-gear fa-xl"></i>
-          <span class="nav-label">Administration/Setting</span>
-          <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
-        </a>
-        <ul class="custom-dropdown-menu">
-          <li class="nav-item"><a class="nav-link dropdown-title">Administration/Setting</a></li>
-          <li class="nav-item"><a href="{{url_for('manage_bank_details')}}" class="nav-link">Bank Setup</a></li>
-          <li class="nav-item"><a href="{{url_for('manage_branches')}}" class="nav-link">Branch Setup</a></li>
-          <li class="nav-item"><a href="{{url_for('manage_post_disbursement')}}" class="nav-link dropdown-link">Loan Assessment (Post)</a></li>
-          <li class="nav-item"><a class="nav-link dropdown-title">Loan Administration</a></li>
-          <li class="nav-item"><a href="{{url_for('manage_loan_metrics')}}" class="nav-link">Loan Matrix Parameters</a></li>
-          <li class="nav-item"><a href="{{url_for('manage_budget')}}" class="nav-link">Loan Annual Budgets</a></li>
-          <li class="nav-item"><a href="{{url_for('manage_file')}}" class="nav-link">Loan Assessment File Uploading</a></li>
-          <li class="nav-item"><a class="nav-link dropdown-title" href="{{url_for('manage_users')}}">Volunteer Administration</a></li>
-          <li class="nav-item"><a href="#" class="nav-link">Volunteers Roles Update</a></li>
-          <li class="nav-item"><a href="#" class="nav-link">Partner Organization</a></li>
-        </ul>
-      </li>
+      {% if result.is_executive_approver or result.is_admin %}
+        <!-- Dropdown -->
+        <li class="nav-item dropdown-container">
+          <a href="#" class="nav-link custom-dropdown-toggle">
+            <i class="fa-solid fa-gear fa-xl"></i>
+            <span class="nav-label">Administration/Setting</span>
+            <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
+          </a>
+          <ul class="custom-dropdown-menu">
+            <li class="nav-item"><a class="nav-link dropdown-title">Administration/Setting</a></li>
+            <li class="nav-item"><a href="{{url_for('manage_bank_details')}}" class="nav-link">Bank Setup</a></li>
+            <li class="nav-item"><a href="{{url_for('manage_branches')}}" class="nav-link">Branch Setup</a></li>
+            <li class="nav-item"><a class="nav-link dropdown-title">Loan Administration</a></li>
+            <li class="nav-item"><a href="{{url_for('manage_loan_metrics')}}" class="nav-link">Loan Matrix Parameters</a></li>
+            <li class="nav-item"><a href="{{url_for('manage_budget')}}" class="nav-link">Loan Annual Budgets</a></li>
+            <li class="nav-item"><a href="{{url_for('manage_file')}}" class="nav-link">Loan Assessment File Uploading</a></li>
+            <li class="nav-item"><a href="#" class="nav-link">Volunteers Roles Update</a></li>
+            <li class="nav-item"><a href="{{url_for('manage_users')}}" class="nav-link dropdown-link">Volunteers Setup</a></li>
+            <li class="nav-item"><a href="#" class="nav-link">Partner Organization</a></li>
+          </ul>
+        </li>
+      {% endif %}
     </ul>
     <!-- Secondary Bottom Nav -->
     <ul class="nav-list secondary-nav">
       <li class="nav-item">
-        <a href="#" class="nav-link">
+        <a href="{{url_for('logout')}}" class="nav-link">
           <i class="fa-solid fa-arrow-right-from-bracket fa-xl"></i>
           <span class="nav-label">Sign Out</span>
         </a>
