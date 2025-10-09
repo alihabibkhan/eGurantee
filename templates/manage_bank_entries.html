@@ -114,13 +114,12 @@
                         <thead class="table-light">
                             <tr>
                                 <th scope="col">Date Posted</th>
-                                <th scope="col">Mode</th>
                                 <th scope="col">General Ledger</th>
-                                <th scope="col">Nature of Transaction</th>
+                                <th scope="col">Narration</th>
+                                <th scope="col">Inst. No.</th>
                                 <th scope="col">Withdrawal</th>
                                 <th scope="col">Deposit</th>
                                 <th scope="col">Balance</th>
-                                <th scope="col">Date Reconciled</th>
                                 <th scope="col">Action</th>
                             </tr>
                         </thead>
@@ -140,11 +139,7 @@
         const itemsPerPage = 10;
 
         // Dropdown options
-        const modeOptions = ['Cash Deposit', 'Transfer Deposit', 'Cash Withdrawals', 'Cheques', 'Auto Withdrawals'];
         const generalLedgerOptions = ['Donation', 'Other Loan Receipt', 'Income', 'Expense', 'Bene Loan', 'Payment', 'Tax Payments'];
-        const natureOfTransactionOptions = ['Withdrawal', 'Deposit'];
-        const depositModes = ['Cash Deposit', 'Transfer Deposit', 'Cheques'];
-        const withdrawalModes = ['Cash Withdrawals', 'Auto Withdrawals'];
 
         // Pagination state
         let bankEntriesCurrentPage = 1;
@@ -212,7 +207,7 @@
             const bankSelect = document.getElementById('bank-select').value;
 
             if (!bankSelect && !editRowId) {
-                tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">Please select a bank</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">Please select a bank</td></tr>';
                 return;
             }
 
@@ -221,7 +216,7 @@
             const pageData = data.slice(start, end);
 
             if (pageData.length === 0 && !editRowId) {
-                tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No records found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No records found</td></tr>';
                 return;
             }
 
@@ -232,13 +227,12 @@
                 row.setAttribute('data-id', rowId);
                 row.innerHTML = `
                     <td>${isEditing ? `<input type="date" class="editable-field" value="${formatDateForInput(record.date_posted)}" id="edit-date-posted-${rowId}">` : formatDate(record.date_posted)}</td>
-                    <td>${isEditing ? createDropdown(modeOptions, record.mode || '', `edit-mode-${rowId}`) : record.mode || 'N/A'}</td>
                     <td>${isEditing ? createDropdown(generalLedgerOptions, record.general_ledger || '', `edit-general-ledger-${rowId}`) : record.general_ledger || 'N/A'}</td>
-                    <td>${isEditing ? createDropdown(natureOfTransactionOptions, record.nature_of_transaction || '', `edit-nature-of-transaction-${rowId}`) : record.nature_of_transaction || 'N/A'}</td>
+                    <td>${isEditing ? `<input type="text" class="editable-field" value="${record.narration || ''}" id="edit-narration-${rowId}">` : record.narration || 'N/A'}</td>
+                    <td>${isEditing ? `<input type="text" class="editable-field" value="${record.inst_no || ''}" id="edit-inst-no-${rowId}">` : record.inst_no || 'N/A'}</td>
                     <td>${isEditing ? `<input type="number" class="editable-field" value="${record.withdrawal ?? ''}" id="edit-withdrawal-${rowId}" min="0">` : record.withdrawal || '0'}</td>
                     <td>${isEditing ? `<input type="number" class="editable-field" value="${record.deposit ?? ''}" id="edit-deposit-${rowId}" min="0">` : record.deposit || '0'}</td>
                     <td>${isEditing ? `<input type="number" class="editable-field" value="${record.balance ?? ''}" id="edit-balance-${rowId}" min="0">` : record.balance || '0'}</td>
-                    <td>${isEditing ? `<input type="date" class="editable-field" value="${formatDateForInput(record.date_reconciled)}" id="edit-date-reconciled-${rowId}">` : formatDate(record.date_reconciled)}</td>
                     <td class="action-icons">
                         ${isEditing ? `
                             <button title="Save" onclick="saveRow(${rowId})">
@@ -262,34 +256,10 @@
                 tbody.appendChild(row);
 
                 if (isEditing) {
-                    const modeSelect = document.getElementById(`edit-mode-${rowId}`);
-                    const natureSelect = document.getElementById(`edit-nature-of-transaction-${rowId}`);
                     const withdrawalInput = document.getElementById(`edit-withdrawal-${rowId}`);
                     const depositInput = document.getElementById(`edit-deposit-${rowId}`);
                     const balanceInput = document.getElementById(`edit-balance-${rowId}`);
                     const datePostedInput = document.getElementById(`edit-date-posted-${rowId}`);
-
-                    function updateFields() {
-                        const modeVal = modeSelect.value;
-                        if (depositModes.includes(modeVal)) {
-                            withdrawalInput.value = 0;
-                            withdrawalInput.disabled = true;
-                            depositInput.disabled = false;
-                            natureSelect.value = 'Deposit';
-                            natureSelect.disabled = true;
-                        } else if (withdrawalModes.includes(modeVal)) {
-                            depositInput.value = 0;
-                            depositInput.disabled = true;
-                            withdrawalInput.disabled = false;
-                            natureSelect.value = 'Withdrawal';
-                            natureSelect.disabled = true;
-                        } else {
-                            withdrawalInput.disabled = false;
-                            depositInput.disabled = false;
-                            natureSelect.disabled = false;
-                        }
-                        updateBalance();
-                    }
 
                     function updateBalance() {
                         const currentDate = datePostedInput.value;
@@ -300,13 +270,12 @@
                         balanceInput.value = prevBalance + dep - withdr;
                     }
 
-                    modeSelect.addEventListener('change', updateFields);
                     datePostedInput.addEventListener('change', updateBalance);
                     depositInput.addEventListener('change', updateBalance);
                     withdrawalInput.addEventListener('change', updateBalance);
 
                     // Initial update
-                    updateFields();
+                    updateBalance();
                 }
             });
         }
@@ -391,13 +360,12 @@
             row.setAttribute('data-id', newId);
             row.innerHTML = `
                 <td><input type="date" class="editable-field" id="edit-date-posted-${newId}"></td>
-                <td>${createDropdown(modeOptions, '', `edit-mode-${newId}`)}</td>
                 <td>${createDropdown(generalLedgerOptions, '', `edit-general-ledger-${newId}`)}</td>
-                <td>${createDropdown(natureOfTransactionOptions, '', `edit-nature-of-transaction-${newId}`)}</td>
+                <td><input type="text" class="editable-field" id="edit-narration-${newId}"></td>
+                <td><input type="text" class="editable-field" id="edit-inst-no-${newId}"></td>
                 <td><input type="number" class="editable-field" value="" id="edit-withdrawal-${newId}" min="0"></td>
                 <td><input type="number" class="editable-field" value="" id="edit-deposit-${newId}" min="0"></td>
                 <td><input type="number" class="editable-field" value="" id="edit-balance-${newId}" min="0"></td>
-                <td><input type="date" class="editable-field" id="edit-date-reconciled-${newId}"></td>
                 <td class="action-icons">
                     <button title="Save" onclick="saveRow('${newId}')">
                         <i class="bi bi-save"></i>
@@ -412,34 +380,10 @@
             editRowId = newId;
 
             // Add event listeners for new row
-            const modeSelect = document.getElementById(`edit-mode-${newId}`);
-            const natureSelect = document.getElementById(`edit-nature-of-transaction-${newId}`);
             const withdrawalInput = document.getElementById(`edit-withdrawal-${newId}`);
             const depositInput = document.getElementById(`edit-deposit-${newId}`);
             const balanceInput = document.getElementById(`edit-balance-${newId}`);
             const datePostedInput = document.getElementById(`edit-date-posted-${newId}`);
-
-            function updateFields() {
-                const modeVal = modeSelect.value;
-                if (depositModes.includes(modeVal)) {
-                    withdrawalInput.value = 0;
-                    withdrawalInput.disabled = true;
-                    depositInput.disabled = false;
-                    natureSelect.value = 'Deposit';
-                    natureSelect.disabled = true;
-                } else if (withdrawalModes.includes(modeVal)) {
-                    depositInput.value = 0;
-                    depositInput.disabled = true;
-                    withdrawalInput.disabled = false;
-                    natureSelect.value = 'Withdrawal';
-                    natureSelect.disabled = true;
-                } else {
-                    withdrawalInput.disabled = false;
-                    depositInput.disabled = false;
-                    natureSelect.disabled = false;
-                }
-                updateBalance();
-            }
 
             function updateBalance() {
                 const currentDate = datePostedInput.value;
@@ -450,13 +394,12 @@
                 balanceInput.value = prevBalance + dep - withdr;
             }
 
-            modeSelect.addEventListener('change', updateFields);
             datePostedInput.addEventListener('change', updateBalance);
             depositInput.addEventListener('change', updateBalance);
             withdrawalInput.addEventListener('change', updateBalance);
 
             // Initial update
-            updateFields();
+            updateBalance();
         }
 
         // Edit row
@@ -480,13 +423,12 @@
             const data = {
                 bank_id: bankId,
                 date_posted: document.getElementById(`edit-date-posted-${id}`).value,
-                mode: document.getElementById(`edit-mode-${id}`).value,
                 general_ledger: document.getElementById(`edit-general-ledger-${id}`).value,
-                nature_of_transaction: document.getElementById(`edit-nature-of-transaction-${id}`).value,
+                narration: document.getElementById(`edit-narration-${id}`).value,
+                inst_no: document.getElementById(`edit-inst-no-${id}`).value,
                 withdrawal: document.getElementById(`edit-withdrawal-${id}`).value,
                 deposit: document.getElementById(`edit-deposit-${id}`).value,
                 balance: document.getElementById(`edit-balance-${id}`).value,
-                date_reconciled: document.getElementById(`edit-date-reconciled-${id}`).value,
                 status: '1'
             };
 
@@ -501,18 +443,8 @@
                 resetButton(button, icon, spinner);
                 return;
             }
-            if (!data.mode) {
-                alert('Please select a mode.');
-                resetButton(button, icon, spinner);
-                return;
-            }
             if (!data.general_ledger) {
                 alert('Please select a general ledger.');
-                resetButton(button, icon, spinner);
-                return;
-            }
-            if (!data.nature_of_transaction) {
-                alert('Please select a nature of transaction.');
                 resetButton(button, icon, spinner);
                 return;
             }

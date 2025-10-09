@@ -117,7 +117,7 @@
     {% include 'navbar.html' %}
 
     {% import 'breadcrumbs.html' as brd %}
-    {{ brd.render_Breadcrumbs([{"url":manage_pre_disbursement, "label":'Manage Pre Disbursement'}]) }}
+    {{ brd.render_Breadcrumbs([{"url":manage_pre_disbursement, "label":'Post Disbursement Report'}]) }}
 
     <div class="mt-3">{% include 'message_box.html' %}</div>
 
@@ -135,7 +135,7 @@
                     <div class="col-md-3">
                         <div class="form-group">
                             <label for="mis-date-filter" class="form-label">MIS Date</label>
-                            <input type="datetime-local" class="form-control form-control-sm" id="mis-date-filter">
+                            <input type="date" class="form-control form-control-sm" id="mis-date-filter">
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -236,7 +236,7 @@
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
-                            <label for="bank-area-filter" class="form-label">Branch</label>
+                            <label for="branch-filter" class="form-label">Branch</label>
                             <select class="form-select form-select-sm" id="branch-filter" multiple>
                                 {% for branch in result.branch_list %}
                                     <option value="{{branch.branch}}">{{branch.branch}}</option>
@@ -644,7 +644,9 @@
             checkboxes.forEach(cb => {
                 const index = parseInt(cb.dataset.index);
                 const visible = cb.checked;
-                ths[index].classList.toggle('d-none', !visible);
+                if (ths[index]) {
+                    ths[index].classList.toggle('d-none', !visible);
+                }
                 trs.forEach(tr => {
                     if (tr.children[index]) {
                         tr.children[index].classList.toggle('d-none', !visible);
@@ -652,11 +654,34 @@
                 });
             });
 
-            // Safely hide the modal if it exists
+            // Hide the modal and clean up backdrop
             const modalElement = document.getElementById('columnsModal');
-            const modalInstance = bootstrap.Modal.getInstance(modalElement);
-            if (modalInstance) {
+            try {
+                const modalInstance = bootstrap.Modal.getOrCreateInstance(modalElement);
                 modalInstance.hide();
+                // Forcefully remove backdrop and body classes
+                setTimeout(() => {
+                    const backdrop = document.querySelector('.modal-backdrop');
+                    if (backdrop) {
+                        backdrop.remove();
+                    }
+                    document.body.classList.remove('modal-open');
+                    document.body.style.overflow = '';
+                    document.body.style.paddingRight = '';
+                }, 300); // Delay to allow modal animation to complete
+            } catch (error) {
+                console.error('Error hiding modal:', error);
+                // Fallback: manually hide modal and clean up
+                modalElement.classList.remove('show');
+                modalElement.style.display = 'none';
+                modalElement.setAttribute('aria-hidden', 'true');
+                const backdrop = document.querySelector('.modal-backdrop');
+                if (backdrop) {
+                    backdrop.remove();
+                }
+                document.body.classList.remove('modal-open');
+                document.body.style.overflow = '';
+                document.body.style.paddingRight = '';
             }
         }
 

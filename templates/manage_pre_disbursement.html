@@ -257,6 +257,7 @@
                     <div class="modal-body" id="temp-modal-body"></div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button class="btn btn-primary btn-send-email" data-pre-id="" data-pre-email-status=""><i class="bi bi-envelope text-white"></i></button>
                         <button type="button" class="btn btn-primary" id="temp-save-btn">Save</button>
                     </div>
                 </div>
@@ -277,9 +278,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        {% if result.is_user_have_sign and (result.is_admin or result.is_approver or result.is_executive_approver) %}
-                            <button id="send-email-btn" class="btn btn-success" style="display: none;" onclick="showEmailModal()">Send Email</button>
-                        {% endif %}
+                        <button id="send-email-btn" class="btn btn-success" style="display: none;" onclick="showEmailModal()">Send Email</button>
                     </div>
                 </div>
             </div>
@@ -347,6 +346,9 @@
     <script>
         // Data from Flask
         const tempData = {{ result.get_temp_pre_disbursement | tojson }};
+        console.log('pre data');
+        console.log(tempData)
+
         const loanMetrics = {{ result.get_all_loan_metrics | tojson }};
         console.log(loanMetrics)
         const itemsPerPage = 10;
@@ -382,8 +384,17 @@
 
         // Format date
         function formatDate(dateStr) {
-          if (!dateStr) return 'Not Received';
-          const date = new Date(dateStr);
+          if (!dateStr) return '';
+
+          let date;
+          if (typeof dateStr === 'number' || !isNaN(Number(dateStr))) {
+            // Convert Excel serial date to JavaScript Date
+            const excelSerialDate = Number(dateStr);
+            date = new Date((excelSerialDate - 1) * 24 * 60 * 60 * 1000 + new Date('1900-01-01').getTime());
+          } else {
+            date = new Date(dateStr);
+          }
+
           if (
             isNaN(date) ||
             date.toLocaleDateString() === '1/1/1900' ||
@@ -391,9 +402,11 @@
             dateStr === '1900-01-01 00:00:00' ||
             dateStr === 'Mon, 01 Jan 1900 00:00:00 GMT'
           ) {
-            return '-';
+            return '';
           }
-          const options = { month: 'short', day: '2-digit', year: 'numeric' };
+
+          // Use UTC for formatting
+          const options = { month: 'short', day: '2-digit', year: 'numeric', timeZone: 'UTC' };
           const formatted = date.toLocaleDateString('en-US', options);
           return formatted.replace(', ', '/').replace(' ', '/');
         }
@@ -454,7 +467,7 @@
                             badge = '<span class="badge badge-rejected">Email Rejected</span>';
                         }
                         {% if result.is_reviewer == False %}
-                            letterButton = `<button class="btn btn-sm btn-info" onclick="viewLetter('${record.pre_disb_temp_id}', '${record.email_status}')"><i class="bi bi-envelope"></i>${badge}</button>`;
+                            letterButton = `${badge}`;
                         {% endif %}
                     }
                 {% endif %}
@@ -465,7 +478,7 @@
                     <td>${record['Borrower_Name'] || 'Not Received'}</td>
                     <td>${record['Loan_Amount'] || 'Not Received'}</td>
                     <td>${formatDate(record.ApplicationDate)}</td>
-                    <td>${record.approved_by || '-'}</td>
+                    <td>${record.approved_by || ''}</td>
                     <td title='${record.approved_date}'>${formatDate(String(record.approved_date))}</td>
                     <td>${statusText}</td>
                     <td>
@@ -548,6 +561,15 @@
         function viewRecord(index) {
             const record = filteredData[index];
             console.log(record)
+
+            $('.btn-send-email').hide();
+            $('.btn-send-email').attr('data-pre-id', record.pre_disb_temp_id);
+            $('.btn-send-email').attr('data-pre-email-status', record.email_status);
+
+            if(record.status == '2'){
+                $('.btn-send-email').show();
+            }
+
             const productCode = record.LoanProductCode;
             const applicantGender = record.Gender;
 
@@ -597,20 +619,20 @@
                 <div class="col-md-6">
                     <table class="table table-sm">
                         <tr><th>Application No:</th><td>${record.Application_No || 'Not Received'}</td></tr>
-                        <tr><th>Bank Loan Officer:</th><td>Not Received</td></tr>
+                        <tr><th>Bank Loan Officer:</th><td>${record.loan_officer || 'Not Received'}</td></tr>
                         <tr><th>Borrower Name:</th><td>${record.Borrower_Name || 'Not Received'}</td></tr>
                         <tr><th>CNIC #:</th><td>${record.CNIC || 'Not Received'}</td></tr>
-                        <tr><th>Borrower Date of Birth / Age:</th><td>Not Received</td></tr>
+                        <tr><th>Borrower Date of Birth / Age:</th><td>${formatDate(String(record.client_dob)) || 'Not Received'}</td></tr>
                         <tr><th>Borrower - Gender:</th><td>${record.Gender || 'Not Received'}</td></tr>
                     </table>
                 </div>
                 <div class="col-md-6">
                     <table class="table table-sm">
-                        <tr><th>Bank Name:</th><td>Not Received</td></tr>
+                        <tr><th>Bank Name:</th><td>${record.bank_name || 'Not Received'}</td></tr>
                         <tr><th>Branch Name:</th><td>${record.Branch_Name || 'Not Received'}</td></tr>
                         <tr><th>Student Name/Co-Borrower:</th><td>${record.Student_Name || 'Not Received'}</td></tr>
                         <tr><th>Student Relation with Borrower:</th><td>${record.Student_Relation_With_Borrower || 'Not Received'}</td></tr>
-                        <tr><th>Student Co-Borrower DOB / Age:</th><td>Not Received</td></tr>
+                        <tr><th>Student Co-Borrower DOB / Age:</th><td>${formatDate(String(record.co_borrower_dob)) || 'Not Received'}</td></tr>
                         <tr><th>Student Co-Borrower Gender:</th><td>${record.Student_Co_Borrower_Gender || 'Not Received'}</td></tr>
                     </table>
                 </div>
@@ -753,7 +775,7 @@
                         </td></tr>
                         <tr><th>Purpose of the Loan:</th><td>${record.Purpose_Of_Loan || 'Not Received'}</td><td></td></tr>
                         <tr><th>Enterprise Premises:</th><td>${record.Enterprise_Premises || 'Not Received'}</td><td></td></tr>
-                        <tr><th>Experience Start Date:</th><td>${formatDate(record.Business_Experiense_Since) || 'Not Received'}</td><td>
+                        <tr><th>Experience Start Date:</th><td>${formatDate(record.Experiense_Start_Date) || 'Not Received'}</td><td>
                             <select class="form-select form-select-sm" id="experience">
                                 <option value="">Select</option>
                                 {% for item in result.experience_ranges_list %}
@@ -863,9 +885,22 @@
                         <tr><th>Collateral Type:</th><td>${record.Collateral_Type || 'Not Received'}</td></tr>
                         <tr><th>Bank Approved Interest Rate (Yet to Receive):</th><td>Not Received</td></tr>
                         <tr><th>KFT Subsidized Interest Rate:</th><td id="td-interest-rate">${interest_rate}%</td></tr>
-                        <tr><th>Repayment Terms (Yet to Receive):</th><td>Not Received</td></tr>
-                        <tr><th>Reviewed By (Reviewed Date):</th><td>${record.reviewed_by || 'Not Received'} (${formatDate(record.reviewed_date)})</td></tr>
-                        <tr><th>Approved By (Approved Date):</th><td>${record.approved_by || 'Not Received'} (${formatDate(record.approved_date)})</td></tr>
+                        <tr><th>Repayment Terms:</th><td>${record.repayment_frequency || 'Not Received'}</td></tr>
+                        <!-- Display Reviewed By and Reviewed Date, with brackets only if date exists -->
+                        <tr>
+                            <th>Reviewed By (Reviewed Date):</th>
+                            <td>${record.reviewed_by || ''}${record.reviewed_date ? ` (${formatDate(record.reviewed_date)})` : ''}</td>
+                        </tr>
+                        <!-- Display Approved By and Approved Date, with brackets only if date exists -->
+                        <tr>
+                            <th>Approved By (Approved Date):</th>
+                            <td>${record.approved_by || ''}${formatDate(record.approved_date) ? ` (${formatDate(record.approved_date)})` : ''}</td>
+                        </tr>
+                        <!-- Display Rejected By and Rejected Date, with brackets only if date exists -->
+                        <tr>
+                            <th>Rejected By (Rejected Date):</th>
+                            <td>${record.rejected_by || ''}${formatDate(record.rejected_date) ? ` (${formatDate(record.rejected_date)})` : ''}</td>
+                        </tr>
                         <tr><th>Status:</th><td>
                             <select class="form-select form-select-sm" id="temp-status">
                                 {% if result.is_reviewer or result.is_executive_approver or result.is_admin %}
@@ -934,7 +969,7 @@
                         <tr><th>Permanent Residential:</th><td>${record.Permanent_Residencial || 'Not Received'}</td></tr>
                         <tr><th>Student Education Level:</th><td>${record.Education_Level || 'Not Received'}</td></tr>
                         <tr><th>Student College University:</th><td>${record.Collage_Univeristy || 'Not Received'}</td></tr>
-                        <tr><th>Student Enrollment Status:</th><td>${record.Enrollment_Status || 'Not Received'}</td></tr>
+                        <tr><th>Student Enrollment Status:</th><td>${record.enrollment_status || 'Not Received'}</td></tr>
                     </table>
                 </div>
             `;
@@ -1047,25 +1082,35 @@
 
         function generateTurnaroundTable(record) {
             function calculateDaysBetween(date1, date2) {
-                if (!date1 || !date2 || date1 === "Not Received" || date2 === "Not Received") return 0;
-                const d1 = new Date(date1);
-                const d2 = new Date(date2);
-                if (isNaN(d1) || isNaN(d2)) return 0;
-                const diffTime = Math.abs(d2 - d1);
-                return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                  if (!date1 || !date2 || date1 === "Not Received" || date2 === "Not Received") return 0;
+
+                  let d2;
+                  if (typeof date2 === 'number' || !isNaN(Number(date2))) {
+                    // Convert Excel serial date (days since Jan 1, 1900)
+                    const excelSerialDate = Number(date2);
+                    d2 = new Date((excelSerialDate - 1) * 24 * 60 * 60 * 1000 + new Date('1900-01-01').getTime());
+                  } else {
+                    d2 = new Date(date2);
+                  }
+
+                  const d1 = new Date(date1);
+                  if (isNaN(d1) || isNaN(d2)) return 0;
+
+                  const diffTime = Math.abs(d2 - d1);
+                  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             }
 
             const applicationDate = formatDate(record.ApplicationDate);
-            const appraisalDate = formatDate(record.appraisal_date || "Not Received");
-            const bankVerifiedDate = formatDate(record.bank_verified_date || "Not Received");
+            const appraisalDate = formatDate(record.appraised_date || "Not Received");
+            const bankVerifiedDate = formatDate(record.verfied_date_date || "Not Received");
             const bankProcessedDate = formatDate(record.uploaded_date);
             const approvedDate = formatDate(record.approved_date);
 
             const applicationDays = 0;
-            const appraisalDays = record.appraisal_date && record.appraisal_date !== "Not Received" ? calculateDaysBetween(record.ApplicationDate, record.appraisal_date) : 0;
-            const bankVerifiedDays = record.bank_verified_date && record.bank_verified_date !== "Not Received" ? calculateDaysBetween(record.appraisal_date || record.ApplicationDate, record.bank_verified_date) : 0;
-            const bankProcessedDays = record.uploaded_date ? calculateDaysBetween(record.bank_verified_date || record.appraisal_date || record.ApplicationDate, record.uploaded_date) : 0;
-            const approvedDays = record.approved_date ? calculateDaysBetween(record.uploaded_date, record.approved_date) : 0;
+            const appraisalDays = record.appraised_date && record.appraisal_date !== "Not Received" ? calculateDaysBetween(record.ApplicationDate, record.appraisal_date) : 0;
+            const bankVerifiedDays = record.verfied_date_date && record.bank_verified_date !== "Not Received" ? calculateDaysBetween(record.appraisal_date || record.ApplicationDate, record.bank_verified_date) : 0;
+            const bankProcessedDays = bankProcessedDate ? calculateDaysBetween(record.bank_verified_date || record.appraisal_date || record.ApplicationDate, bankProcessedDate) : 0;
+            const approvedDays = record.approved_date && formatDate(record.approved_date) !== '' ? calculateDaysBetween(record.uploaded_date, record.approved_date) : 0;
             const totalDays = appraisalDays + bankVerifiedDays + bankProcessedDays + approvedDays;
 
             return `
@@ -1111,7 +1156,7 @@
 
         function generateLoanCeilingTable(record, loanCeilingLoanMetrics) {
             const safeRecord = (record && typeof record === 'object') ? record : {};
-            const loanExposureECIB = safeRecord.existing_loan_exposure_per_ecib && !isNaN(safeRecord.existing_loan_exposure_per_ecib) ? parseFloat(safeRecord.existing_loan_exposure_per_ecib) : null;
+            const loanExposureECIB = safeRecord.loan_per_exposure && !isNaN(safeRecord.loan_per_exposure) ? parseFloat(safeRecord.loan_per_exposure) : null;
             const outstandingLoan = safeRecord.Existing_Outstanding_Loan_Schedules && !isNaN(safeRecord.Existing_Outstanding_Loan_Schedules) ? parseFloat(safeRecord.Existing_Outstanding_Loan_Schedules) : null;
             const loanCeilingMatrix = loanCeilingLoanMetrics && !isNaN(loanCeilingLoanMetrics) ? parseFloat(loanCeilingLoanMetrics) : null;
             const consideredLoanExposure = loanExposureECIB && outstandingLoan ? loanExposureECIB - outstandingLoan : 0;
@@ -1119,7 +1164,7 @@
 
             html = `
                 <tr>
-                    <th>Existing Loan Exposure Per ECIB (Yet to Receive):</th>
+                    <th>Existing Loan Exposure Per ECIB:</th>
                     <td>${formatNumber(loanExposureECIB)}</td>
                 </tr>
                 <tr>
@@ -1258,7 +1303,11 @@
                         sendEmailBtn.style.display = 'none';
                     }
                     else{
-                        sendEmailBtn.style.display = 'block';
+                        {% if result.is_user_have_sign and (result.is_admin or result.is_approver or result.is_executive_approver) %}
+                            sendEmailBtn.style.display = 'block';
+                        {% else %}
+                            sendEmailBtn.style.display = 'none';
+                        {% endif %}
                     }
                 }
             };
@@ -1304,16 +1353,19 @@
                     this.innerHTML = `Send`;
                     showToast(data.message, 3000);
                     bootstrap.Modal.getInstance(document.getElementById('emailModal')).hide();
+                    location.reload();
                 } else {
                     this.disabled = false;
                     this.innerHTML = `Send`;
                     showToast('Error: ' + data.error, 3000, 'warning');
+                    location.reload();
                 }
             })
             .catch(error => {
                 this.disabled = false;
                 this.innerHTML = `Send`;
                 showToast('Error sending email: ' + error.message, 3000, 'warning');
+                location.reload();
             });
         });
 
@@ -1347,9 +1399,13 @@
                         saveBtn.disabled = false;
                         saveBtn.innerHTML = `Save`;
                         showToast('Record updated successfully', 3000);
-                        setTimeout(function(){
-                            window.location.reload();
-                        }, 3000);
+
+                        if(record.status == '2'){
+                            $('.btn-send-email').show();
+                        }
+                        else{
+                            $('.btn-send-email').hide();
+                        }
                     }
                 } else {
                     showToast('Error updating record: ' + (data.error || 'Unknown error'), 3000);
@@ -1430,6 +1486,16 @@
 
         // Initial render
         applyFilters();
+    </script>
+    <script>
+        $(document).ready(function(){
+            $('.btn-send-email').on('click', function(){
+                pre_disb_id = $(this).attr('data-pre-id');
+                email_status = $(this).attr('data-pre-email-status');
+
+                viewLetter(pre_disb_id, email_status);
+            });
+        });
     </script>
 </body>
 </html>
