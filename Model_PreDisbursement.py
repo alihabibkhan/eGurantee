@@ -95,6 +95,8 @@ def get_all_pre_disbursement_temp():
             LEFT JOIN tbl_users u1 ON u1."user_id" = pdt."uploaded_by"
             LEFT JOIN tbl_users u2 ON u2."user_id" = pdt."approved_by"
             LEFT JOIN tbl_users u3 ON u3."user_id" = pdt."reviewed_by"
+            LEFT JOIN tbl_users u4 ON u4."user_id" = pdt."rejected_by"
+            LEFT JOIN tbl_bank_details bd ON bd.bank_id = b.bank_id and bd.status = '1'
             WHERE pdt.status in {("('1', '5', '6')" if get_current_user_role() == '1' else "('2', '3', '5', '6')")}
         """
     else:
@@ -103,6 +105,8 @@ def get_all_pre_disbursement_temp():
             LEFT JOIN tbl_users u1 ON u1."user_id" = pdt."uploaded_by"
             LEFT JOIN tbl_users u2 ON u2."user_id" = pdt."approved_by"
             LEFT JOIN tbl_users u3 ON u3."user_id" = pdt."reviewed_by"
+            LEFT JOIN tbl_users u4 ON u4."user_id" = pdt."rejected_by"
+            LEFT JOIN tbl_bank_details bd ON bd.bank_id = b.bank_id and bd.status = '1'
         """
 
     query = f"""
@@ -157,20 +161,33 @@ def get_all_pre_disbursement_temp():
             pdt."Student_Relation_With_Borrower",
             pdt."Tenor_Of_Month",
             pdt."Type_of_Business",
-            pdt.reviewed_date,
             pdt.Existing_Loan_Exposure_Per_ECIB,
             pdt.KFT_Approved_Loan_Limit,
             pdt."annual_income",
             pdt."notes",
             pdt."status",
             pdt."uploaded_date",
+            pdt.reviewed_date,
             pdt."approved_date",
+            pdt."rejected_date",
             pdt."email_status",
             u1."name" AS uploaded_by,
             u2."name" AS approved_by,
             u3."name" AS reviewed_by,
+            u4."name" AS rejected_by,
             b.branch,
-            b.role
+            b.role,
+            bd.bank_name,
+            pdt."markup_rate",
+            pdt."repayment_frequency",
+            pdt."loan_officer",
+            pdt."appraised_date",
+            pdt."verfied_date_date",
+            pdt."loan_per_exposure",
+            pdt."client_dob",
+            pdt."co_borrower_dob",
+            pdt."relationship_ownership",
+            pdt."other_bank_loans_os"
         FROM 
             tbl_pre_disbursement_temp pdt
         {sql_part_temp}    

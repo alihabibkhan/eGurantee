@@ -16,6 +16,9 @@ def manage_bank_entries():
     return redirect(url_for('login'))
 
 
+from flask import request, jsonify
+from datetime import datetime
+
 @application.route('/add-bank-entry', methods=['POST'])
 def add_bank_entry():
     try:
@@ -25,16 +28,16 @@ def add_bank_entry():
         data = request.get_json()
         bank_id = data.get('bank_id')
         date_posted = data.get('date_posted')
-        mode = data.get('mode')
         general_ledger = data.get('general_ledger')
-        nature_of_transaction = data.get('nature_of_transaction')
+        narration = data.get('narration', '')
+        inst_no = data.get('inst_no', '')
         withdrawal = data.get('withdrawal')
         deposit = data.get('deposit')
         balance = data.get('balance')
-        date_reconciled = data.get('date_reconciled')
         status = data.get('status', '1')
         created_by = get_current_user_id()
         created_date = datetime.now()
+        current_date = created_date.strftime('%Y-%m-%d')
 
         # Validate bank_id exists in tbl_bank_details
         check_query = f"SELECT bank_id FROM tbl_bank_details WHERE bank_id = {bank_id} AND status = '1'"
@@ -42,19 +45,15 @@ def add_bank_entry():
         if not bank_exists:
             return jsonify({'error': 'Invalid bank ID'}), 400
 
-        # Validate nature_of_transaction
-        valid_nature = ['Withdrawal', 'Deposit']
-        if nature_of_transaction not in valid_nature:
-            return jsonify({'error': 'Invalid nature of transaction'}), 400
-
         query = f"""
             INSERT INTO tbl_bank_entry_management (
                 bank_id, date_posted, mode, general_ledger, nature_of_transaction, 
-                withdrawal, deposit, balance, date_reconciled, status, created_by, created_date, modified_by, modified_date
+                narration, inst_no, withdrawal, deposit, balance, date_reconciled, 
+                status, created_by, created_date, modified_by, modified_date
             ) VALUES (
-                {bank_id}, '{date_posted}', '{mode}', '{general_ledger}', '{nature_of_transaction}', 
-                {withdrawal or 0}, {deposit or 0}, {balance or 0}, '{date_reconciled or 'NULL'}', 
-                {status}, {created_by}, '{created_date}', {created_by}, '{created_date}'
+                {bank_id}, '{date_posted}', '', '{general_ledger}', '', 
+                '{narration}', '{inst_no}', {withdrawal or 0}, {deposit or 0}, {balance or 0}, 
+                '{current_date}', {status}, {created_by}, '{created_date}', {created_by}, '{created_date}'
             ) RETURNING bank_entry_id
         """
         result = execute_command(query)
@@ -69,7 +68,6 @@ def add_bank_entry():
         print('Add bank entry exception:', str(e))
         return jsonify({'error': 'Server error'}), 500
 
-
 @application.route('/edit-bank-entry/<string:bank_entry_id>', methods=['POST', 'GET'])
 def edit_bank_entry(bank_entry_id):
     try:
@@ -80,27 +78,22 @@ def edit_bank_entry(bank_entry_id):
         data = request.get_json()
         bank_id = data.get('bank_id')
         date_posted = data.get('date_posted')
-        mode = data.get('mode')
         general_ledger = data.get('general_ledger')
-        nature_of_transaction = data.get('nature_of_transaction')
+        narration = data.get('narration', '')
+        inst_no = data.get('inst_no', '')
         withdrawal = data.get('withdrawal')
         deposit = data.get('deposit')
         balance = data.get('balance')
-        date_reconciled = data.get('date_reconciled')
         status = data.get('status', '1')
         modified_by = get_current_user_id()
         modified_date = datetime.now()
+        current_date = modified_date.strftime('%Y-%m-%d')
 
         # Validate bank_id exists
         check_query = f"SELECT bank_id FROM tbl_bank_details WHERE bank_id = {bank_id} AND status = '1'"
         bank_exists = fetch_records(check_query)
         if not bank_exists:
             return jsonify({'error': 'Invalid bank ID'}), 400
-
-        # Validate nature_of_transaction
-        valid_nature = ['Withdrawal', 'Deposit']
-        if nature_of_transaction not in valid_nature:
-            return jsonify({'error': 'Invalid nature of transaction'}), 400
 
         # Check if bank_entry_id exists
         check_entry_query = f"SELECT bank_entry_id FROM tbl_bank_entry_management WHERE bank_entry_id = {bank_entry_id}"
@@ -112,13 +105,15 @@ def edit_bank_entry(bank_entry_id):
             UPDATE tbl_bank_entry_management
             SET bank_id = {bank_id}, 
                 date_posted = '{date_posted}', 
-                mode = '{mode}', 
+                mode = '', 
                 general_ledger = '{general_ledger}', 
-                nature_of_transaction = '{nature_of_transaction}', 
+                nature_of_transaction = '', 
+                narration = '{narration}', 
+                inst_no = '{inst_no}', 
                 withdrawal = {withdrawal or 0}, 
                 deposit = {deposit or 0}, 
                 balance = {balance or 0}, 
-                date_reconciled = '{date_reconciled or 'NULL'}', 
+                date_reconciled = '{current_date}', 
                 status = {status}, 
                 modified_by = {modified_by}, 
                 modified_date = '{modified_date}'

@@ -6,262 +6,233 @@ from application import application
 def manage_pre_disbursement():
     try:
         if is_login():
-
-            return render_template('manage_pre_disbursement.html')
+            content = {
+                'get_temp_pre_disbursement': get_all_pre_disbursement_temp(),
+                'is_user_have_sign': is_user_have_sign(),
+                'occupation_list': get_all_occupations(),
+                'experience_ranges_list': get_all_experience_ranges(),
+                'get_all_loan_metrics': get_all_loan_metrics(),
+                'is_reviewer': is_reviewer(),
+                'is_approver': is_approver(),
+                'is_executive_approver': is_executive_approver(),
+                'is_admin': is_admin()
+            }
+            return render_template('manage_pre_disbursement.html', result=content)
     except Exception as e:
         print('manage pre-disbursement exception:- ', str(e.__dict__))
     return redirect(url_for('login'))
 
 
-# Route to get data for DataTables
-@application.route('/get_pre_disbursement_data', methods=['POST'])
-def get_pre_disbursement_data():
+@application.route('/view-rejected-applications')
+def view_rejected_applications():
     try:
         if is_login():
-            record_type = request.form.get('record_type', 'temp')
-
-            # Get pagination parameters from DataTables
-            start = int(request.form.get('start', 0))
-            length = int(request.form.get('length', 10))
-            search_value = request.form.get('search[value]', '')
-
-            sql_part_temp = ''
-            sql_part_main = ''
-
-            if get_current_user_role() != 'ADMIN':
-                sql_part_temp ="""
-                    INNER JOIN tbl_branches b on pdt.Branch_Name LIKE CONCAT('%', b.branch_code, '%') AND b.live_branch = '1'
-                    INNER JOIN tbl_users u on u.role = b.role and u.active = '1'
-                    LEFT JOIN tbl_users u1 ON u1.user_id = pdt.uploaded_by
-                    WHERE u.role = '"""+str(get_current_user_role())+"""'
-                """
-
-                sql_part_main = """
-                    INNER JOIN tbl_branches b on pdm.Branch_Name LIKE CONCAT('%', b.branch_code, '%') AND b.live_branch = '1'
-                    INNER JOIN tbl_users u on u.role = b.role and u.active = '1'
-                    LEFT JOIN tbl_users u1 ON u1.user_id = pdt.approved_by
-                    WHERE u.role = '"""+str(get_current_user_role())+"""'
-                """
-            else:
-                sql_part_temp = """
-                    LEFT JOIN tbl_users u ON u.user_id = pdt.uploaded_by
-                """
-
-                sql_part_main = """
-                    LEFT JOIN tbl_users u ON u.user_id = pdm.approved_by    
-                """
-
-            # Base query
-            if record_type == 'temp':
-                query = """
-                    SELECT pdt.*, """+("u.name as createdBy" if get_current_user_role() == 'ADMIN' else "u1.name as createdBy")+""" 
-                    FROM tbl_pre_disbursement_temp pdt
-                    """+str(sql_part_temp)+"""
-                """
-                count_query = "SELECT COUNT(*) FROM tbl_pre_disbursement_temp"
-            else:
-                query = """
-                    SELECT pdm.*, pdt.*, u.name as createdBy 
-                    FROM tbl_pre_disbursement_main pdm
-                    JOIN tbl_pre_disbursement_temp pdt ON pdm.pre_disb_temp_id = pdt.pre_disb_temp_id
-                    """+str(sql_part_temp)+"""
-                """
-                count_query = "SELECT COUNT(*) FROM tbl_pre_disbursement_main"
-
-            print(query)
-
-            # Add search filter if provided
-            if search_value:
-                search_term = f"%{search_value}%"
-                query += f""+('WHERE ' if get_current_user_role() == 'ADMIN' else 'AND ')+f"pdt.Application_No LIKE '{search_term}'"
-                params = (search_term, search_term, search_term)
-            else:
-                params = ()
-
-            # Add pagination
-            query += f" LIMIT {start}, {length}"
-
-            print(query)
-
-            # Execute queries
-            records = fetch_records(query)
-            total_records = fetch_records(count_query)[0]
-
-            return jsonify({
-                "draw": int(request.form.get('draw', 1)),
-                "recordsTotal": int(total_records.get('COUNT(*)')),
-                "recordsFiltered": int(total_records.get('COUNT(*)')),
-                "data": records
-            })
-        return jsonify({"error": "Unauthorized"}), 401
+            content = {
+                'get_temp_pre_disbursement': view_all_rejected_application(),
+                'is_user_have_sign': is_user_have_sign(),
+                'occupation_list': get_all_occupations(),
+                'experience_ranges_list': get_all_experience_ranges(),
+                'get_all_loan_metrics': get_all_loan_metrics(),
+                'is_reviewer': is_reviewer(),
+                'is_approver': is_approver(),
+                'is_executive_approver': is_executive_approver(),
+                'is_admin': is_admin()
+            }
+            return render_template('view_rejected_applications.html', result=content)
     except Exception as e:
-        print(f"Error in get_pre_disbursement_data: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        print('view-rejected-applications exception:- ', str(e.__dict__))
+        print('view-rejected-applications exception:- ', str(e))
+
+    return redirect(url_for('login'))
 
 
-# Route to get detailed view
-@application.route('/get_pre_disbursement_details/<int:record_id>/<string:record_type>')
-def get_pre_disbursement_details(record_id, record_type):
+@application.route('/update-pre-disbursement-temp', methods=['POST'])
+def update_pre_disbursement_temp():
     try:
-        if is_login():
-            print(record_id, record_type)
-            if record_type == 'temp':
-                query = f"""
-                    SELECT pdt.*, u.name as createdBy 
-                    FROM tbl_pre_disbursement_temp pdt
-                    LEFT JOIN tbl_users u ON u.user_id = pdt.uploaded_by
-                    WHERE pdt.pre_disb_temp_id = '{str(record_id)}'
-                """
-            else:
-                query = f"""
-                    SELECT pdm.*, pdt.*, u.name as createdBy 
-                    FROM tbl_pre_disbursement_main pdm
-                    JOIN tbl_pre_disbursement_temp pdt ON pdm.pre_disb_temp_id = pdt.pre_disb_temp_id
-                    LEFT JOIN tbl_users u ON u.user_id = pdm.approved_by
-                    WHERE pdm.pre_disb_main_id = '{str(record_id)}'
-                """
+        if not is_login():
+            return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        data = request.get_json()
+        print(data)
+        pre_disb_temp_id = data.get('pre_disb_temp_id')
+        status = str(data.get('status'))
+        notes = data.get('Notes')
+        amount_accepted = data.get('amount_accepted')
 
-            record = fetch_records(query)[0]
+        approved_by = str(get_current_user_id())
+        approved_date = str(datetime.now())
 
-            if record:
-                # Render a detailed HTML view (you can create a separate template for this)
-                html = f"""
-                <div class="row">
-                    <div class="col-md-6">
-                        <h5>Basic Information</h5>
-                        <table class="table table-sm">
-                            <tr><th>Application No:</th><td>{record.get('Application_No', 'N/A')}</td></tr>
-                            <tr><th>Borrower Name:</th><td>{record.get('Borrower_Name', 'N/A')}</td></tr>
-                            <tr><th>CNIC:</th><td>{record.get('CNIC', 'N/A')}</td></tr>
-                            <tr><th>Contact No:</th><td>{record.get('Contact_No', 'N/A')}</td></tr>
-                        </table>
-                    </div>
-                    <div class="col-md-6">
-                        <h5>Loan Information</h5>
-                        <table class="table table-sm">
-                            <tr><th>Product Code:</th><td>{record.get('LoanProductCode', 'N/A')}</td></tr>
-                            <tr><th>Loan Amount:</th><td>{record.get('Loan_Amount', 'N/A')}</td></tr>
-                            <tr><th>Loan Cycle:</th><td>{record.get('Loan_Cycle', 'N/A')}</td></tr>
-                            <tr><th>Status:</th><td>{get_status_text(record.get('status', 1))}</td></tr>
-                        </table>
-                    </div>
-                </div>
-                <div class="row mt-3">
-                    <div class="col-md-12">
-                        <h5>Notes</h5>
-                        <p>{record.get('notes', 'No notes available')}</p>
-                    </div>
-                </div>
-                """
-                return html
-            return "<div class='alert alert-warning'>Record not found</div>"
-        return "<div class='alert alert-danger'>Unauthorized</div>"
-    except Exception as e:
-        print(f"Error in get_pre_disbursement_details: {str(e)}")
-        return "<div class='alert alert-danger'>Error loading details</div>"
+        if not pre_disb_temp_id or not status:
+            return jsonify({'success': False, 'error': 'Missing required fields'}), 400
 
+        query = ''
 
-# Route to get current status
-@application.route('/get_pre_disbursement_status/<int:record_id>/<string:record_type>')
-def get_pre_disbursement_status(record_id, record_type):
-    try:
-        if is_login():
-            if record_type == 'temp':
-                query = f"SELECT status, notes FROM tbl_pre_disbursement_temp WHERE pre_disb_temp_id = '{str(record_id)}'"
-            else:
-                query = f"SELECT status, notes FROM tbl_pre_disbursement_main WHERE pre_disb_main_id = '{str(record_id)}"
+        if status in ['2']:
+            query = f"""
+               UPDATE tbl_pre_disbursement_temp
+               SET status = '{str(status)}', Notes = '{str(notes)}', KFT_Approved_Loan_Limit = '{str(amount_accepted)}',
+               approved_by = '{str(approved_by)}', approved_date = '{str(approved_date)}'
+               WHERE pre_disb_temp_id = '{str(pre_disb_temp_id)}'
+            """
+        elif status in ['5', '6']:
+            query = f"""
+               UPDATE tbl_pre_disbursement_temp
+               SET status = '{str(status)}', Notes = '{str(notes)}', KFT_Approved_Loan_Limit = '{str(amount_accepted)}',
+               reviewed_by = '{str(approved_by)}', reviewed_date = '{str(approved_date)}'
+               WHERE pre_disb_temp_id = '{str(pre_disb_temp_id)}'
+            """
+        elif status in ['3']:
+            query = f"""
+               UPDATE tbl_pre_disbursement_temp
+               SET status = '{str(status)}', Notes = '{str(notes)}', KFT_Approved_Loan_Limit = '{str(amount_accepted)}',
+               rejected_by = '{str(approved_by)}', rejected_date = '{str(approved_date)}'
+               WHERE pre_disb_temp_id = '{str(pre_disb_temp_id)}'
+            """
 
-            record = fetch_records(query)[0]
+        execute_command(query)
 
-            if record:
-                return jsonify({
-                    "success": True,
-                    "status": record['status'],
-                    "notes": record['notes']
-                })
-            return jsonify({"success": False, "message": "Record not found"}), 404
-        return jsonify({"success": False, "message": "Unauthorized"}), 401
-    except Exception as e:
-        print(f"Error in get_pre_disbursement_status: {str(e)}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        if status in ['2']:
+            # Check if record already exists in main table
+            print('status is 2 proceeding to insert record in main.')
+            check_query = f"""
+               SELECT COUNT(*) FROM tbl_pre_disbursement_main 
+               WHERE pre_disb_temp_id = '{str(pre_disb_temp_id)}'
+            """
+            count_result = fetch_records(check_query)
+            print('printing count result')
+            print(count_result)
+            # count = int(count_result[0]['COUNT(*)']) if count_result else 0
+            count = int(count_result[0]['count']) if count_result else 0
 
+            if count == 0:
+                print('no record found in main table for respective temp id, inserting the record.')
+                # Get data from temp table
 
-# Route to update status
-@application.route('/update_pre_disbursement_status', methods=['POST'])
-def update_pre_disbursement_status():
-    try:
-        if is_login() and is_admin():
-            record_id = request.form.get('id')
-            record_type = request.form.get('type')
-            new_status = int(request.form.get('status'))
-            notes = request.form.get('notes')
-            user_id = get_current_user_id()
+                temp_records = get_all_pre_disbursement_temp_by_id(pre_disb_temp_id)
 
-            print(record_id, record_type, new_status, notes, user_id)
-
-            if not record_id or not record_type:
-                return jsonify({"success": False, "message": "Missing parameters"}), 400
-
-            if record_type == 'temp':
-                # Update temp record using execute_command
-                update_query = f"""
-                    UPDATE tbl_pre_disbursement_temp 
-                    SET status = '{str(new_status)}', notes = '{str(notes)}',
-                    approved_by = '{str(user_id)}', approved_date = '{str(datetime.now())}' 
-                    WHERE pre_disb_temp_id = '{str(record_id)}'
-                """
-                execute_command(update_query)
-
-                # If status is approved (2), create record in main table
-                if new_status == 2:
-                    # Check if record already exists in main table
-                    check_query = f"""
-                        SELECT COUNT(*) FROM tbl_pre_disbursement_main 
-                        WHERE pre_disb_temp_id = '{str(record_id)}'
+                if temp_records and len(temp_records) > 0:
+                    print('Inserting into main table')
+                    # Insert into main table
+                    insert_query = f"""
+                        INSERT INTO tbl_pre_disbursement_main (
+                            pre_disb_temp_id, notes, status, approved_by, approved_date
+                        ) VALUES ('{str(pre_disb_temp_id)}', '{str(notes)}', '{str(status)}', '{str(approved_by)}', '{str(approved_date)}')
                     """
-                    count_result = fetch_records(check_query)
-                    count = int(count_result[0]['COUNT(*)']) if count_result else 0
+                    execute_command(insert_query)
+                    print('record has been inserted.')
+            else:
+                print('record exists in main, updating the existing record.')
+                # query = f"""
+                #     update tbl_pre_disbursement_main pdm
+                #     set
+                #         pdm.status = '{str(status)}',
+                #         pdm.notes = '{str(notes)}',
+                #         pdm.approved_by = '{str(approved_by)}',
+                #         pdm.approved_date = '{str(approved_date)}'
+                #     where
+                #         pdm.pre_disb_temp_id = '{str(pre_disb_temp_id)}'
+                # """
+                # execute_command(query)
 
-                    if count == 0:
-                        # Get data from temp table
+        elif status == '3':
+            # Insert into tbl_pre_disb_rejected_app
+            query = f"""
+                INSERT INTO tbl_pre_disb_rejected_app (
+                    post_disb_id,
+                    application_status,
+                    status,
+                    created_by,
+                    created_date,
+                    modified_by,
+                    modified_date
+                )
+                SELECT
+                    {str(pre_disb_temp_id)},
+                    {str(status)},
+                    1,
+                    {str(approved_by)},
+                    '{approved_date}',
+                    {str(approved_by)},
+                    '{approved_date}'
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM tbl_pre_disb_rejected_app WHERE post_disb_id = {str(pre_disb_temp_id)}
+                )
+            """
+            execute_command(query)
 
-                        temp_records = get_all_pre_disbursement_temp_by_id(record_id)
+            # Send rejection email
+            # print('status is 3 proceeding to send rejection email.')
+            # html_message = f"""
+            #     <html>
+            #     <body style="color: black;">
+            #         <p>Dear Applicant,</p>
+            #         <p>We regret to inform you that your loan application with Application ID: <strong>{pre_disb_temp_id}</strong> has been rejected.</p>
+            #         <p>The reason for rejection is as follows: <strong>{notes or 'No specific reason provided.'}</strong></p>
+            #         <p>If you have any questions or need further assistance, please contact our support team.</p>
+            #         <p>Regards,<br><strong>HBL Microfinance Bank</strong></p>
+            #     </body>
+            #     </html>
+            # """
+            #
+            # from Model_Email import send_email
+            #
+            # success = send_email(
+            #     subject='Loan Application Rejection',
+            #     email_list=['dali27037@gmail.com'],  # Replace with actual email if different
+            #     message=None,
+            #     html_message=html_message,
+            #     attachment=None
+            # )
+            # if not success:
+            #     return jsonify({'success': False, 'error': 'Failed to send rejection email'}), 500
 
-                        if temp_records and len(temp_records) > 0:
-                            temp_record = temp_records[0]
-                            # Insert into main table
-                            insert_query = f"""
-                                INSERT INTO tbl_pre_disbursement_main (
-                                    pre_disb_temp_id, notes, status, approved_by, approved_date
-                                ) VALUES ('{str(record_id)}', '{str(notes)}', '{str(new_status)}', '{str(user_id)}', '{str(datetime.now())}')
-                            """
-                            execute_command(insert_query)
+        return jsonify({'success': True}), 200
 
-            else:  # For main records
-                update_query = f"""
-                    UPDATE tbl_pre_disbursement_main 
-                    SET status = '{str(new_status)}', notes = '{str(notes)}'  
-                    WHERE pre_disb_main_id = '{str(record_id)}'
-                """
-                execute_command(update_query)
-
-            return jsonify({"success": True})
-
-        return jsonify({"success": False, "message": "Unauthorized"}), 401
     except Exception as e:
-        print(f"Error in update_pre_disbursement_status: {str(e)}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
-# Helper function to get status text
-def get_status_text(status_code):
-    status_map = {
-        1: "Pending",
-        2: "Approved",
-        3: "Declined"
-    }
-    return status_map.get(status_code, "Unknown")
+@application.route('/approval-letter/<app_no>')
+def approval_letter(app_no):
+    print('app_no:- ', app_no)
+    try:
+        # query = f"""
+        #     SELECT Borrower_Name, Application_No, Loan_Amount, ApplicationDate, Father_Husband_Name, CNIC, approved_date
+        #     FROM tbl_pre_disbursement_temp
+        #     WHERE pre_disb_temp_id = '{str(app_no)}' AND status = '2'
+        # """
 
-@application.route('/show_lean')
-def show_lean():
-    return render_template('show_lean.html')
+        query = f"""
+            SELECT "Borrower_Name", "Application_No", "Loan_Amount", KFT_Approved_Loan_Limit, "ApplicationDate", "Father_Husband_Name", "CNIC", "approved_date", "email_status" 
+            FROM tbl_pre_disbursement_temp 
+            WHERE "pre_disb_temp_id" = '{str(app_no)}' AND "status" = '2'
+        """
+        record = fetch_records(query)
+        print(record)
+
+        if not record:
+            abort(404, description="Approved record not found")
+
+        # Convert logo image to base64
+        image_path = os.path.join(application.root_path, 'static', 'images', 'hbl_logo-removebg-preview.png')
+        with open(image_path, 'rb') as image_file:
+            base64_image = base64.b64encode(image_file.read()).decode('utf-8')
+        logo_base64 = f'data:image/png;base64,{base64_image}'
+
+        # Convert User sign to base64
+        query = f"""
+            SELECT u.name, u.email, u.signature, u.scan_sign 
+            FROM tbl_users u 
+            WHERE u.active = '1' AND u.user_id = '{get_current_user_id()}'
+        """
+        user = fetch_records(query)
+
+        # Convert scan_sign BLOB to base64 for display if it exists
+        sign_base64 = None
+        if user[0]['scan_sign']:
+            sign_base64 = base64.b64encode(user[0]['scan_sign']).decode('utf-8')
+            # print(sign_base64)
+
+        return render_template('approval_letter.html', result=record[0], logo_base64=logo_base64,
+                               sign_base64=sign_base64)
+    except Exception as e:
+        abort(500, description=str(e))

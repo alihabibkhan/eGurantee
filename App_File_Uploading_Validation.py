@@ -162,19 +162,54 @@ def validate_excel(filepath, file_type, category=None, file_idx=0):
     print(f"validate_excel: Entering function with filepath={filepath}, file_type={file_type}, category={category}, file_idx={file_idx}")
     try:
         pre_headers = [
-            'Branch_Name', 'Branch Area', 'Application_No', 'ApplicationDate',
-            'Bcc Approval Date', 'LoanProductCode', 'collateral_type', 'Credit History Ecib',
-            'Loan Cycle', 'Borrower Name', 'Student_Name', 'Father/Husband Name',
-            'Student Relation With Borrower', 'Student Co Borrower Gender', 'Gender', 'CNIC',
-            'Contact No', 'Type of Business', 'Nature of Business', 'Business Expense Description',
-            'Business Premises', 'Business Experiense (Since)', 'Premises', 'Purpose of Loan',
-            'annual_income', 'Annual Business Incomes', 'Annual Expenses', 'Annual Disposable Income',
-            'Monthly Repayment Capacity', 'Loan Amount', 'Requested Loan Amount', 'education_level',
-            'Collage/Univeristy', 'enrollment_status', 'Loan_Status', 'Current Residencial',
-            'Permanent Residencial', 'Dbr', 'Enterprise Premises', 'Existing Loan Number',
-            'Existing Loan Limit', 'Existing Loan Status', 'Existing Outstanding Loan Schedules',
-            'Experiense Start Date', 'Family Monthly Income', 'KF Remarks', 'No Of Family Members',
-            'Residance Type', 'Tenor Of Month'
+            'Annual Business Incomes',
+            'Annual Disposable Income',
+            'Annual Expenses',
+            'Appraised Date',
+            'Application No',
+            'ApplicationDate',
+            'Bcc Approval Date',
+            'Borrower Name',
+            'Branch Area',
+            'Branch Name',
+            'Business Expense Description',
+            'Client Dob',
+            'Co Borrower Dob',
+            'Collage/Univeristy',
+            'Collateral Type',
+            'Contact No',
+            'Credit History (Ecib)',
+            'Current Residencial',
+            'Dbr',
+            'Education Level',
+            'Enrollment Status',
+            'Enterprise Premises',
+            'Experiense (Start Date)',
+            'Family Monthly Income',
+            'Father/Husband Name',
+            'Gender',
+            'Loan Amount',
+            'Loan Cycle',
+            'Loan Officer',
+            'Loan Per Exposure',
+            'Loan Product Code',
+            'Loan Status',
+            'Markup Rate',
+            'Monthly Repayment Capacity',
+            'Nature of Business',
+            'No Of Family Members',
+            'Other Bank Loans Os',
+            'Permanent Residencial',
+            'Purpose of Loan',
+            'Relationship Ownership',
+            'Repayment Frequency',
+            'Requested Loan Amount',
+            'Residance Type',
+            'Student Co Borrower Gender',
+            'Student Name',
+            'Student Relation With Borrower',
+            'Tenor Of Month',
+            'Verfied Date Date'
         ]
         print("validate_excel: Defined pre_headers")
 
@@ -373,19 +408,54 @@ def process_upload():
     print("process_upload: Initialized duplicates, new_records, summary_path")
 
     pre_headers = [
-        'branch_name', 'branch_area', 'application_no', 'applicationdate',
-        'bcc_approval_date', 'loanproductcode', 'collateral_type', 'credit_history_ecib',
-        'loan_cycle', 'borrower_name', 'student_name', 'father_husband_name',
-        'student_relation_with_borrower', 'student_co_borrower_gender', 'gender', 'cnic',
-        'contact_no', 'type_of_business', 'nature_of_business', 'business_expense_description',
-        'business_premises', 'business_experiense_(since)', 'premises', 'purpose_of_loan',
-        'annual_income', 'annual_business_incomes', 'annual_expenses', 'annual_disposable_income',
-        'monthly_repayment_capacity', 'loan_amount', 'requested_loan_amount', 'education_level',
-        'collage_univeristy', 'enrollment_status', 'loan_status', 'current_residencial',
-        'permanent_residencial', 'dbr', 'enterprise_premises', 'existing_loan_number',
-        'existing_loan_limit', 'existing_loan_status', 'existing_outstanding_loan_schedules',
-        'experiense_start_date', 'family_monthly_income', 'kf_remarks', 'no_of_family_members',
-        'residance_type', 'tenor_of_month'
+        'annual_business_incomes',
+        'annual_disposable_income',
+        'annual_expenses',
+        'appraised_date',
+        'application_no',
+        'applicationdate',
+        'bcc_approval_date',
+        'borrower_name',
+        'branch_area',
+        'branch_name',
+        'business_expense_description',
+        'client_dob',
+        'co_borrower_dob',
+        'collage_univeristy',
+        'collateral_type',
+        'contact_no',
+        'credit_history_(ecib)',
+        'current_residencial',
+        'dbr',
+        'education_level',
+        'enrollment_status',
+        'enterprise_premises',
+        'experiense_(start_date)',
+        'family_monthly_income',
+        'father_husband_name',
+        'gender',
+        'loan_amount',
+        'loan_cycle',
+        'loan_officer',
+        'loan_per_exposure',
+        'loan_product_code',
+        'loan_status',
+        'markup_rate',
+        'monthly_repayment_capacity',
+        'nature_of_business',
+        'no_of_family_members',
+        'other_bank_loans_os',
+        'permanent_residencial',
+        'purpose_of_loan',
+        'relationship_ownership',
+        'repayment_frequency',
+        'requested_loan_amount',
+        'residance_type',
+        'student_co_borrower_gender',
+        'student_name',
+        'student_relation_with_borrower',
+        'tenor_of_month',
+        'verfied_date_date'
     ]
     print("process_upload: Defined pre_headers")
 
@@ -580,7 +650,7 @@ def process_upload():
         if len(new_records) > 0:
             print(f"process_upload: Processing {len(new_records)} new_records for insertion")
             date_columns = ['applicationdate', 'bcc_approval_date', 'business_experiense_(since)',
-                            'experiense_start_date'] if file_type == 'pre_disbursement' else ['mis_date',
+                            'experiense_(start_date)'] if file_type == 'pre_disbursement' else ['mis_date',
                                                                                               'booked_on',
                                                                                               'loan_closed_on', 'clo_on', 'dtf', 'dtt']
             print(f"process_upload: Defined date_columns: {date_columns}")
@@ -594,82 +664,6 @@ def process_upload():
                         df[col] = df[col].apply(parse_excel_date)
                         print(f"process_upload: Parsed dates for column '{col}'")
 
-                # for rec in df.to_dict('records'):
-                #     print(f"process_upload: Processing record in DataFrame '{df_key}'")
-                #     if file_type == 'pre_disbursement' and str(rec['application_no']) not in ['', 'NaN', 'None']:
-                #         query = f"""
-                #             INSERT INTO tbl_pre_disbursement_temp (
-                #                 "Application_No", "Annual_Business_Incomes", "Annual_Disposable_Income",
-                #                 "Annual_Expenses", "ApplicationDate", "Bcc_Approval_Date", "Borrower_Name",
-                #                 "Branch_Area", "Branch_Name", "Business_Expense_Description",
-                #                 "Business_Experiense_Since", "Business_Premises", "CNIC", "Collage_Univeristy",
-                #                 "Collateral_Type", "Contact_No", "Credit_History_Ecib", "Current_Residencial",
-                #                 "Dbr", "Education_Level", "Enrollment_Status", "Enterprise_Premises",
-                #                 "Existing_Loan_Number", "Existing_Loan_Limit", "Existing_Loan_Status",
-                #                 "Existing_Outstanding_Loan_Schedules", "Experiense_Start_Date",
-                #                 "Family_Monthly_Income", "Father_Husband_Name", "Gender", "KF_Remarks",
-                #                 "Loan_Amount", "Loan_Cycle", "LoanProductCode", "Loan_Status",
-                #                 "Monthly_Repayment_Capacity", "Nature_Of_Business", "No_Of_Family_Members",
-                #                 "Permanent_Residencial", "Premises", "Purpose_Of_Loan", "Requested_Loan_Amount",
-                #                 "Residance_Type", "Student_Name", "Student_Co_Borrower_Gender",
-                #                 "Student_Relation_With_Borrower", "Tenor_Of_Month", "Type_of_Business",
-                #                 "annual_income", "status", "uploaded_by", "uploaded_date"
-                #             ) VALUES (
-                #                 '{rec['application_no']}', '{rec['annual_business_incomes']}', '{rec['annual_disposable_income']}',
-                #                 '{rec['annual_expenses']}', '{rec['applicationdate']}', '{rec['bcc_approval_date']}',
-                #                 '{rec['borrower_name']}', '{rec['branch_area']}', '{rec['branch_name']}',
-                #                 '{rec['business_expense_description']}', '{rec['business_experiense_(since)']}',
-                #                 '{rec['business_premises']}', '{rec['cnic']}', '{rec['collage_univeristy']}', '{rec['collateral_type']}',
-                #                 '{rec['contact_no']}', '{rec['credit_history_ecib']}', '{rec['current_residencial']}', '{rec['dbr']}',
-                #                 '{rec['education_level']}', '{rec['enrollment_status']}', '{rec['enterprise_premises']}', '{rec['existing_loan_number']}',
-                #                 '{rec['existing_loan_limit']}', '{rec['existing_loan_status']}', '{rec['existing_outstanding_loan_schedules']}',
-                #                 '{rec['experiense_start_date']}', '{rec['family_monthly_income']}', '{rec['father_husband_name']}',
-                #                 '{rec['gender']}', '{rec['kf_remarks']}', '{rec['loan_amount']}', '{rec['loan_cycle']}',
-                #                 '{rec['loanproductcode']}', '{rec['loan_status']}', '{rec['monthly_repayment_capacity']}',
-                #                 '{rec['nature_of_business']}', '{rec['no_of_family_members']}', '{rec['permanent_residencial']}',
-                #                 '{rec['premises']}', '{rec['purpose_of_loan']}', '{rec['requested_loan_amount']}',
-                #                 '{rec['residance_type']}', '{rec['student_name']}', '{rec['student_co_borrower_gender']}',
-                #                 '{rec['student_relation_with_borrower']}', '{rec['tenor_of_month']}', '{rec['type_of_business']}',
-                #                 '{rec['annual_income']}', '1', '{str(get_current_user_id())}', '{str(datetime.now())}'
-                #             )
-                #         """
-                #         print(f"process_upload: Executing INSERT query for pre_disbursement, application_no={rec['application_no']}")
-                #         execute_command(query, is_print=False)
-                #     else:
-                #         if rec['loan_no'].replace("'", '') not in ['', 'NaN', 'None']:
-                #             query = f"""
-                #                         INSERT INTO tbl_post_disbursement (
-                #                             mis_date, area, sector_code, branch_code, branch_name, cnic, gender,
-                #                             address, mobile_no, loan_title, rt, loan_no, product_code, booked_on,
-                #                             disbursed_amount, repayment_type, sector, purpose, loan_status, loan_closed_on,
-                #                             act_clo, colloanno, coll_id, lrno, collat, coll_stat, collateral_value,
-                #                             collateral_title, overdue_days, principal_outstanding, total_outstand_other,
-                #                             markup_outstanding, lo, fc_los, dtf, dtt, customer_id, application_num,
-                #                             clo_on, liab_id, pool_id, account_number, created_by, created_date
-                #                         ) VALUES (
-                #                             '{rec.get('mis_date', '1900-01-01')}', '{rec.get('area', '')}', '{rec.get('sector_code', '')}',
-                #                             '{rec.get('branch_code', '')}', '{rec.get('branch_name', '')}', '{rec.get('cnic', '')}',
-                #                             '{rec.get('gender', '')}', '{rec.get('address', '')}', '{rec.get('mobile_no', '')}',
-                #                             '{rec.get('loan_title', '')}', '{rec.get('rt', '')}', '{rec.get('loan_no', '')}',
-                #                             '{rec.get('product_code', '')}', '{rec.get('booked_on', '1900-01-01')}',
-                #                             '{rec.get('disbursed_amount', '')}', '{rec.get('repayment_type', '')}',
-                #                             '{rec.get('sector', '')}', '{rec.get('purpose', '')}', '{rec.get('loan_status', '')}',
-                #                             '{rec.get('loan_closed_on', '1900-01-01')}', '{rec.get('act_clo', '')}',
-                #                             '{rec.get('colloanno', '')}', '{rec.get('coll_id', '')}', '{rec.get('lrno', '')}',
-                #                             '{rec.get('collat', '')}', '{rec.get('coll_stat', '')}', '{rec.get('collateral_value', '')}',
-                #                             '{rec.get('collateral_title', '')}', '{rec.get('overdue_days', '')}',
-                #                             '{rec.get('principal_outstanding', '')}', '{rec.get('total_outstand_other', '')}',
-                #                             '{rec.get('markup_outstanding', '')}', '{rec.get('lo', '')}', '{rec.get('fc_los', '')}',
-                #                             '{rec.get('dtf', '')}', '{rec.get('dtt', '')}', '{rec.get('customer_id', '')}',
-                #                             '{rec.get('application_num', '')}', '{rec.get('clo_on', '1900-01-01')}',
-                #                             '{rec.get('liab_id', '')}', '{rec.get('pool_id', '')}', '{rec.get('account_number', '')}',
-                #                             '{str(get_current_user_id())}', '{str(datetime.now())}'
-                #                         )
-                #                     """
-                #             print(
-                #                 f"process_upload: Executing INSERT query for {'pre_disbursement' if file_type == 'pre_disbursement' else 'post_disbursement'}, {'application_no' if file_type == 'pre_disbursement' else 'loan_no'}={rec.get('application_no' if file_type == 'pre_disbursement' else 'loan_no', '')}")
-                #             execute_command(query, is_print=False)
-                #             print("process_upload: Executed INSERT query")
                 pre_disbursement_queries = []
                 post_disbursement_queries = []
                 for rec in df.to_dict('records'):
@@ -679,7 +673,12 @@ def process_upload():
                         no_of_family_members = str(rec.get('no_of_family_members', ''))
                         tenor_of_month = str(rec.get('tenor_of_month', ''))
                         cnic = str(rec.get('cnic'))
-                        
+                        appraised_date = str(rec.get('appraised_date'))
+                        client_dob = str(rec.get('client_dob'))
+                        co_borrower_dob = str(rec.get('co_borrower_dob'))
+                        verfied_date_date = str(rec.get('verfied_date_date'))
+
+
                         # Extract and clean data from the sheet
                         rec_borrower_name = str(rec.get('borrower_name', '')).strip().lower()
                         rec_gender = str(rec.get('gender', '')).strip().lower()
@@ -765,45 +764,67 @@ def process_upload():
                         if tenor_of_month in ['None', 'NaN', 'Nan', '']:
                             tenor_of_month = '0'
 
+                        if appraised_date in ['None', 'NaN', 'Nan', '']:
+                            appraised_date = '1900-01-01'
+
+                        if client_dob in ['None', 'NaN', 'Nan', '']:
+                            client_dob = '1900-01-01'
+
+                        if verfied_date_date in ['None', 'NaN', 'Nan', '']:
+                            verfied_date_date = '1900-01-01'
+
+                        if co_borrower_dob in ['None', 'NaN', 'Nan', '']:
+                            co_borrower_dob = '1900-01-01'
+
+                        client_dob_formatted = format_date_for_sql(client_dob, str(rec['application_no']))
+                        co_borrower_dob_formatted = format_date_for_sql(co_borrower_dob, str(rec['application_no']))
+
 
                         query = f"""
-                                INSERT INTO tbl_pre_disbursement_temp (
-                                    "Application_No", "Annual_Business_Incomes", "Annual_Disposable_Income",
-                                    "Annual_Expenses", "ApplicationDate", "Bcc_Approval_Date", "Borrower_Name", 
-                                    "Branch_Area", "Branch_Name", "Business_Expense_Description", 
-                                    "Business_Experiense_Since", "Business_Premises", "CNIC", "Collage_Univeristy",
-                                    "Collateral_Type", "Contact_No", "Credit_History_Ecib", "Current_Residencial",
-                                    "Dbr", "Education_Level", "Enrollment_Status", "Enterprise_Premises",
-                                    "Existing_Loan_Number", "Existing_Loan_Limit", "Existing_Loan_Status",
-                                    "Existing_Outstanding_Loan_Schedules", "Experiense_Start_Date",
-                                    "Family_Monthly_Income", "Father_Husband_Name", "Gender", "KF_Remarks",
-                                    "Loan_Amount", "Loan_Cycle", "LoanProductCode", "Loan_Status",
-                                    "Monthly_Repayment_Capacity", "Nature_Of_Business", "No_Of_Family_Members",
-                                    "Permanent_Residencial", "Premises", "Purpose_Of_Loan", "Requested_Loan_Amount",
-                                    "Residance_Type", "Student_Name", "Student_Co_Borrower_Gender", 
-                                    "Student_Relation_With_Borrower", "Tenor_Of_Month", "Type_of_Business",
-                                    "annual_income", "status", "uploaded_by", "uploaded_date"
-                                ) VALUES (
-                                    '{rec.get('application_no', '')}', '{rec.get('annual_business_incomes', '')}', '{rec.get('annual_disposable_income', '')}',
-                                    '{rec.get('annual_expenses', '')}', '{rec.get('applicationdate', '')}', '{rec.get('bcc_approval_date', '')}', 
-                                    '{rec.get('borrower_name', '')}', '{rec.get('branch_area', '')}', '{rec.get('branch_name', '')}', 
-                                    '{rec.get('business_expense_description', '')}', '{rec.get('business_experiense_(since)', '')}',
-                                    '{rec.get('business_premises', '')}', '{rec.get('cnic', '')}', '{rec.get('collage_univeristy', '')}', 
-                                    '{rec.get('collateral_type', '')}', '{rec.get('contact_no', '')}', '{rec.get('credit_history_ecib', '')}', 
-                                    '{rec.get('current_residencial', '')}', '{rec.get('dbr', '')}', '{education_level}', 
-                                    '{rec.get('enrollment_status', '')}', '{rec.get('enterprise_premises', '')}', '{rec.get('existing_loan_number', '')}',
-                                    '{rec.get('existing_loan_limit', '')}', '{rec.get('existing_loan_status', '')}', 
-                                    '{rec.get('existing_outstanding_loan_schedules', '')}', '{rec.get('experiense_start_date', '')}', 
-                                    '{rec.get('family_monthly_income', '')}', '{rec.get('father_husband_name', '')}', '{rec.get('gender', '')}', 
-                                    '{rec.get('kf_remarks', '')}', '{rec.get('loan_amount', '')}', '{rec.get('loan_cycle', '')}',
-                                    '{rec.get('loanproductcode', '')}', '{rec.get('loan_status', '')}', '{rec.get('monthly_repayment_capacity', '')}', 
-                                    '{rec.get('nature_of_business', '')}', '{no_of_family_members}', '{rec.get('permanent_residencial', '')}',
-                                    '{rec.get('premises', '')}', '{rec.get('purpose_of_loan', '')}', '{rec.get('requested_loan_amount', '')}',
-                                    '{rec.get('residance_type', '')}', '{rec.get('student_name', '')}', '{rec.get('student_co_borrower_gender', '')}',
-                                    '{rec.get('student_relation_with_borrower', '')}', '{tenor_of_month}', '{rec.get('type_of_business', '')}',
-                                    '{rec.get('annual_income', '')}', '1', '{str(get_current_user_id())}', '{str(datetime.now())}'
-                                )
-                            """
+                            INSERT INTO tbl_pre_disbursement_temp (
+                                "Application_No", "Annual_Business_Incomes", "Annual_Disposable_Income",
+                                "Annual_Expenses", "ApplicationDate", "Bcc_Approval_Date", "Borrower_Name",
+                                "Branch_Area", "Branch_Name", "Business_Expense_Description",
+                                "Business_Experiense_Since", "Business_Premises", "CNIC", "Collage_Univeristy",
+                                "Collateral_Type", "Contact_No", "Credit_History_Ecib", "Current_Residencial",
+                                "Dbr", "Education_Level", "Enrollment_Status", "Enterprise_Premises",
+                                "Existing_Loan_Number", "Existing_Loan_Limit", "Existing_Loan_Status",
+                                "Existing_Outstanding_Loan_Schedules", "Experiense_Start_Date",
+                                "Family_Monthly_Income", "Father_Husband_Name", "Gender", "KF_Remarks",
+                                "Loan_Amount", "Loan_Cycle", "LoanProductCode", "Loan_Status",
+                                "Monthly_Repayment_Capacity", "Nature_Of_Business", "No_Of_Family_Members",
+                                "Permanent_Residencial", "Premises", "Purpose_Of_Loan", "Requested_Loan_Amount",
+                                "Residance_Type", "Student_Name", "Student_Co_Borrower_Gender",
+                                "Student_Relation_With_Borrower", "Tenor_Of_Month", "Type_of_Business",
+                                "annual_income", "markup_rate", "repayment_frequency", "loan_officer",
+                                "appraised_date", "verfied_date_date", "loan_per_exposure", "client_dob",
+                                "co_borrower_dob", "relationship_ownership", "other_bank_loans_os",
+                                "status", "uploaded_by", "uploaded_date"
+                            ) VALUES (
+                                '{rec.get('application_no', '')}', '{rec.get('annual_business_incomes', '')}', '{rec.get('annual_disposable_income', '')}',
+                                '{rec.get('annual_expenses', '')}', '{rec.get('applicationdate', '')}', '{rec.get('bcc_approval_date', '')}',
+                                '{rec.get('borrower_name', '')}', '{rec.get('branch_area', '')}', '{rec.get('branch_name', '')}',
+                                '{rec.get('business_expense_description', '').replace(',', ' and ')}', '{rec.get('business_experiense_(since)', '1900-01-01')}',
+                                '{rec.get('business_premises', '')}', '{rec.get('cnic', '')}', '{rec.get('collage_univeristy', '')}',
+                                '{rec.get('collateral_type', '')}', '{rec.get('contact_no', '')}', '{rec.get('credit_history_(ecib)', '')}',
+                                '{rec.get('current_residencial', '')}', '{rec.get('dbr', '')}', '{education_level}',
+                                '{rec.get('enrollment_status', '')}', '{rec.get('enterprise_premises', '')}', '{rec.get('existing_loan_number', '')}',
+                                '{rec.get('existing_loan_limit', '')}', '{rec.get('existing_loan_status', '')}',
+                                '{rec.get('existing_outstanding_loan_schedules', '')}', '{rec.get('experiense_(start_date)', '')}',
+                                '{rec.get('family_monthly_income', '')}', '{rec.get('father_husband_name', '')}', '{rec.get('gender', '')}',
+                                '{rec.get('kf_remarks', '')}', '{rec.get('loan_amount', '')}', '{rec.get('loan_cycle', '')}',
+                                '{rec.get('loanproductcode', '')}', '{rec.get('loan_status', '')}', '{rec.get('monthly_repayment_capacity', '')}',
+                                '{rec.get('nature_of_business', '')}', '{no_of_family_members}', '{rec.get('permanent_residencial', '')}',
+                                '{rec.get('premises', '')}', '{sanitize_file_columns(str(rec.get('purpose_of_loan', '')))}', '{rec.get('requested_loan_amount', '')}',
+                                '{rec.get('residance_type', '')}', '{rec.get('student_name', '')}', '{rec.get('student_co_borrower_gender', '')}',
+                                '{rec.get('student_relation_with_borrower', '')}', '{tenor_of_month}', '{rec.get('type_of_business', '')}',
+                                '{rec.get('annual_income', '')}', '{rec.get('markup_rate', '')}', '{rec.get('repayment_frequency', '')}',
+                                '{rec.get('loan_officer', '')}', '{appraised_date}', '{verfied_date_date}',
+                                '{rec.get('loan_per_exposure', '')}',  '{str(client_dob_formatted)}', '{str(co_borrower_dob_formatted)}',
+                                '{rec.get('relationship_ownership', '')}', '{rec.get('other_bank_loans_os', '')}', '1',
+                                '{str(get_current_user_id())}', '{str(datetime.now())}'
+                            )
+                        """
                         pre_disbursement_queries.append(query)
                         print(
                             f"process_upload: Preparing INSERT query for pre_disbursement, application_no={rec.get('application_no', '')}")
@@ -836,7 +857,7 @@ def process_upload():
                                     ) VALUES (
                                         '{mis_date}', '{rec.get('area', '')}', '{rec.get('sector_code', '')}',
                                         '{rec.get('branch_code', '')}', '{rec.get('branch_name', '')}', '{rec.get('cnic', '')}',
-                                        '{rec.get('gender', '')}', '{sanitize_address(str(rec.get('address', '')))}', '{rec.get('mobile_no', '')}',
+                                        '{rec.get('gender', '')}', '{sanitize_file_columns(str(rec.get('address', '')))}', '{rec.get('mobile_no', '')}',
                                         '{rec.get('loan_title', '')}', '{rec.get('rt', '')}', '{loan_no}',
                                         '{rec.get('product_code', '')}', '{booked_on}',
                                         '{rec.get('disbursed_amount', '')}', '{rec.get('repayment_type', '')}',
@@ -1015,7 +1036,7 @@ def download_summary():
         return redirect(url_for('manage_file'))
 
 
-def sanitize_address(address: str) -> str:
+def sanitize_file_columns(address: str) -> str:
     """
     Sanitize address string to prevent SQL query issues.
     Removes or escapes problematic characters and handles None/empty values.
@@ -1033,3 +1054,45 @@ def sanitize_address(address: str) -> str:
         print(f"Cleaned address from '{address}' to '{cleaned_address}'")
 
     return cleaned_address
+
+
+def format_date_for_sql(date_str: str, application_no: str = None) -> str:
+    """
+    Converts a date string to ISO format (YYYY-MM-DD) for SQL.
+    Flashes messages including the application number and date string on errors.
+
+    :param date_str: Input date string.
+    :param application_no: Application number for context in flash messages.
+    :return: ISO format string or None.
+    """
+    if not date_str or date_str.strip() == '':
+        flash_msg = f"Application {application_no}: Date is missing or empty."
+        flash(flash_msg, "danger")
+        return '1900-01-01'
+
+    cleaned = date_str.strip()
+
+    invalid_dates = {'0000-00-00', '1974-00-00', '00-00-0000', '0/0/0000', '0-0-0'}
+
+    if cleaned in invalid_dates:
+        flash_msg = f"Application {application_no}: Invalid date detected '{cleaned}'. Date will be saved as NULL."
+        flash(flash_msg, "danger")
+        return '1900-01-01'
+
+    possible_formats = [
+        '%d/%m/%Y', '%d-%m-%Y',
+        '%Y/%m/%d', '%Y-%m-%d',
+        '%m/%d/%Y', '%m-%d-%Y',
+        '%d.%m.%Y', '%Y.%m.%d'
+    ]
+
+    for fmt in possible_formats:
+        try:
+            dt = datetime.strptime(cleaned, fmt)
+            return dt.date().isoformat()
+        except ValueError:
+            continue
+
+    flash_msg = f"Application {application_no}: Unrecognized date format '{cleaned}'. Date will be saved as NULL."
+    flash(flash_msg, "danger")
+    return '1900-01-01'

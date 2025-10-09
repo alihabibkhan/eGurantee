@@ -18,16 +18,35 @@ def get_disbursed_loan_count():
     return result
 
 
+# def get_outstanding_loans():
+#     query = """
+#         SELECT
+#             COUNT(*) AS total_principal_outstanding_count,
+#             SUM(principal_outstanding) AS total_principal_outstanding,
+#             DATE_TRUNC('month', MAX(mis_date)) AS Latest_Month
+#         FROM tbl_post_disbursement
+#         WHERE principal_outstanding > 0
+#           AND DATE_TRUNC('month', mis_date) = (
+#               SELECT DATE_TRUNC('month', MAX(mis_date)) FROM tbl_post_disbursement
+#           );
+#     """
+#     result = fetch_records(query)
+#     print("get_outstanding_loans")
+#     print(result)
+#
+#     return result
+
 def get_outstanding_loans():
     query = """
-        SELECT 
+       SELECT 
             COUNT(*) AS total_principal_outstanding_count,
-            SUM(principal_outstanding) AS total_principal_outstanding
-        FROM tbl_post_disbursement
-        WHERE principal_outstanding > 0
+            SUM(principal_outstanding) AS total_principal_outstanding,
+            TO_CHAR(MAX(mis_date), 'Mon,FMDD YYYY') AS latest_month
+       FROM tbl_post_disbursement
+       WHERE principal_outstanding > 0
           AND DATE_TRUNC('month', mis_date) = (
-              SELECT DATE_TRUNC('month', MAX(mis_date)) FROM tbl_post_disbursement
-          );
+          SELECT DATE_TRUNC('month', MAX(mis_date)) FROM tbl_post_disbursement
+       );
     """
     result = fetch_records(query)
     print("get_outstanding_loans")
@@ -90,11 +109,29 @@ def get_latest_portfolio_date():
 
 def get_loan_details_by_national_council():
     print("get_loan_details_by_national_council")
+    # query = """
+    #     SELECT
+    #         REGEXP_REPLACE(INITCAP(REPLACE(b.national_council_distribution, '_', ' ')), ' Rc$', ' RC') AS national_council_distribution,
+    #         COUNT(DISTINCT pd.cnic) AS total_beneficiaries,
+    #         COUNT(CASE WHEN pd.disbursed_amount > 0 THEN 1 END) AS disbursed_count,
+    #         COUNT(CASE WHEN pd.principal_outstanding > 0 THEN 1 END) AS active_loan_count
+    #     FROM tbl_post_disbursement pd
+    #     INNER JOIN tbl_branches b
+    #         ON pd.branch_code = b.branch_code
+    #     WHERE
+    #         b.live_branch = '1'
+    #         AND DATE_TRUNC('month', pd.mis_date) = (
+    #             SELECT DATE_TRUNC('month', MAX(mis_date))
+    #             FROM tbl_post_disbursement
+    #         )
+    #     GROUP BY b.national_council_distribution;
+    # """
+
     query = """
         SELECT 
             REGEXP_REPLACE(INITCAP(REPLACE(b.national_council_distribution, '_', ' ')), ' Rc$', ' RC') AS national_council_distribution,
             COUNT(DISTINCT pd.cnic) AS total_beneficiaries,
-            COUNT(CASE WHEN pd.disbursed_amount > 0 THEN 1 END) AS disbursed_count,
+            COUNT(*) AS disbursed_count,
             COUNT(CASE WHEN pd.principal_outstanding > 0 THEN 1 END) AS active_loan_count
         FROM tbl_post_disbursement pd
         INNER JOIN tbl_branches b

@@ -49,88 +49,65 @@ def view_rejected_applications():
 
 @application.route('/update-pre-disbursement-temp', methods=['POST'])
 def update_pre_disbursement_temp():
+    """
+    Update pre-disbursement temporary record based on status using f-strings.
+    """
     try:
+        # Check if user is authenticated
         if not is_login():
+            print("Unauthorized access attempt")
             return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+
+        # Get JSON data from request
         data = request.get_json()
-        print(data)
+        print(f"Received data: {data}")
+
+        # Extract required fields
         pre_disb_temp_id = data.get('pre_disb_temp_id')
         status = str(data.get('status'))
         notes = data.get('Notes')
         amount_accepted = data.get('amount_accepted')
+        print(f"Extracted: id={pre_disb_temp_id}, status={status}, notes={notes}, amount={amount_accepted}")
 
-        approved_by = str(get_current_user_id())
-        approved_date = str(datetime.now())
-
+        # Validate required fields
         if not pre_disb_temp_id or not status:
+            print("Missing required fields")
             return jsonify({'success': False, 'error': 'Missing required fields'}), 400
 
-        query = ''
+        # Get current user and timestamp
+        approved_by = str(get_current_user_id())
+        approved_date = str(datetime.now())
+        print(f"User: {approved_by}, Date: {approved_date}")
 
-        if status in ['2']:
-            query = f"""
-               UPDATE tbl_pre_disbursement_temp
-               SET status = '{str(status)}', Notes = '{str(notes)}', KFT_Approved_Loan_Limit = '{str(amount_accepted)}',
-               approved_by = '{str(approved_by)}', approved_date = '{str(approved_date)}'
-               WHERE pre_disb_temp_id = '{str(pre_disb_temp_id)}'
-            """
-        else:
-            query = f"""
-               UPDATE tbl_pre_disbursement_temp
-               SET status = '{str(status)}', Notes = '{str(notes)}', KFT_Approved_Loan_Limit = '{str(amount_accepted)}',
-               reviewed_by = '{str(approved_by)}', reviewed_date = '{str(approved_date)}'
-               WHERE pre_disb_temp_id = '{str(pre_disb_temp_id)}'
-            """
+        # Define status-to-field mapping
+        status_fields = {
+            '2': ('approved_by', 'approved_date'),
+            '5': ('reviewed_by', 'reviewed_date'),
+            '6': ('reviewed_by', 'reviewed_date'),
+            '3': ('rejected_by', 'rejected_date')
+        }
 
+        # Validate status
+        if status not in status_fields:
+            print(f"Invalid status: {status}")
+            return jsonify({'success': False, 'error': 'Invalid status'}), 400
+
+        # Prepare update query with f-strings
+        update_field, date_field = status_fields[status]
+        query = f"""
+            UPDATE tbl_pre_disbursement_temp
+            SET status = '{status}', Notes = '{notes}', KFT_Approved_Loan_Limit = '{amount_accepted}',
+                {update_field} = '{approved_by}', {date_field} = '{approved_date}'
+            WHERE pre_disb_temp_id = '{pre_disb_temp_id}'
+        """
+
+        # Execute update query
         execute_command(query)
+        print(f"Executed update query for pre_disb_temp_id: {pre_disb_temp_id}")
 
-        if status in ['2', '5']:
-            # Check if record already exists in main table
-            print('status is 2 proceeding to insert record in main.')
-            check_query = f"""
-               SELECT COUNT(*) FROM tbl_pre_disbursement_main 
-               WHERE pre_disb_temp_id = '{str(pre_disb_temp_id)}'
-            """
-            count_result = fetch_records(check_query)
-            print('printing count result')
-            print(count_result)
-            # count = int(count_result[0]['COUNT(*)']) if count_result else 0
-            count = int(count_result[0]['count']) if count_result else 0
-
-
-            if count == 0:
-                print('no record found in main table for respective temp id, inserting the record.')
-                # Get data from temp table
-
-                temp_records = get_all_pre_disbursement_temp_by_id(pre_disb_temp_id)
-
-                if temp_records and len(temp_records) > 0:
-                    print('Inserting into main table')
-                    # Insert into main table
-                    insert_query = f"""
-                        INSERT INTO tbl_pre_disbursement_main (
-                            pre_disb_temp_id, notes, status, approved_by, approved_date
-                        ) VALUES ('{str(pre_disb_temp_id)}', '{str(notes)}', '{str(status)}', '{str(approved_by)}', '{str(approved_date)}')
-                    """
-                    execute_command(insert_query)
-                    print('record has been inserted.')
-            else:
-                print('record exists in main, updating the existing record.')
-                # query = f"""
-                #     update tbl_pre_disbursement_main pdm
-                #     set
-                #         pdm.status = '{str(status)}',
-                #         pdm.notes = '{str(notes)}',
-                #         pdm.approved_by = '{str(approved_by)}',
-                #         pdm.approved_date = '{str(approved_date)}'
-                #     where
-                #         pdm.pre_disb_temp_id = '{str(pre_disb_temp_id)}'
-                # """
-                # execute_command(query)
-
-        elif status == '3':
-            # Insert into tbl_pre_disb_rejected_app
-            query = f"""
+        # Handle rejected status (status = '3')
+        if status == '3':
+            insert_query = f"""
                 INSERT INTO tbl_pre_disb_rejected_app (
                     post_disb_id,
                     application_status,
@@ -141,48 +118,27 @@ def update_pre_disbursement_temp():
                     modified_date
                 )
                 SELECT
-                    {str(pre_disb_temp_id)},
-                    {str(status)},
+                    '{pre_disb_temp_id}',
+                    '{status}',
                     1,
-                    {str(approved_by)},
+                    '{approved_by}',
                     '{approved_date}',
-                    {str(approved_by)},
+                    '{approved_by}',
                     '{approved_date}'
                 WHERE NOT EXISTS (
-                    SELECT 1 FROM tbl_pre_disb_rejected_app WHERE post_disb_id = {str(pre_disb_temp_id)}
+                    SELECT 1 FROM tbl_pre_disb_rejected_app WHERE post_disb_id = '{pre_disb_temp_id}'
                 )
             """
-            execute_command(query)
+            execute_command(insert_query)
+            print(f"Inserted rejected app record for post_disb_id: {pre_disb_temp_id}")
 
-            # Send rejection email
-            # print('status is 3 proceeding to send rejection email.')
-            # html_message = f"""
-            #     <html>
-            #     <body style="color: black;">
-            #         <p>Dear Applicant,</p>
-            #         <p>We regret to inform you that your loan application with Application ID: <strong>{pre_disb_temp_id}</strong> has been rejected.</p>
-            #         <p>The reason for rejection is as follows: <strong>{notes or 'No specific reason provided.'}</strong></p>
-            #         <p>If you have any questions or need further assistance, please contact our support team.</p>
-            #         <p>Regards,<br><strong>HBL Microfinance Bank</strong></p>
-            #     </body>
-            #     </html>
-            # """
-            #
-            # from Model_Email import send_email
-            #
-            # success = send_email(
-            #     subject='Loan Application Rejection',
-            #     email_list=['dali27037@gmail.com'],  # Replace with actual email if different
-            #     message=None,
-            #     html_message=html_message,
-            #     attachment=None
-            # )
-            # if not success:
-            #     return jsonify({'success': False, 'error': 'Failed to send rejection email'}), 500
-
-        return jsonify({'success': True}), 200
+        # Return success response
+        print("Update completed successfully")
+        return jsonify({'success': True, 'status': str(status)}), 200
 
     except Exception as e:
+        # Log error and return failure response
+        print(f"Error occurred: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
