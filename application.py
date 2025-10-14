@@ -17,7 +17,7 @@ application.config['MAIL_USE_TLS'] = True
 application.config['MAIL_USE_SSL'] = False
 application.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
 application.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
-application.config['MAIL_DEFAULT_SENDER'] = ''
+application.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
 
 mail = Mail(application)
 
