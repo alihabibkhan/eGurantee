@@ -177,6 +177,7 @@ def get_all_pre_disbursement_temp():
             u4."name" AS rejected_by,
             b.branch,
             b.role,
+            b.email,
             bd.bank_name,
             pdt."markup_rate",
             pdt."repayment_frequency",

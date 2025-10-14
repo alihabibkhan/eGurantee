@@ -1,3 +1,5 @@
+import os
+
 from imports import *
 from flask_mail import Mail, Message
 
@@ -13,9 +15,9 @@ application.config['MAIL_SERVER'] = 'smtp.gmail.com'
 application.config['MAIL_PORT'] = 587
 application.config['MAIL_USE_TLS'] = True
 application.config['MAIL_USE_SSL'] = False
-application.config['MAIL_USERNAME'] = 'alihabib202299@gmail.com'  # Replace with your email
-application.config['MAIL_PASSWORD'] = 'yaly ftoq rdtg syno'     # Use App Password for Gmail with 2FA
-application.config['MAIL_DEFAULT_SENDER'] = 'zali9261@gmail.com'
+application.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+application.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+application.config['MAIL_DEFAULT_SENDER'] = ''
 
 mail = Mail(application)
 
@@ -41,6 +43,7 @@ def format_date(value):
     if value is None:
         return ""
     return value.strftime('%d-%m-%Y')
+
 
 @application.template_filter('date_format')
 def date_format(value):
