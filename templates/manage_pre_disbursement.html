@@ -257,7 +257,7 @@
                     <div class="modal-body" id="temp-modal-body"></div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button class="btn btn-primary btn-send-email" data-pre-id="" data-pre-email-status=""><i class="bi bi-envelope text-white"></i></button>
+                        <button class="btn btn-primary btn-send-email" data-email="" data-pre-id="" data-pre-email-status=""><i class="bi bi-envelope text-white"></i></button>
                         <button type="button" class="btn btn-primary" id="temp-save-btn">Save</button>
                     </div>
                 </div>
@@ -564,6 +564,7 @@
 
             $('.btn-send-email').hide();
             $('.btn-send-email').attr('data-pre-id', record.pre_disb_temp_id);
+            $('.btn-send-email').attr('data-email', record.email);
             $('.btn-send-email').attr('data-pre-email-status', record.email_status);
 
             if(record.status == '2'){
@@ -1322,6 +1323,11 @@
 
         // Show email modal
         function showEmailModal() {
+            const button = document.querySelector('.btn-send-email'); // Find the button inside obj
+            const email = button.getAttribute('data-email');     // Get data-email from it
+
+            document.getElementById('recipient-email').value = email;
+
             const modal = new bootstrap.Modal(document.getElementById('emailModal'));
             modal.show();
         }

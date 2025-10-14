@@ -215,8 +215,8 @@
                                     {% endif %}
                                 {% endfor %}
                                 {% if ns.total_row %}
-                                    <h3>#{{ ns.total_row.unique_cnic_count }}</h3>
-                                    <p>Total <a href="#" class="text-primary" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="top" title="<b>Male:</b> #{{ ns.male_count }} ({{ ((ns.male_count / ns.total) * 100) | round(1) }}%)<br><b>Female:</b> #{{ ns.female_count }} ({{ ((ns.female_count / ns.total) * 100) | round(1) }}%)">View Details</a></p>
+                                    <h3><small class="text-muted">Total:</small> {{ ns.total_row.unique_cnic_count }}</h3>
+                                    <p>Male: {{ ns.male_count }} ({{ ((ns.male_count / ns.total) * 100) | round(1) }}%)<br>Female: {{ ns.female_count }} ({{ ((ns.female_count / ns.total) * 100) | round(1) }}%)</p>
                                 {% endif %}
                             {% else %}
                                 <p class="no-data">No data to display</p>
@@ -235,9 +235,16 @@
                                 {% for row in result.get_disbursed_loan_count %}
                                     {% if loop.first %}
                                         {% set disbursed_amount = row.total_disbursed_amount | round(2) %}
-                                        {% set formatted_amount = "%d,%03d,%03d" | format(disbursed_amount // 1000000, (disbursed_amount % 1000000) // 1000, disbursed_amount % 1000) if disbursed_amount >= 1000 else disbursed_amount %}
-                                        <h3 class="currency">Rs: {{ formatted_amount }}</h3>
-                                        <p>Sum Of Loan Disbursed</p>
+                                        {% if disbursed_amount >= 1000000000 %}
+                                            {% set formatted_amount = (disbursed_amount / 1000000000) | round(2) ~ ' Bn' %}
+                                        {% elif disbursed_amount >= 1000000 %}
+                                            {% set formatted_amount = (disbursed_amount / 1000000) | round(2) ~ ' Mn' %}
+                                        {% elif disbursed_amount >= 100000 %}
+                                            {% set formatted_amount = (disbursed_amount / 100000) | round(2) ~ ' Lakhs' %}
+                                        {% else %}
+                                            {% set formatted_amount = disbursed_amount %}
+                                        {% endif %}
+                                        <h3 class="currency"><small class="text-muted">PKR</small> {{ formatted_amount }}</h3>
                                     {% endif %}
                                 {% endfor %}
                             {% else %}
@@ -257,9 +264,16 @@
                                 {% for row in result.get_outstanding_loans %}
                                     {% if loop.first %}
                                         {% set outstanding_amount = row.total_principal_outstanding | round(2) %}
-                                        {% set formatted_amount = "%d,%03d,%03d" | format(outstanding_amount // 1000000, (outstanding_amount % 1000000) // 1000, outstanding_amount % 1000) if outstanding_amount >= 1000 else outstanding_amount %}
-                                        <h3 class="currency">Rs: {{ formatted_amount }}</h3>
-                                        <p>Sum Of Outstanding Loans</p>
+                                        {% if outstanding_amount >= 1000000000 %}
+                                            {% set formatted_amount = (outstanding_amount / 1000000000) | round(2) ~ ' Bn' %}
+                                        {% elif outstanding_amount >= 1000000 %}
+                                            {% set formatted_amount = (outstanding_amount / 1000000) | round(2) ~ ' Mn' %}
+                                        {% elif outstanding_amount >= 100000 %}
+                                            {% set formatted_amount = (outstanding_amount / 100000) | round(2) ~ ' Lakhs' %}
+                                        {% else %}
+                                            {% set formatted_amount = outstanding_amount %}
+                                        {% endif %}
+                                        <h3 class="currency"><small class="text-muted">PKR</small> {{ formatted_amount }}</h3>
                                     {% endif %}
                                 {% endfor %}
                             {% else %}
@@ -279,9 +293,16 @@
                                 {% for row in result.get_non_performing_loan_count %}
                                     {% if loop.first %}
                                         {% set non_performing_amount = row.non_performing_loans | round(2) %}
-                                        {% set formatted_amount = "%d,%03d,%03d" | format(non_performing_amount // 1000000, (non_performing_amount % 1000000) // 1000, non_performing_amount % 1000) if non_performing_amount >= 1000 else non_performing_amount %}
-                                        <h3 class="currency">Rs: {{ formatted_amount }}</h3>
-                                        <p>Sum Of Non Performing Loans</p>
+                                        {% if non_performing_amount >= 1000000000 %}
+                                            {% set formatted_amount = (non_performing_amount / 1000000000) | round(2) ~ ' Bn' %}
+                                        {% elif non_performing_amount >= 1000000 %}
+                                            {% set formatted_amount = (non_performing_amount / 1000000) | round(2) ~ ' Mn' %}
+                                        {% elif non_performing_amount >= 100000 %}
+                                            {% set formatted_amount = (non_performing_amount / 100000) | round(2) ~ ' Lakhs' %}
+                                        {% else %}
+                                            {% set formatted_amount = non_performing_amount %}
+                                        {% endif %}
+                                        <h3 class="currency"><small class="text-muted">PKR</small> {{ formatted_amount }}</h3>
                                     {% endif %}
                                 {% endfor %}
                             {% else %}
@@ -292,7 +313,6 @@
                 </div>
             </div>
         </div>
-
 
         <div class="dashboard-parent-card shadow-lg">
             <div class="d-flex justify-content-center mb-3">
@@ -309,17 +329,17 @@
                                 <h2>{{ row.national_council_distribution }}</h2>
                                 <div class="metrics-container">
                                     <div class="metrics-left">
-                                        <h3>#{{ row.total_beneficiaries }}</h3>
-                                        <p>Beneficiaries (#)</p>
+                                        <h3>{{ row.total_beneficiaries }}</h3>
+                                        <p>Beneficiaries</p>
                                     </div>
                                     <div class="metrics-right">
                                         <div>
-                                            <h3>#{{ row.disbursed_count }}</h3>
-                                            <p>Loan Disbursed (#)</p>
+                                            <h3>{{ row.disbursed_count }}</h3>
+                                            <p>Loan Disbursed</p>
                                         </div>
                                         <div>
-                                            <h3>#{{ row.active_loan_count }}</h3>
-                                            <p>Active Loan (#)</p>
+                                            <h3>{{ row.active_loan_count }}</h3>
+                                            <p>Active Loan</p>
                                         </div>
                                     </div>
                                 </div>
@@ -329,7 +349,6 @@
                 {% endfor %}
             </div>
         </div>
-
     </div>
     <script>
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
