@@ -5,13 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fund Projection Report</title>
     {% include 'head.html' %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         .card {
             margin-top: 1rem;
             margin-bottom: 1rem;
+            flex: 1;
+            min-width: 0;
+            margin-right: 1rem;
+        }
+        .card:last-child {
+            margin-right: 0;
         }
         .form-group {
             margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+        }
+        .form-group label {
+            flex: 0 0 250px;
+            margin-right: 1rem;
+            font-weight: normal;
+        }
+        .form-group input, .form-group select {
+            flex: 1;
+            max-width: 300px;
         }
         .readonly-field {
             background-color: #f8f9fa;
@@ -37,6 +56,64 @@
         .table th {
             background-color: #f8f9fa;
         }
+        .card-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .button-group {
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+        .download-btn-group {
+            margin-bottom: 1rem;
+        }
+        @media print {
+            .button-group, .trend-analysis, .download-btn-group {
+                display: none !important;
+            }
+            .container {
+                padding: 0;
+            }
+            .card-row {
+                display: block;
+            }
+            .card {
+                margin-right: 0;
+                page-break-inside: avoid;
+            }
+        }
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 5px;
+            width: 80%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .modal-content h5 {
+            margin-bottom: 1rem;
+        }
+        .modal-content .form-check, .modal-content .form-group {
+            margin-bottom: 1rem;
+        }
+        .modal-content button {
+            margin: 0 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -51,136 +128,159 @@
     <div class="container py-4">
         <h1 class="mb-4">Fund Projection Report</h1>
 
-        <!-- Collateral Account Projection -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">Collateral Account Projection</h5>
+        <!-- Download Report Button -->
+        <div class="download-btn-group">
+            <button id="download-report-btn" class="btn btn-primary">Download Report</button>
+        </div>
+
+        <!-- First Row: References & Collateral Account Current Position -->
+        <div class="card-row">
+            <!-- References -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">References</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="bank-select">Bank:</label>
+                        <select id="bank-select" class="form-control">
+                            <option value="">Select a Bank</option>
+                            {% for bank in result.get_all_bank_details %}
+                                <option value="{{ bank.bank_id }}"
+                                        data-balance="{% for entry in result.get_all_banks_last_entry_records %}{% if entry.bank_id == bank.bank_id %}{{ entry.balance }}{% endif %}{% endfor %}">
+                                    {{ bank.bank_code }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="account-balance">Account Balance:</label>
+                        <input type="text" id="account-balance" class="form-control readonly-field" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="actual-data-date">Actual Data As Per Latest Updated on:</label>
+                        <input type="text" id="actual-data-date" class="form-control readonly-field" value="{{ result.get_outstanding_loans[0].latest_month | default('N/A') }}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="report-date">Report Date:</label>
+                        <input type="text" id="report-date" class="form-control readonly-field" readonly>
+                    </div>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="form-group">
-                    <label for="bank-select">Bank</label>
-                    <select id="bank-select" class="form-control">
-                        <option value="">Select a Bank</option>
-                        {% for bank in result.get_all_bank_details %}
-                            <option value="{{ bank.bank_id }}"
-                                    data-balance="{% for entry in result.get_all_banks_last_entry_records %}{% if entry.bank_id == bank.bank_id %}{{ entry.balance }}{% endif %}{% endfor %}">
-                                {{ bank.bank_code }}
-                            </option>
-                        {% endfor %}
-                    </select>
+
+            <!-- Collateral Account Current Position -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Collateral Account Current Position</h5>
                 </div>
-                <div class="form-group">
-                    <label for="account-balance">Account Balance</label>
-                    <input type="text" id="account-balance" class="form-control readonly-field" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="actual-data-date">Actual Data - Recent Updated on</label>
-                    <input type="text" id="actual-data-date" class="form-control readonly-field" value="{{ result.get_outstanding_loans[0].Latest_Month | default('N/A') }}" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="report-date">Report Date</label>
-                    <input type="text" id="report-date" class="form-control readonly-field" value="Mar 5, 2025" readonly>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="actual-portfolio">Actual Portfolio - Loan Outstanding:</label>
+                        <input type="text" id="actual-portfolio" class="form-control readonly-field" value="{{ result.get_outstanding_loans[0].total_principal_outstanding | default('0') }}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="ten-percent-lien">10% Lien Amount:</label>
+                        <input type="text" id="ten-percent-lien" class="form-control readonly-field calculation-field" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="total-lien-amount">Total Amount Subject to Bank Lien:</label>
+                        <input type="text" id="total-lien-amount" class="form-control readonly-field calculation-field" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="actual-collateral-balance">Actual Collateral Account Balance:</label>
+                        <input type="text" id="actual-collateral-balance" class="form-control readonly-field" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="surplus-shortfall">Surplus / (Shortfall):</label>
+                        <input type="text" id="surplus-shortfall" class="form-control readonly-field calculation-field" readonly>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Collateral Account Current Position -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">Collateral Account Current Position</h5>
+        <!-- Second Row: Projected Disbursement & Projected Funds Requirement -->
+        <div class="card-row">
+            <!-- Projected Disbursement -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Projected Monthly Change</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="projected-disbursement">PROJECTED Monthly Disbursement:</label>
+                        <input type="number" id="projected-disbursement" class="form-control" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="seasonal-affects">PROJECTED Seasonal Affects if any:</label>
+                        <input type="number" id="seasonal-affects" class="form-control" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="new-product-affects">PROJECTED New Product / Area Launch affects if any:</label>
+                        <input type="number" id="new-product-affects" class="form-control" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="total-projected-disbursement">TOTAL PROJECTED Disbursement:</label>
+                        <input type="text" id="total-projected-disbursement" class="form-control readonly-field calculation-field" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="projected-recoveries">Less: Projected Recoveries:</label>
+                        <input type="text" id="projected-recoveries" class="form-control readonly-field calculation-field" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="projected-monthly-change">Projected Monthly Change (Inc / Dec):</label>
+                        <input type="text" id="projected-monthly-change" class="form-control readonly-field calculation-field" readonly>
+                    </div>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="form-group">
-                    <label for="actual-portfolio">Actual Portfolio - Loan Outstanding</label>
-                    <input type="text" id="actual-portfolio" class="form-control readonly-field" value="{{ '%.3f'|format(result.get_outstanding_loans[0].total_principal_outstanding) | default('0') }}" readonly>
+
+            <!-- Projected Funds Requirement -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Projected Funds Requirement</h5>
                 </div>
-                <div class="form-group">
-                    <label for="ten-percent-lien">10% Lien Amount</label>
-                    <input type="text" id="ten-percent-lien" class="form-control readonly-field calculation-field" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="total-lien-amount">Total Lien Amount</label>
-                    <input type="text" id="total-lien-amount" class="form-control readonly-field calculation-field" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="actual-collateral-balance">Actual Collateral Account Balance</label>
-                    <input type="text" id="actual-collateral-balance" class="form-control readonly-field" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="surplus-shortfall">Surplus / (Shortfall)</label>
-                    <input type="text" id="surplus-shortfall" class="form-control readonly-field calculation-field" readonly>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="actual-portfolio-opening">Actual Portfolio - Loan Outstanding (Opening):</label>
+                        <input type="text" id="actual-portfolio-opening" class="form-control readonly-field" value="{{ result.get_outstanding_loans[0].total_principal_outstanding | default('0') }}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="add-projected-monthly-change">Add Projected Monthly Change:</label>
+                        <input type="text" id="add-projected-monthly-change" class="form-control readonly-field" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="projected-portfolio-closing">Projected Portfolio - Loan Outstanding (Closing):</label>
+                        <input type="text" id="projected-portfolio-closing" class="form-control readonly-field calculation-field" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="cushion-ten-percent">Add: Cushion for 10% lien:</label>
+                        <input type="text" id="cushion-ten-percent" class="form-control readonly-field calculation-field" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="projected-collateral-balance">Minimum Required Collateral Account Balance:</label>
+                        <input type="text" id="projected-collateral-balance" class="form-control readonly-field calculation-field" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="actual-collateral-balance-req">Actual Collateral Account Balance:</label>
+                        <input type="text" id="actual-collateral-balance-req" class="form-control readonly-field" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="surplus-shortfall-req">Surplus / (Shortfall):</label>
+                        <input type="text" id="surplus-shortfall-req" class="form-control readonly-field calculation-field" readonly>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Projected Disbursement -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">Projected Disbursement (Based on Past Averages)</h5>
-            </div>
-            <div class="card-body">
-                <div class="form-group">
-                    <label for="projected-disbursement">Projected Disbursement (Based on Past Averages)</label>
-                    <input type="number" id="projected-disbursement" class="form-control" value="0">
-                </div>
-                <div class="form-group">
-                    <label for="seasonal-affects">Add: Seasonal Affects if any</label>
-                    <input type="number" id="seasonal-affects" class="form-control" value="0">
-                </div>
-                <div class="form-group">
-                    <label for="new-product-affects">Add: New Product / Area Launch affects if any</label>
-                    <input type="number" id="new-product-affects" class="form-control" value="0">
-                </div>
-                <div class="form-group">
-                    <label for="projected-recoveries">Less: Projected Recoveries</label>
-                    <input type="text" id="projected-recoveries" class="form-control readonly-field calculation-field" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="projected-monthly-change">Projected Monthly Change (Inc / Dec)</label>
-                    <input type="text" id="projected-monthly-change" class="form-control readonly-field calculation-field" readonly>
-                </div>
-            </div>
-        </div>
-
-        <!-- Projected Funds Requirement -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">Projected Funds Requirement</h5>
-            </div>
-            <div class="card-body">
-                <div class="form-group">
-                    <label for="actual-portfolio-opening">Actual Portfolio - Loan Outstanding (Opening)</label>
-                    <input type="text" id="actual-portfolio-opening" class="form-control readonly-field" value="{{ '%.3f'|format(result.get_outstanding_loans[0].total_principal_outstanding) | default('0') }}" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="add-projected-monthly-change">Add Projected Monthly Change</label>
-                    <input type="text" id="add-projected-monthly-change" class="form-control readonly-field" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="projected-portfolio-closing">Projected Portfolio - Loan Outstanding (Closing)</label>
-                    <input type="text" id="projected-portfolio-closing" class="form-control readonly-field calculation-field" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="cushion-ten-percent">Add: Cushion for 10% lien</label>
-                    <input type="text" id="cushion-ten-percent" class="form-control readonly-field calculation-field" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="projected-collateral-balance">Projected Collateral Account Balance</label>
-                    <input type="text" id="projected-collateral-balance" class="form-control readonly-field calculation-field" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="actual-collateral-balance-req">Actual Collateral Account Balance</label>
-                    <input type="text" id="actual-collateral-balance-req" class="form-control readonly-field" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="surplus-shortfall-req">Surplus / (Shortfall)</label>
-                    <input type="text" id="surplus-shortfall-req" class="form-control readonly-field calculation-field" readonly>
-                </div>
-            </div>
+        <!-- Button Group Above Loan Disbursement Trend Analysis -->
+        <div class="button-group">
+            <button id="print-btn" class="btn btn-primary">Print</button>
+            <button id="excel-btn" class="btn btn-primary">Download as Excel</button>
+            <button id="pdf-btn" class="btn btn-primary">Download as PDF</button>
+            <button id="save-btn" class="btn btn-primary">Save</button>
         </div>
 
         <!-- Loan Disbursement Trend Analysis -->
-        <div class="card">
+        <div class="card trend-analysis">
             <div class="card-header">
                 <h5 class="mb-0">Loan Disbursement Trend Analysis</h5>
             </div>
@@ -198,6 +298,29 @@
                 </div>
             </div>
         </div>
+
+        <!-- Download Report Modal -->
+        <div id="download-modal" class="modal">
+            <div class="modal-content">
+                <h5>Select Report Type and Date</h5>
+                <div class="form-group">
+                    <label for="report-date-select">Report Date:</label>
+                    <select id="report-date-select" class="form-control">
+                        <option value="">Select a Date</option>
+                    </select>
+                </div>
+                <div class="form-check">
+                    <input type="radio" name="report-type" id="report-excel" value="excel" class="form-check-input" checked>
+                    <label for="report-excel" class="form-check-label">Excel</label>
+                </div>
+                <div class="form-check">
+                    <input type="radio" name="report-type" id="report-pdf" value="pdf" class="form-check-input">
+                    <label for="report-pdf" class="form-check-label">PDF</label>
+                </div>
+                <button id="confirm-download-btn" class="btn btn-primary">Download</button>
+                <button id="cancel-download-btn" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -206,15 +329,38 @@
         const totalPrincipalOutstanding = outstandingLoans[0]?.total_principal_outstanding || 0;
         const disbursementData = {{ result.post_disbursement_by_booked_on | tojson }};
 
+        // Format number with commas and 2 decimal places for monetary values, no decimals for counts
+        function formatNumber(num, isCount = false) {
+            return Number(num).toLocaleString('en-US', { minimumFractionDigits: isCount ? 0 : 2, maximumFractionDigits: isCount ? 0 : 2 });
+        }
+
+        // Get current date for report name and field
+        function getCurrentDate() {
+            const today = new Date();
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const month = monthNames[today.getMonth()];
+            const day = String(today.getDate()).padStart(2, '0');
+            const year = today.getFullYear();
+            return { display: `${month}, ${day} ${year}`, file: `${month} ${day} ${year}` };
+        }
+
+        // Set report date
+        function setReportDate() {
+            const date = getCurrentDate();
+            document.getElementById('report-date').value = date.display;
+        }
+
         // Update account balance on bank selection
         document.getElementById('bank-select').addEventListener('change', function() {
             const selectedOption = this.options[this.selectedIndex];
             const balance = selectedOption.dataset.balance || '0';
-            document.getElementById('account-balance').value = balance;
-            document.getElementById('actual-collateral-balance').value = balance;
-            document.getElementById('actual-collateral-balance-req').value = balance;
+            const formattedBalance = formatNumber(balance);
+            document.getElementById('account-balance').value = formattedBalance;
+            document.getElementById('actual-collateral-balance').value = formattedBalance;
+            document.getElementById('actual-collateral-balance-req').value = formattedBalance;
             updateCalculations();
             updateDisbursementTable();
+            fetchReportDates();
         });
 
         // Update calculations
@@ -222,14 +368,15 @@
             const actualPortfolio = parseFloat(totalPrincipalOutstanding) || 0;
             const tenPercentLien = actualPortfolio * 0.1;
             const totalLienAmount = actualPortfolio + tenPercentLien;
-            const actualCollateralBalance = parseFloat(document.getElementById('actual-collateral-balance').value) || 0;
+            const actualCollateralBalance = parseFloat(document.getElementById('actual-collateral-balance').value.replace(/,/g, '')) || 0;
             const surplusShortfall = actualCollateralBalance - totalLienAmount;
 
             const projectedDisbursement = parseFloat(document.getElementById('projected-disbursement').value) || 0;
             const seasonalAffects = parseFloat(document.getElementById('seasonal-affects').value) || 0;
             const newProductAffects = parseFloat(document.getElementById('new-product-affects').value) || 0;
+            const totalProjectedDisbursement = projectedDisbursement + seasonalAffects + newProductAffects;
             const projectedRecoveries = actualPortfolio / 36;
-            const projectedMonthlyChange = projectedDisbursement + seasonalAffects + newProductAffects + projectedRecoveries;
+            const projectedMonthlyChange = totalProjectedDisbursement - projectedRecoveries;
 
             // Projected Funds Requirement calculations
             const actualPortfolioOpening = actualPortfolio;
@@ -239,18 +386,21 @@
             const surplusShortfallReq = actualCollateralBalance - projectedCollateralBalance;
 
             // Update Collateral Account Current Position
-            document.getElementById('ten-percent-lien').value = tenPercentLien.toFixed(2);
-            document.getElementById('total-lien-amount').value = totalLienAmount.toFixed(2);
-            document.getElementById('surplus-shortfall').value = surplusShortfall.toFixed(2);
-            document.getElementById('projected-recoveries').value = projectedRecoveries.toFixed(2);
-            document.getElementById('projected-monthly-change').value = projectedMonthlyChange.toFixed(2);
+            document.getElementById('actual-portfolio').value = formatNumber(actualPortfolio);
+            document.getElementById('ten-percent-lien').value = formatNumber(tenPercentLien);
+            document.getElementById('total-lien-amount').value = formatNumber(totalLienAmount);
+            document.getElementById('surplus-shortfall').value = formatNumber(surplusShortfall);
+            document.getElementById('total-projected-disbursement').value = formatNumber(totalProjectedDisbursement);
+            document.getElementById('projected-recoveries').value = formatNumber(projectedRecoveries);
+            document.getElementById('projected-monthly-change').value = formatNumber(projectedMonthlyChange);
 
             // Update Projected Funds Requirement
-            document.getElementById('add-projected-monthly-change').value = projectedMonthlyChange.toFixed(2);
-            document.getElementById('projected-portfolio-closing').value = projectedPortfolioClosing.toFixed(2);
-            document.getElementById('cushion-ten-percent').value = cushionTenPercent.toFixed(2);
-            document.getElementById('projected-collateral-balance').value = projectedCollateralBalance.toFixed(2);
-            document.getElementById('surplus-shortfall-req').value = surplusShortfallReq.toFixed(2);
+            document.getElementById('actual-portfolio-opening').value = formatNumber(actualPortfolioOpening);
+            document.getElementById('add-projected-monthly-change').value = formatNumber(projectedMonthlyChange);
+            document.getElementById('projected-portfolio-closing').value = formatNumber(projectedPortfolioClosing);
+            document.getElementById('cushion-ten-percent').value = formatNumber(cushionTenPercent);
+            document.getElementById('projected-collateral-balance').value = formatNumber(projectedCollateralBalance);
+            document.getElementById('surplus-shortfall-req').value = formatNumber(surplusShortfallReq);
         }
 
         // Update disbursement table
@@ -269,7 +419,8 @@
                 if (firstRecord) {
                     yearDataSummary[year] = {
                         yearly_disbursement: Number(firstRecord.yearly_disbursement) || 0,
-                        monthly_average: Number(firstRecord.monthly_average) || 0
+                        monthly_average: Number(firstRecord.monthly_average) || 0,
+                        yearly_beneficiaries_count: Number(firstRecord.yearly_beneficiaries_count) || 0
                     };
                 }
             });
@@ -292,29 +443,313 @@
             months.forEach(month => {
                 const row = document.createElement('tr');
                 row.innerHTML = `<td>${month}</td>` +
-                    years.map(year => `<td>${yearData[year]?.[month]?.toFixed(2) || '0.00'}</td>`).join('');
+                    years.map(year => `<td>${formatNumber(yearData[year]?.[month] || 0)}</td>`).join('');
                 tableBody.appendChild(row);
             });
+
+            // Add Beneficiaries row
+            const beneficiariesRow = document.createElement('tr');
+            beneficiariesRow.innerHTML = `<td>Beneficiaries</td>` +
+                years.map(year => `<td>${formatNumber(yearDataSummary[year]?.yearly_beneficiaries_count || 0, true)}</td>`).join('');
+            tableBody.appendChild(beneficiariesRow);
 
             // Add Yearly Disbursement row
             const yearlyRow = document.createElement('tr');
             yearlyRow.innerHTML = `<td>Yearly Disbursement</td>` +
-                years.map(year => `<td>${yearDataSummary[year]?.yearly_disbursement?.toFixed(2) || '0.00'}</td>`).join('');
+                years.map(year => `<td>${formatNumber(yearDataSummary[year]?.yearly_disbursement || 0)}</td>`).join('');
             tableBody.appendChild(yearlyRow);
 
             // Add Monthly Average Disbursement row
             const avgRow = document.createElement('tr');
             avgRow.innerHTML = `<td>Monthly Average Disbursement</td>` +
-                years.map(year => `<td>${yearDataSummary[year]?.monthly_average?.toFixed(2) || '0.00'}</td>`).join('');
+                years.map(year => `<td>${formatNumber(yearDataSummary[year]?.monthly_average || 0)}</td>`).join('');
             tableBody.appendChild(avgRow);
         }
+
+        // Collect data for export (modified to accept report data)
+        function collectExportData(reportData) {
+            const bankSelect = document.getElementById('bank-select');
+            const bankText = bankSelect.options[bankSelect.selectedIndex]?.text || 'N/A';
+            return [
+                {
+                    title: 'References',
+                    fields: [
+                        { label: 'Bank', value: bankText },
+                        { label: 'Account Balance', value: formatNumber(reportData.account_balance || 0) },
+                        { label: 'Actual Data As Per Latest Updated on', value: reportData.actual_data_date || 'N/A' },
+                        { label: 'Report Date', value: reportData.report_date || 'N/A' }
+                    ]
+                },
+                {
+                    title: 'Collateral Account Current Position',
+                    fields: [
+                        { label: 'Actual Portfolio - Loan Outstanding', value: formatNumber(reportData.actual_portfolio || 0) },
+                        { label: '10% Lien Amount', value: formatNumber(reportData.ten_percent_lien || 0) },
+                        { label: 'Total Amount Subject to Bank Lien', value: formatNumber(reportData.total_lien_amount || 0) },
+                        { label: 'Actual Collateral Account Balance', value: formatNumber(reportData.actual_collateral_balance || 0) },
+                        { label: 'Surplus / (Shortfall)', value: formatNumber(reportData.surplus_shortfall || 0) }
+                    ]
+                },
+                {
+                    title: 'Projected Monthly Change',
+                    fields: [
+                        { label: 'PROJECTED Monthly Disbursement', value: formatNumber(reportData.projected_disbursement || 0) },
+                        { label: 'PROJECTED Seasonal Affects if any', value: formatNumber(reportData.seasonal_affects || 0) },
+                        { label: 'PROJECTED New Product / Area Launch affects if any', value: formatNumber(reportData.new_product_affects || 0) },
+                        { label: 'TOTAL PROJECTED Disbursement', value: formatNumber(reportData.total_projected_disbursement || 0) },
+                        { label: 'Less: Projected Recoveries', value: formatNumber(reportData.projected_recoveries || 0) },
+                        { label: 'Projected Monthly Change (Inc / Dec)', value: formatNumber(reportData.projected_monthly_change || 0) }
+                    ]
+                },
+                {
+                    title: 'Projected Funds Requirement',
+                    fields: [
+                        { label: 'Actual Portfolio - Loan Outstanding (Opening)', value: formatNumber(reportData.actual_portfolio_opening || 0) },
+                        { label: 'Add Projected Monthly Change', value: formatNumber(reportData.add_projected_monthly_change || 0) },
+                        { label: 'Projected Portfolio - Loan Outstanding (Closing)', value: formatNumber(reportData.projected_portfolio_closing || 0) },
+                        { label: 'Add: Cushion for 10% lien', value: formatNumber(reportData.cushion_ten_percent || 0) },
+                        { label: 'Minimum Required Collateral Account Balance', value: formatNumber(reportData.projected_collateral_balance || 0) },
+                        { label: 'Actual Collateral Account Balance', value: formatNumber(reportData.actual_collateral_balance_req || 0) },
+                        { label: 'Surplus / (Shortfall)', value: formatNumber(reportData.surplus_shortfall_req || 0) }
+                    ]
+                }
+            ];
+        }
+
+        // Fetch available report dates
+        function fetchReportDates() {
+            const bankId = document.getElementById('bank-select').value;
+            if (!bankId || bankId === 'NULL' || bankId === '') {
+                document.getElementById('report-date-select').innerHTML = '<option value="">Select a Date</option>';
+                return;
+            }
+
+            fetch(`/get_report_dates?bank_id=${bankId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const select = document.getElementById('report-date-select');
+                    select.innerHTML = '<option value="">Select a Date</option>';
+                    if (data.status === 'success' && data.dates) {
+                        data.dates.forEach(date => {
+                            const option = document.createElement('option');
+                            option.value = date;
+                            option.textContent = date;
+                            select.appendChild(option);
+                        });
+                    } else {
+                        alert('No report dates available for the selected bank.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching report dates:', error);
+                    alert('Failed to fetch report dates.');
+                });
+        }
+
+        // Download as Excel with streaming
+        function downloadExcel(reportData) {
+            try {
+                const sections = collectExportData(reportData);
+                const wb = XLSX.utils.book_new();
+                sections.forEach(section => {
+                    const ws_data = [['Label', 'Value']];
+                    section.fields.forEach(field => {
+                        ws_data.push([field.label, field.value]);
+                    });
+                    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+                    XLSX.utils.book_append_sheet(wb, ws, section.title.slice(0, 31));
+                });
+                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                const blob = new Blob([wbout], { type: 'application/octet-stream' });
+                const date = reportData.report_date || getCurrentDate().file;
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Fund Projection Report - ${date}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('Excel download error:', error);
+                alert('Failed to download Excel file. Please ensure the page is fully loaded and try again.');
+            }
+        }
+
+        // Download as PDF with streaming
+        function downloadPDF(reportData) {
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                const sections = collectExportData(reportData);
+                const date = reportData.report_date || getCurrentDate().file;
+                let y = 10;
+
+                // Title
+                doc.setFontSize(16);
+                doc.setFont('helvetica', 'bold');
+                doc.text(`Fund Projection Report - ${date}`, 10, y);
+                y += 10;
+                doc.setLineWidth(0.5);
+                doc.line(10, y, 200, y);
+                y += 10;
+
+                // Sections
+                sections.forEach(section => {
+                    doc.setFontSize(12);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(section.title, 10, y);
+                    y += 7;
+                    section.fields.forEach(field => {
+                        doc.setFontSize(10);
+                        doc.setFont('helvetica', 'bold');
+                        const labelWidth = doc.getTextWidth(field.label);
+                        doc.text(field.label, 10, y);
+                        doc.setFont('helvetica', 'normal');
+                        const valueText = field.value || '';
+                        const splitValue = doc.splitTextToSize(valueText, 170 - labelWidth);
+                        doc.text(splitValue, 15 + labelWidth, y);
+                        y += splitValue.length * 6 + 2;
+                    });
+                    y += 5;
+                    doc.setLineWidth(0.2);
+                    doc.line(10, y, 200, y);
+                    y += 10;
+                });
+
+                const pdfBlob = doc.output('blob');
+                const url = window.URL.createObjectURL(pdfBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Fund Projection Report - ${date}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('PDF download error:', error);
+                alert('Failed to download PDF file. Please ensure the page is fully loaded and try again.');
+            }
+        }
+
+        // Save form data via AJAX
+        function saveFundProjection() {
+            // Check if bank is selected
+            const bankId = document.getElementById('bank-select').value;
+            if (!bankId || bankId === 'NULL' || bankId === '') {
+                alert('Please select a bank before saving.');
+                return;
+            }
+
+            // Collect form data
+            const data = {
+                bank_id: bankId,
+                account_balance: document.getElementById('account-balance').value || 'NULL',
+                actual_data_date: document.getElementById('actual-data-date').value || 'NULL',
+                report_date: document.getElementById('report-date').value || 'NULL',
+                actual_portfolio: document.getElementById('actual-portfolio').value || 'NULL',
+                ten_percent_lien: document.getElementById('ten-percent-lien').value || 'NULL',
+                total_lien_amount: document.getElementById('total-lien-amount').value || 'NULL',
+                actual_collateral_balance: document.getElementById('actual-collateral-balance').value || 'NULL',
+                surplus_shortfall: document.getElementById('surplus-shortfall').value || 'NULL',
+                projected_disbursement: document.getElementById('projected-disbursement').value || 'NULL',
+                seasonal_affects: document.getElementById('seasonal-affects').value || 'NULL',
+                new_product_affects: document.getElementById('new-product-affects').value || 'NULL',
+                total_projected_disbursement: document.getElementById('total-projected-disbursement').value || 'NULL',
+                projected_recoveries: document.getElementById('projected-recoveries').value || 'NULL',
+                projected_monthly_change: document.getElementById('projected-monthly-change').value || 'NULL',
+                actual_portfolio_opening: document.getElementById('actual-portfolio-opening').value || 'NULL',
+                add_projected_monthly_change: document.getElementById('add-projected-monthly-change').value || 'NULL',
+                projected_portfolio_closing: document.getElementById('projected-portfolio-closing').value || 'NULL',
+                cushion_ten_percent: document.getElementById('cushion-ten-percent').value || 'NULL',
+                projected_collateral_balance: document.getElementById('projected-collateral-balance').value || 'NULL',
+                actual_collateral_balance_req: document.getElementById('actual-collateral-balance-req').value || 'NULL',
+                surplus_shortfall_req: document.getElementById('surplus-shortfall-req').value || 'NULL'
+            };
+
+            // Send AJAX request
+            fetch('/save_fund_projection', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.status === 'success') {
+                    alert(result.message);
+                    fetchReportDates(); // Refresh report dates after saving
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error saving fund projection:', error);
+                alert('Failed to save fund projection report.');
+            });
+        }
+
+        // Handle Download Report button and modal
+        document.getElementById('download-report-btn').addEventListener('click', function() {
+            const bankId = document.getElementById('bank-select').value;
+            if (!bankId || bankId === 'NULL' || bankId === '') {
+                alert('Please select a bank before downloading.');
+                return;
+            }
+            fetchReportDates();
+            document.getElementById('download-modal').style.display = 'block';
+        });
+
+        document.getElementById('confirm-download-btn').addEventListener('click', function() {
+            const reportDate = document.getElementById('report-date-select').value;
+            const reportType = document.querySelector('input[name="report-type"]:checked').value;
+            const bankId = document.getElementById('bank-select').value;
+
+            if (!reportDate) {
+                alert('Please select a report date.');
+                return;
+            }
+
+            fetch(`/get_report_data?bank_id=${bankId}&report_date=${reportDate}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success' && data.report) {
+                        document.getElementById('download-modal').style.display = 'none';
+                        if (reportType === 'excel') {
+                            downloadExcel(data.report);
+                        } else if (reportType === 'pdf') {
+                            downloadPDF(data.report);
+                        }
+                    } else {
+                        alert('No report data found for the selected date.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching report data:', error);
+                    alert('Failed to fetch report data.');
+                });
+        });
+
+        document.getElementById('cancel-download-btn').addEventListener('click', function() {
+            document.getElementById('download-modal').style.display = 'none';
+        });
+
+        // Print functionality
+        document.getElementById('print-btn').addEventListener('click', function() {
+            window.print();
+        });
 
         // Add event listeners for input fields
         document.getElementById('projected-disbursement').addEventListener('input', updateCalculations);
         document.getElementById('seasonal-affects').addEventListener('input', updateCalculations);
         document.getElementById('new-product-affects').addEventListener('input', updateCalculations);
 
+        // Add event listener for Save button
+        document.getElementById('save-btn').addEventListener('click', saveFundProjection);
+
         // Initial calculations and table update
+        setReportDate();
         updateCalculations();
         updateDisbursementTable();
     </script>
