@@ -18,15 +18,16 @@ def get_all_user_data():
 
 
 def get_all_user_data_by_id(id):
+    print('executing get_all_user_data_by_id method.')
     query = f"""
         SELECT DISTINCT u.user_id, u.name, u.email, u.rights, u.volunteer_id, u.gender, u.dob, u.phone, 
                         u.country_of_residence, u.date_of_joining, u.orientation_completed_on, u.manager_id, 
                         u.assigned_branch, u.date_of_retirement, u.reason
         FROM tbl_users u where u.user_id = '{str(id)}'
     """
-    print(query)
-    result = fetch_records(query)
-
+    result = fetch_records(query, is_print=True)
+    print('printing result of get_all_user_data_by_id')
+    print(result)
     return result[0]
 
 
@@ -54,6 +55,7 @@ def get_all_user_privileges():
 
 
 def get_all_user_privileges_by_user_id(user_id):
+    print('executing get_all_user_privileges_by_user_id method.')
     """
     Fetch all active user privileges for a specific user_id with user details
     Args:
@@ -73,8 +75,10 @@ def get_all_user_privileges_by_user_id(user_id):
         LEFT JOIN tbl_users u2 ON p.modified_by = u2.user_id
         WHERE p.status = 1 AND p.user_id = '{user_id}'
     """
-    print(query)
-    result = fetch_records(query)
+    result = fetch_records(query, is_print=True)
+    print('printing result of get_all_user_privileges_by_user_id')
+    print(result)
+
     return result
 
 

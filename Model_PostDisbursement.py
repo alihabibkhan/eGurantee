@@ -114,26 +114,87 @@ def get_all_post_disbursement_info():
 
 
 def post_disbursement_by_booked_on():
+    # query = """
+    #     SELECT
+    #     TO_CHAR(booked_on, 'FMMonth') AS month,
+    #     EXTRACT(YEAR FROM booked_on) AS year,
+    #     SUM(disbursed_amount) AS monthly_disbursement,
+    #     SUM(SUM(disbursed_amount)) OVER (PARTITION BY EXTRACT(YEAR FROM booked_on)) AS yearly_disbursement,
+    #     SUM(SUM(disbursed_amount)) OVER (PARTITION BY EXTRACT(YEAR FROM booked_on)) /
+    #     COUNT(TO_CHAR(booked_on, 'FMMonth')) OVER (PARTITION BY EXTRACT(YEAR FROM booked_on)) AS monthly_average
+    # FROM
+    #     tbl_post_disbursement
+    # WHERE
+    #     DATE_TRUNC('month', mis_date) = (
+    #         SELECT DATE_TRUNC('month', MAX(mis_date)) FROM tbl_post_disbursement
+    #     )
+    # GROUP BY
+    #     TO_CHAR(booked_on, 'FMMonth'),
+    #     EXTRACT(YEAR FROM booked_on)
+    # ORDER BY
+    #     EXTRACT(YEAR FROM booked_on),
+    #     TO_DATE(TO_CHAR(booked_on, 'FMMonth'), 'Month');
+    # """
     query = """
-        SELECT 
-        TO_CHAR(booked_on, 'FMMonth') AS month,
-        EXTRACT(YEAR FROM booked_on) AS year,
-        SUM(disbursed_amount) AS monthly_disbursement,
-        SUM(SUM(disbursed_amount)) OVER (PARTITION BY EXTRACT(YEAR FROM booked_on)) AS yearly_disbursement,
-        SUM(SUM(disbursed_amount)) OVER (PARTITION BY EXTRACT(YEAR FROM booked_on)) / 
-        COUNT(TO_CHAR(booked_on, 'FMMonth')) OVER (PARTITION BY EXTRACT(YEAR FROM booked_on)) AS monthly_average
-    FROM 
-        tbl_post_disbursement
-    WHERE
-        DATE_TRUNC('month', mis_date) = (
-            SELECT DATE_TRUNC('month', MAX(mis_date)) FROM tbl_post_disbursement
+        WITH base_data AS (
+            SELECT 
+                TO_CHAR(booked_on, 'FMMonth') AS month,
+                EXTRACT(YEAR FROM booked_on) AS year,
+                disbursed_amount,
+                cnic
+            FROM 
+                tbl_post_disbursement
+            WHERE
+                DATE_TRUNC('month', mis_date) = (
+                    SELECT DATE_TRUNC('month', MAX(mis_date)) FROM tbl_post_disbursement
+                )
+        ),
+        monthly_agg AS (
+            SELECT
+                month,
+                year,
+                SUM(disbursed_amount) AS monthly_disbursement
+            FROM 
+                base_data
+            GROUP BY 
+                month, year
+        ),
+        yearly_agg AS (
+            SELECT
+                year,
+                SUM(disbursed_amount) AS yearly_disbursement,
+                COUNT(DISTINCT cnic) AS yearly_beneficiaries_count
+            FROM 
+                base_data
+            GROUP BY 
+                year
+        ),
+        month_count AS (
+            SELECT 
+                year,
+                COUNT(DISTINCT month) AS months_in_year
+            FROM 
+                base_data
+            GROUP BY 
+                year
         )
-    GROUP BY 
-        TO_CHAR(booked_on, 'FMMonth'),
-        EXTRACT(YEAR FROM booked_on)
-    ORDER BY 
-        EXTRACT(YEAR FROM booked_on),
-        TO_DATE(TO_CHAR(booked_on, 'FMMonth'), 'Month');
+        
+        SELECT 
+            m.month,
+            m.year,
+            m.monthly_disbursement,
+            y.yearly_disbursement,
+            ROUND(y.yearly_disbursement::numeric / mc.months_in_year, 2) AS monthly_average,
+            y.yearly_beneficiaries_count
+        FROM 
+            monthly_agg m
+        JOIN 
+            yearly_agg y ON m.year = y.year
+        JOIN
+            month_count mc ON m.year = mc.year
+        ORDER BY 
+            m.year,
+            TO_DATE(m.month, 'Month');
     """
     result = fetch_records(query)
     print(result)

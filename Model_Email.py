@@ -1,13 +1,13 @@
-# from imports import *
-from application import Message, mail
 import os
+from application import Message, mail
 
 
 # Reusable email sending method
 def send_email(subject, email_list, message, html_message=None, attachment=None, filename=None, content_type=None):
     try:
-        cc_list = str(os.getenv('MAIL_CC')).split()
+        cc_list = str(os.getenv('MAIL_CC')).split(',')
         msg = Message(subject, recipients=email_list, cc=cc_list)
+
         if html_message:
             msg.html = html_message
         else:
