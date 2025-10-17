@@ -3,10 +3,14 @@ from application import Message, mail
 
 
 # Reusable email sending method
-def send_email(subject, email_list, message, html_message=None, attachment=None, filename=None, content_type=None):
+def send_email(subject, email_list, message, html_message=None, attachment=None, filename=None, content_type=None, add_cc_list=False):
     try:
         cc_list = str(os.getenv('MAIL_CC')).split(',')
-        msg = Message(subject, recipients=email_list, cc=cc_list)
+
+        if add_cc_list:
+            msg = Message(subject, recipients=email_list, cc=cc_list)
+        else:
+            msg = Message(subject, recipients=email_list)
 
         if html_message:
             msg.html = html_message

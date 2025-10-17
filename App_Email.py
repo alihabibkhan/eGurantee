@@ -75,7 +75,8 @@ def send_email():
             message=message,
             attachment=pdf,
             filename='approval_letter.pdf',
-            content_type='application/pdf'
+            content_type='application/pdf',
+            add_cc_list=True
         )
 
         if success:
