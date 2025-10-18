@@ -87,16 +87,16 @@ def get_report_dates():
             return jsonify({'status': 'error', 'message': 'Bank ID is required'}), 400
 
         query = f"""
-        SELECT DISTINCT report_date
+        SELECT DISTINCT created_at
         FROM tbl_fund_projection_reports
         WHERE bank_id = {bank_id}
-        ORDER BY report_date DESC
+        ORDER BY created_at DESC
         """
 
         # Assuming execute_command returns a list of records
         result = fetch_records(query)
         print(result)
-        dates = [row['report_date'] for row in result] if result else []
+        dates = [row['created_at'] for row in result] if result else []
 
         return jsonify({'status': 'success', 'dates': dates}), 200
 
@@ -114,15 +114,24 @@ def get_report_data():
         if not bank_id or not report_date:
             return jsonify({'status': 'error', 'message': 'Bank ID and report date are required'}), 400
 
+        # Parse the RFC1123 date string to a Python datetime object
+        report_date_obj = datetime.strptime(str(report_date), '%a, %d %b %Y %H:%M:%S GMT')
+
+        # Format the datetime object to a string compatible with PostgreSQL
+        formatted_report_date = report_date_obj.strftime('%Y-%m-%d %H:%M:%S')
+        report_date = formatted_report_date
+        print('report_date:- ', report_date)
+
+
         query = f"""
         SELECT *
         FROM tbl_fund_projection_reports
-        WHERE bank_id = {bank_id} AND report_date = '{report_date}'
+        WHERE bank_id = {bank_id} AND created_at::timestamp(0) = '{str(report_date)}'
         LIMIT 1
         """
-
         # Assuming fetch_records returns a list of dictionaries
         result = fetch_records(query)
+        print(result)
         if not result:
             return jsonify({'status': 'error', 'message': 'No report found for the selected date'}), 404
 
