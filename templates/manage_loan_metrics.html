@@ -74,7 +74,6 @@
                             <thead>
                                 <tr>
                                     <th>Name</th>
-                                    <th>Created By</th>
                                     <th>Modified By</th>
                                     <th>Modified Date</th>
                                     <th>Actions</th>
@@ -84,7 +83,6 @@
                                 {% for occupation in result.get_all_occupations %}
                                 <tr>
                                     <td>{{ occupation.name }}</td>
-                                    <td>{{ occupation.created_by }}</td>
                                     <td>{{ occupation.modified_by }}</td>
                                     <td>{{ occupation.modified_date|format_date }}</td>
                                     <td>
@@ -107,7 +105,6 @@
                                     <th>Label</th>
                                     <th>Min Years</th>
                                     <th>Max Years</th>
-                                    <th>Created By</th>
                                     <th>Modified By</th>
                                     <th>Modified Date</th>
                                     <th>Actions</th>
@@ -119,7 +116,6 @@
                                     <td>{{ range.label }}</td>
                                     <td>{{ range.min_years }}</td>
                                     <td>{{ range.max_years }}</td>
-                                    <td>{{ range.created_by }}</td>
                                     <td>{{ range.modified_by }}</td>
                                     <td>{{ range.modified_date|format_date }}</td>
                                     <td>
@@ -144,7 +140,8 @@
                                     <th>Occupation</th>
                                     <th>Experience</th>
                                     <th>Global Loan Ceiling</th>
-                                    <th>Repeat Increment</th>
+                                    <th>Repeat Increment (%)</th>
+                                    <th>Required Paid Off (%)</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -155,7 +152,8 @@
                                     <td class="text-truncate" style="max-width:150px;" title="{{ metric.occupation_name }}">{{ metric.occupation_name }}</td>
                                     <td class="text-truncate" style="max-width:150px;" title="{{ metric.experience_label }}">{{ metric.experience_label }}</td>
                                     <td class="text-truncate" style="max-width:150px;" title="{{ metric.global_loan_ceiling }}">{{ metric.global_loan_ceiling }}</td>
-                                    <td class="text-truncate" style="max-width:150px;" title="{{ metric.repeat_increment }}">{{ metric.repeat_increment }}</td>
+                                    <td class="text-truncate" style="max-width:150px;" title="{{ metric.repeat_increment }}">{{ metric.repeat_increment | int }}</td>
+                                    <td class="text-truncate" style="max-width:150px;" title="{{ metric.required_paid_off }}">{{ metric.required_paid_off | int }}</td>
                                     <td>
                                         <a href="{{ url_for('add_edit_loan_metric', loan_metric_id=metric.loan_metric_id) }}" class="btn btn-sm btn-warning">Edit</a>
                                         <a href="{{ url_for('delete_loan_metric', loan_metric_id=metric.loan_metric_id) }}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">Delete</a>

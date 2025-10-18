@@ -60,15 +60,15 @@
                     </div>
                     <div class="form-group mb-3">
                         <label for="interest_rate">Interest Rate (%)</label>
-                        <input type="text" name="interest_rate" class="form-control" value="{{ result.loan_metric.interest_rate if result.loan_metric else '' }}" required>
+                        <input type="text" name="interest_rate" class="form-control" value="{{ result.loan_metric.interest_rate | int if result.loan_metric else '' }}" required>
                     </div>
                     <div class="form-group mb-3">
-                        <label for="repeat_increment">Repeat Increment</label>
-                        <input type="text" name="repeat_increment" class="form-control" value="{{ result.loan_metric.repeat_increment if result.loan_metric else '' }}" required>
+                        <label for="repeat_increment">Repeat Increment (%)</label>
+                        <input type="text" name="repeat_increment" class="form-control" value="{{ result.loan_metric.repeat_increment | int if result.loan_metric else '' }}" required>
                     </div>
                     <div class="form-group mb-3">
                         <label for="required_paid_off">Required Paid Off (%)</label>
-                        <input type="text" name="required_paid_off" class="form-control" value="{{ result.loan_metric.required_paid_off if result.loan_metric else '' }}" required>
+                        <input type="text" name="required_paid_off" class="form-control" value="{{ result.loan_metric.required_paid_off | int if result.loan_metric else '' }}" required>
                     </div>
                     <div class="form-group mb-3">
                         <label for="is_active">Is Active</label>
