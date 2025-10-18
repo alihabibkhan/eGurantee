@@ -19,7 +19,7 @@ def manage_occupations():
 @application.route('/add-edit-occupation/<int:occupation_id>', methods=['GET', 'POST'])
 def add_edit_occupation(occupation_id=None):
     try:
-        if not is_login() or not is_admin() or not is_executive_approver():
+        if not is_login() or not (is_admin() or is_executive_approver()):
             return redirect(url_for('login'))
 
         occupation = None
@@ -81,7 +81,7 @@ def add_edit_occupation(occupation_id=None):
 @application.route('/delete-occupation', methods=['GET'])
 def delete_occupation():
     try:
-        if not is_login() or not is_admin() or not is_executive_approver():
+        if not is_login() or not (is_admin() or is_executive_approver()):
             return redirect(url_for('login'))
 
         occupation_id = request.args.get('occupation_id')
