@@ -140,6 +140,7 @@
                                     <th>Occupation</th>
                                     <th>Experience</th>
                                     <th>Global Loan Ceiling</th>
+                                    <th>Interest Rate (%)</th>
                                     <th>Repeat Increment (%)</th>
                                     <th>Required Paid Off (%)</th>
                                     <th>Actions</th>
@@ -152,6 +153,7 @@
                                     <td class="text-truncate" style="max-width:150px;" title="{{ metric.occupation_name }}">{{ metric.occupation_name }}</td>
                                     <td class="text-truncate" style="max-width:150px;" title="{{ metric.experience_label }}">{{ metric.experience_label }}</td>
                                     <td class="text-truncate" style="max-width:150px;" title="{{ metric.global_loan_ceiling }}">{{ metric.global_loan_ceiling }}</td>
+                                    <td class="text-truncate" style="max-width:150px;" title="{{ metric.interest_rate }}">{{ metric.interest_rate | int }}</td>
                                     <td class="text-truncate" style="max-width:150px;" title="{{ metric.repeat_increment }}">{{ metric.repeat_increment | int }}</td>
                                     <td class="text-truncate" style="max-width:150px;" title="{{ metric.required_paid_off }}">{{ metric.required_paid_off | int }}</td>
                                     <td>
