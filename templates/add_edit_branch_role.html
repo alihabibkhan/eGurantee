@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% include 'head.html' %}
+    <title>{{ 'Edit Branch Role' if result.branch_role_details else 'Add Branch Role' }}</title>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url": 'manage_branches', "label": "Manage Branches"}, {"url": "", "label": 'Edit Branch Role' if result.branch_role_details else 'Add Branch Role' }]) }}
+
+    <div class="container mt-4">
+        {% include 'message_box.html' %}
+
+        <div class="card">
+            <div class="card-header">
+                <h2>{{ 'Edit Branch Role' if result.branch_role_details else 'Add Branch Role' }}</h2>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="form-group mb-3">
+                        <label for="branch_role_name">Name</label>
+                        <input type="text" name="branch_role_name" id="branch_role_name" class="form-control" value="{{ result.branch_role_details.branch_role_name if result.branch_role_details else '' }}" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="is_active">Active</label>
+                        <select name="is_active" id="is_active" class="form-control" required>
+                            <option value="1" {% if result.branch_role_details and result.branch_role_details.is_active == 1 %} selected {% endif %}>Yes</option>
+                            <option value="2" {% if result.branch_role_details and result.branch_role_details.is_active == 2 %} selected {% endif %}>No</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">{{ 'Update Branch Role' if result.branch_role_details else 'Add Branch Role' }}</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

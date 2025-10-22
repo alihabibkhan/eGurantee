@@ -1,21 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Branches</title>
     {% include 'head.html' %}
+    <title>Manage Branches</title>
     <style>
         .table-responsive {
             margin-bottom: 1rem;
-        }
-        .pagination .page-item.active .page-link {
-            background-color: #0d6efd;
-            border-color: #0d6efd;
-        }
-        .pagination .page-item.disabled .page-link {
-            cursor: not-allowed;
-            opacity: 0.65;
         }
         .card {
             margin-top: 1rem;
@@ -32,41 +22,227 @@
 <body>
     {% include 'navbar.html' %}
     {% import 'breadcrumbs.html' as brd %}
-    {{ brd.render_Breadcrumbs([{"url":"", "label":"Manage Branches"}]) }}
-    <div class="mt-3">
+    {{ brd.render_Breadcrumbs([{"url": "", "label": "Manage Branches"}]) }}
+
+    <div class="container mt-4">
         {% include 'message_box.html' %}
-    </div>
 
-    <div class="container py-4">
-        <h1 class="mb-4">Manage Branches</h1>
-
-        <a href="{{ url_for('add_edit_branch') }}" class="btn btn-primary add-branch-btn mb-3">Add New Branch</a>
-
-        <!-- Data Table Card -->
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0">Branch Information</h5>
+                <h2>Manage Branches</h2>
             </div>
             <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover text-nowrap">
-                        <thead class="table-light">
-                            <tr>
-                                <th scope="col">Branch Code</th>
-                                <th scope="col">Role</th>
-                                <th scope="col">Branch Name</th>
-                                <th scope="col">Area</th>
-                                <th scope="col">Created By</th>
-                                <th scope="col">Created Date</th>
-                                <th scope="col">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="branch-table-body"></tbody>
-                    </table>
+                <ul class="nav nav-tabs" id="branchTabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="branches-tab" data-bs-toggle="tab" data-bs-target="#branches" href="#branches" role="tab" aria-controls="branches" aria-selected="true">Branches</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="bank-distributions-tab" data-bs-toggle="tab" href="#bank-distributions" data-bs-target="#bank-distributions" role="tab" aria-controls="bank-distributions" aria-selected="false">Bank Distributions</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="national-council-distributions-tab" data-bs-toggle="tab" href="#national-council-distributions" data-bs-target="#national-council-distributions" role="tab" aria-controls="national-council-distributions" aria-selected="false">National Council Distributions</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="kft-distributions-tab" data-bs-toggle="tab" href="#kft-distributions" data-bs-target="#kft-distributions" role="tab" aria-controls="kft-distributions" aria-selected="false">KFT Distributions</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="branch-roles-tab" data-bs-toggle="tab" href="#branch-roles" data-bs-target="#branch-roles" role="tab" aria-controls="branch-roles" aria-selected="false">Branch Roles</a>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="branchTabContent">
+                    <!-- Branches Tab -->
+                    <div class="tab-pane fade show active" id="branches" role="tabpanel" aria-labelledby="branches-tab">
+                        <h3 class="mt-3">Branches</h3>
+                        <a href="{{ url_for('add_edit_branch') }}" class="btn btn-primary mb-3">Add Branch</a>
+                        <div class="table-responsive">
+                            <table class="table tbl_records text-nowrap text-center table-responsive table-responsive-sm table-responsive-md table-responsive-lg table-responsive-xl table-responsive-xxl m-auto table-bordered table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Branch Code</th>
+                                        <th>Role</th>
+                                        <th>Branch Name</th>
+                                        <th>Area</th>
+                                        <th>Created By</th>
+                                        <th>Created Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for branch in result.get_all_branches_info %}
+                                    <tr>
+                                        <td>{{ branch.branch_code or '' }}</td>
+                                        <td>{{ branch.role or '' }}</td>
+                                        <td>{{ branch.branch_name or '' }}</td>
+                                        <td>{{ branch.area or '' }}</td>
+                                        <td>{{ branch.createdby or '' }}</td>
+                                        <td>{{ branch.created_date|format_date }}</td>
+                                        <td>
+                                            <a href="#" class="text-decoration-none" title="View" data-bs-toggle="modal" data-bs-target="#branchDetailModal" onclick="showBranchDetails('{{ branch.branch_id }}')">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('add_edit_branch', branch_id=branch.branch_id) }}" class="text-decoration-none" title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a href="{{ url_for('delete_branch', branch_id=branch.branch_id) }}" class="text-decoration-none" title="Delete" onclick="return confirm('Are you sure?')">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Bank Distributions Tab -->
+                    <div class="tab-pane fade" id="bank-distributions" role="tabpanel" aria-labelledby="bank-distributions-tab">
+                        <h3 class="mt-3">Bank Distributions</h3>
+                        <a href="{{ url_for('add_edit_bank_distribution') }}" class="btn btn-primary mb-3">Add Bank Distribution</a>
+                        <div class="table-responsive">
+                            <table class="table tbl_records text-nowrap text-center table-responsive table-responsive-sm table-responsive-md table-responsive-lg table-responsive-xl table-responsive-xxl m-auto table-bordered table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Active</th>
+                                        <th>Created By</th>
+                                        <th>Created Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for distribution in result.get_all_bank_distributions %}
+                                    <tr>
+                                        <td>{{ distribution.bank_distribution_name }}</td>
+                                        <td>{{ 'Yes' if distribution.is_active == 1 else 'No' }}</td>
+                                        <td>{{ distribution.created_by }}</td>
+                                        <td>{{ distribution.created_date|format_date }}</td>
+                                        <td>
+                                            <a href="{{ url_for('add_edit_bank_distribution', bank_distribution_id=distribution.bank_distribution_id) }}" class="text-decoration-none" title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a href="{{ url_for('delete_bank_distribution', bank_distribution_id=distribution.bank_distribution_id) }}" class="text-decoration-none" title="Delete" onclick="return confirm('Are you sure?')">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- National Council Distributions Tab -->
+                    <div class="tab-pane fade" id="national-council-distributions" role="tabpanel" aria-labelledby="national-council-distributions-tab">
+                        <h3 class="mt-3">National Council Distributions</h3>
+                        <a href="{{ url_for('add_edit_national_council_distribution') }}" class="btn btn-primary mb-3">Add National Council Distribution</a>
+                        <div class="table-responsive">
+                            <table class="table tbl_records text-nowrap text-center table-responsive table-responsive-sm table-responsive-md table-responsive-lg table-responsive-xl table-responsive-xxl m-auto table-bordered table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Active</th>
+                                        <th>Created By</th>
+                                        <th>Created Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for distribution in result.get_all_national_council_distributions %}
+                                    <tr>
+                                        <td>{{ distribution.national_council_distribution_name }}</td>
+                                        <td>{{ 'Yes' if distribution.is_active == 1 else 'No' }}</td>
+                                        <td>{{ distribution.created_by }}</td>
+                                        <td>{{ distribution.created_date|format_date }}</td>
+                                        <td>
+                                            <a href="{{ url_for('add_edit_national_council_distribution', national_council_distribution_id=distribution.national_council_distribution_id) }}" class="text-decoration-none" title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a href="{{ url_for('delete_national_council_distribution', national_council_distribution_id=distribution.national_council_distribution_id) }}" class="text-decoration-none" title="Delete" onclick="return confirm('Are you sure?')">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- KFT Distributions Tab -->
+                    <div class="tab-pane fade" id="kft-distributions" role="tabpanel" aria-labelledby="kft-distributions-tab">
+                        <h3 class="mt-3">KFT Distributions</h3>
+                        <a href="{{ url_for('add_edit_kft_distribution') }}" class="btn btn-primary mb-3">Add KFT Distribution</a>
+                        <div class="table-responsive">
+                            <table class="table tbl_records text-nowrap text-center table-responsive table-responsive-sm table-responsive-md table-responsive-lg table-responsive-xl table-responsive-xxl m-auto table-bordered table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Active</th>
+                                        <th>Created By</th>
+                                        <th>Created Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for distribution in result.get_all_kft_distributions %}
+                                    <tr>
+                                        <td>{{ distribution.kft_distribution_name }}</td>
+                                        <td>{{ 'Yes' if distribution.is_active == 1 else 'No' }}</td>
+                                        <td>{{ distribution.created_by }}</td>
+                                        <td>{{ distribution.created_date|format_date }}</td>
+                                        <td>
+                                            <a href="{{ url_for('add_edit_kft_distribution', kft_distribution_id=distribution.kft_distribution_id) }}" class="text-decoration-none" title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a href="{{ url_for('delete_kft_distribution', kft_distribution_id=distribution.kft_distribution_id) }}" class="text-decoration-none" title="Delete" onclick="return confirm('Are you sure?')">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Branch Roles Tab -->
+                    <div class="tab-pane fade" id="branch-roles" role="tabpanel" aria-labelledby="branch-roles-tab">
+                        <h3 class="mt-3">Branch Roles</h3>
+                        <a href="{{ url_for('add_edit_branch_role') }}" class="btn btn-primary mb-3">Add Branch Role</a>
+                        <div class="table-responsive">
+                            <table class="table tbl_records text-nowrap text-center table-responsive table-responsive-sm table-responsive-md table-responsive-lg table-responsive-xl table-responsive-xxl m-auto table-bordered table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Active</th>
+                                        <th>Created By</th>
+                                        <th>Created Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for role in result.get_all_branch_roles %}
+                                    <tr>
+                                        <td>{{ role.branch_role_name }}</td>
+                                        <td>{{ 'Yes' if role.is_active == 1 else 'No' }}</td>
+                                        <td>{{ role.created_by }}</td>
+                                        <td>{{ role.created_date|format_date }}</td>
+                                        <td>
+                                            <a href="{{ url_for('add_edit_branch_role', branch_role_id=role.branch_role_id) }}" class="text-decoration-none" title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a href="{{ url_for('delete_branch_role', branch_role_id=role.branch_role_id) }}" class="text-decoration-none" title="Delete" onclick="return confirm('Are you sure?')">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-                <nav aria-label="Branch pagination">
-                    <ul class="pagination justify-content-center" id="branch-pagination"></ul>
-                </nav>
             </div>
         </div>
     </div>
@@ -95,187 +271,82 @@
         // Data from Flask with fallback
         const branchData = {{ result.get_all_branches_info | tojson | safe }} || [];
 
-        console.log(branchData);
-
         // Validate data
         if (!Array.isArray(branchData)) {
             console.error('Invalid branch data:', branchData);
-            const tbody = document.getElementById('branch-table-body');
+            const tbody = document.querySelector('#branches tbody');
             tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Error loading data</td></tr>';
-            document.getElementById('branch-pagination').innerHTML = '';
-        } else {
-            // Pagination state
-            let branchCurrentPage = 1;
-            let filteredData = branchData;
+        }
 
-            // Format date
-            function formatDate(dateStr) {
-                if (!dateStr) return 'N/A';
-                const date = new Date(dateStr);
-                return isNaN(date) ? dateStr : date.toLocaleDateString('en-US', { timeZone: 'Asia/Karachi' });
+        // Format date
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            const date = new Date(dateStr);
+            return isNaN(date) ? dateStr : date.toLocaleDateString('en-US', { timeZone: 'Asia/Karachi' });
+        }
+
+        // Show branch details in modal
+        function showBranchDetails(branchId) {
+            // Find the record by branch_id
+            const record = branchData.find(r => String(r.branch_id) === String(branchId));
+            if (!record) {
+                console.error('Branch not found for ID:', branchId);
+                return;
             }
 
-            // Delete branch
-            function deleteBranch(branchId) {
-                if (!confirm('Are you sure you want to delete this branch?')) {
-                    return;
-                }
+            const tbody = document.getElementById('branch-detail-body');
+            tbody.innerHTML = '';
+            const fields = [
+                { key: 'bank_code', label: 'Bank Code' },
+                { key: 'branch', label: 'Branch' },
+                { key: 'branch_code', label: 'Branch Code' },
+                { key: 'branch_name', label: 'Branch Name' },
+                { key: 'area', label: 'Area' },
+                { key: 'area_name', label: 'Area Name' },
+                { key: 'role', label: 'Role' },
+                { key: 'branch_manager', label: 'Branch Manager' },
+                { key: 'email', label: 'Email' },
+                { key: 'bank_distribution', label: 'Bank Distribution' },
+                { key: 'national_council_distribution', label: 'National Council Distribution' },
+                { key: 'kft_distribution', label: 'KFT Distribution' },
+                { key: 'createdby', label: 'Created By' },
+                { key: 'created_date', label: 'Created Date', format: formatDate }
+            ];
 
-                window.location.href = `/delete-branch/${branchId}`
-            }
-
-            // Render table
-            function renderTable(data, tableBodyId, currentPage) {
-                const tbody = document.getElementById(tableBodyId);
-                tbody.innerHTML = '';
-                const itemsPerPage = 10;
-                const start = (currentPage - 1) * itemsPerPage;
-                const end = start + itemsPerPage;
-                const pageData = data.slice(start, end);
-
-                if (pageData.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No records found</td></tr>';
-                    return;
-                }
-
-                pageData.forEach(record => {
+            fields.forEach(field => {
+                if (field.key !== 'branch_id') { // Exclude primary key
                     const row = document.createElement('tr');
+                    const value = field.format ? field.format(record[field.key]) : (record[field.key] || 'N/A');
                     row.innerHTML = `
-                        <td>${record.branch_code || 'N/A'}</td>
-                        <td>${record.role || 'N/A'}</td>
-                        <td>${record.branch_name || 'N/A'}</td>
-                        <td>${record.area || 'N/A'}</td>
-                        <td>${record.createdby || 'N/A'}</td>
-                        <td>${formatDate(record.created_date)}</td>
-                        <td class="action-icons">
-                            <a href="#" class="text-decoration-none" title="View" data-bs-toggle="modal" data-bs-target="#branchDetailModal" onclick="showBranchDetails('${record.branch_id}')">
-                                <i class="bi bi-eye"></i>
-                            </a>
-                            <a href="/edit-branch/${record.branch_id}" class="text-decoration-none" title="Edit">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                            <a href="#" class="text-decoration-none" title="Delete" onclick="deleteBranch('${record.branch_id}')">
-                                <i class="bi bi-trash"></i>
-                            </a>
-                        </td>
+                        <th>${field.label}</th>
+                        <td>${value}</td>
                     `;
                     tbody.appendChild(row);
-                });
-            }
-
-            // Show branch details in modal
-            function showBranchDetails(branchId) {
-                // Find the record by branch_id
-                const record = branchData.find(r => String(r.branch_id) === String(branchId));
-                if (!record) {
-                    console.error('Branch not found for ID:', branchId);
-                    return;
                 }
-
-                const tbody = document.getElementById('branch-detail-body');
-                tbody.innerHTML = '';
-                const fields = [
-                    { key: 'bank_code', label: 'Bank Code' },
-                    { key: 'branch', label: 'Branch' },
-                    { key: 'branch_code', label: 'Branch Code' },
-                    { key: 'branch_name', label: 'Branch Name' },
-                    { key: 'area', label: 'Area' },
-                    { key: 'area_name', label: 'Area Name' },
-                    { key: 'role', label: 'Role' },
-                    { key: 'branch_manager', label: 'Branch Manager' },
-                    { key: 'email', label: 'Email' },
-                    { key: 'bank_distribution', label: 'Bank Distribution' },
-                    { key: 'national_council_distribution', label: 'National Council Distribution' },
-                    { key: 'kft_distribution', label: 'KFT Distribution' },
-                    { key: 'createdby', label: 'Created By' },
-                    { key: 'created_date', label: 'Created Date', format: formatDate }
-                ];
-
-                fields.forEach(field => {
-                    if (field.key !== 'branch_id') { // Exclude primary key
-                        const row = document.createElement('tr');
-                        const value = field.format ? field.format(record[field.key]) : (record[field.key] || 'N/A');
-                        row.innerHTML = `
-                            <th>${field.label}</th>
-                            <td>${value}</td>
-                        `;
-                        tbody.appendChild(row);
-                    }
-                });
-            }
-
-            // Render pagination
-            function renderPagination(data, paginationId, currentPage) {
-                const pagination = document.getElementById(paginationId);
-                pagination.innerHTML = '';
-                const itemsPerPage = 10;
-                const totalPages = Math.ceil(data.length / itemsPerPage);
-                if (totalPages <= 1) return;
-
-                const prevLi = document.createElement('li');
-                prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
-                prevLi.innerHTML = `<a class="page-link" href="#" ${currentPage === 1 ? '' : `onclick="changePage(${currentPage - 1})"`}>Previous</a>`;
-                pagination.appendChild(prevLi);
-
-                const maxVisiblePages = 5;
-                let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-                let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-                if (endPage - startPage + 1 < maxVisiblePages) {
-                    startPage = Math.max(1, endPage - maxVisiblePages + 1);
-                }
-
-                if (startPage > 1) {
-                    const firstLi = document.createElement('li');
-                    firstLi.className = 'page-item';
-                    firstLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(1)">1</a>`;
-                    pagination.appendChild(firstLi);
-
-                    if (startPage > 2) {
-                        const ellipsisLi = document.createElement('li');
-                        ellipsisLi.className = 'page-item disabled';
-                        ellipsisLi.innerHTML = '<span class="page-link">...</span>';
-                        pagination.appendChild(ellipsisLi);
-                    }
-                }
-
-                for (let i = startPage; i <= endPage; i++) {
-                    const pageLi = document.createElement('li');
-                    pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
-                    pageLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i})">${i}</a>`;
-                    pagination.appendChild(pageLi);
-                }
-
-                if (endPage < totalPages) {
-                    if (endPage < totalPages - 1) {
-                        const ellipsisLi = document.createElement('li');
-                        ellipsisLi.className = 'page-item disabled';
-                        ellipsisLi.innerHTML = '<span class="page-link">...</span>';
-                        pagination.appendChild(ellipsisLi);
-                    }
-
-                    const lastLi = document.createElement('li');
-                    lastLi.className = 'page-item';
-                    lastLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${totalPages})">${totalPages}</a>`;
-                    pagination.appendChild(lastLi);
-                }
-
-                const nextLi = document.createElement('li');
-                nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
-                nextLi.innerHTML = `<a class="page-link" href="#" ${currentPage === totalPages ? '' : `onclick="changePage(${currentPage + 1})"`}>Next</a>`;
-                pagination.appendChild(nextLi);
-            }
-
-            // Change page
-            function changePage(page) {
-                branchCurrentPage = page;
-                renderTable(filteredData, 'branch-table-body', branchCurrentPage);
-                renderPagination(filteredData, 'branch-pagination', branchCurrentPage);
-            }
-
-            // Initial render
-            renderTable(filteredData, 'branch-table-body', branchCurrentPage);
-            renderPagination(filteredData, 'branch-pagination', branchCurrentPage);
+            });
         }
+
+        // Handle tab navigation
+        document.addEventListener("DOMContentLoaded", function () {
+            // Activate tab if URL contains hash
+            let hash = window.location.hash;
+            if (hash) {
+                let triggerEl = document.querySelector(`[data-bs-target="${hash}"]`);
+                if (triggerEl) {
+                    let tab = new bootstrap.Tab(triggerEl);
+                    tab.show();
+                }
+            }
+
+            // Update hash when tab is changed
+            let tabLinks = document.querySelectorAll('a[data-bs-toggle="tab"]');
+            tabLinks.forEach(function (el) {
+                el.addEventListener("shown.bs.tab", function (event) {
+                    let target = event.target.getAttribute("data-bs-target");
+                    history.replaceState(null, null, target); // updates URL hash
+                });
+            });
+        });
     </script>
 </body>
 </html>

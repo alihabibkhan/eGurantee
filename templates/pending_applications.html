@@ -7,13 +7,13 @@
     {% include 'head.html' %}
     <style>
         body {
-            background-color: #f8f9fa; /* Light gray background, consistent with bg-light */
+            background-color: #f8f9fa;
         }
         .table-responsive {
             margin-bottom: 1rem;
         }
         .pagination .page-item.active .page-link {
-            background-color: #0d9488; /* Teal from dashboard */
+            background-color: #0d9488;
             border-color: #0d9488;
         }
         .pagination .page-item.disabled .page-link {
@@ -25,7 +25,7 @@
         }
         .modal-body label {
             font-weight: bold;
-            color: #1e3a8a; /* Deep blue for labels */
+            color: #1e3a8a;
         }
         .group-heading {
             margin-top: 1rem;
@@ -41,10 +41,10 @@
             display: block;
         }
         .letter-iframe.loading {
-            background: #f8f9fa url('data:image/svg+xml,%3csvg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"%3e%3cpath opacity=".5" fill="%231e3a8a" d="M20 3.333A16.667 16.667 0 1036.667 20 16.68 16.68 0 0020 3.333zm0 30A13.333 13.333 0 1133.333 20 13.34 13.34 0 0120 33.333z"/%3e%3cpath fill="%231e3a8a" d="M26.667 12.667h-4l-6 10h4z"/%3e%3c/svg%3e') no-repeat center; /* Deep blue spinner */
+            background: #f8f9fa url('data:image/svg+xml,%3csvg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"%3e%3cpath opacity=".5" fill="%231e3a8a" d="M20 3.333A16.667 16.667 0 1036.667 20 16.68 16.68 0 0020 3.333zm0 30A13.333 13.333 0 1133.333 20 13.34 13.34 0 0120 33.333z"/%3e%3cpath fill="%231e3a8a" d="M26.667 12.667h-4l-6 10h4z"/%3e%3c/svg%3e') no-repeat center;
         }
         .letter-error, #ongoing-error {
-            color: #dc3545; /* Red for errors, consistent with dashboard */
+            color: #dc3545;
             text-align: center;
             padding: 20px;
         }
@@ -56,89 +56,89 @@
         }
         .card {
             margin-top: 1rem;
-            background-color: #ffffff; /* White card background */
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1); /* Shadow from dashboard */
+            background-color: #ffffff;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
         }
         .card-header {
-            background-color: #1e3a8a; /* Deep blue header */
-            color: #ffffff; /* White text */
+            background-color: #1e3a8a;
+            color: #ffffff;
         }
         .modal-content {
-            background-color: #ffffff; /* White modal background */
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1); /* Shadow from dashboard */
+            background-color: #ffffff;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
         }
         .modal-header {
-            background-color: #1e3a8a; /* Deep blue modal header */
-            color: #ffffff; /* White text */
+            background-color: #1e3a8a;
+            color: #ffffff;
         }
         .modal-title, .card-header h5 {
-            color: #ffffff; /* White text for headers */
+            color: #ffffff;
         }
         .badge-approved {
-            background-color: #34d399; /* Green from dashboard */
+            background-color: #34d399;
             color: #ffffff;
             margin-left: 5px;
         }
         .badge-rejected {
-            background-color: #dc3545; /* Red for rejected */
+            background-color: #dc3545;
             color: #ffffff;
             margin-left: 5px;
         }
         .table-light {
-            background-color: #f8f9fa; /* Light gray for table header */
+            background-color: #f8f9fa;
         }
         .table tbody tr:nth-child(odd) {
-            background-color: #e6fff7; /* Pale green for odd rows */
+            background-color: #e6fff7;
         }
         .table tbody tr:nth-child(even) {
-            background-color: #ffffff; /* White for even rows */
+            background-color: #ffffff;
         }
         .btn-primary {
-            background-color: #0d9488; /* Teal from dashboard */
+            background-color: #0d9488;
             border-color: #0d9488;
             color: white;
         }
         .btn-primary:hover {
-            background-color: #0b8278; /* Darker teal on hover */
+            background-color: #0b8278;
             border-color: #0b8278;
         }
         .btn-secondary {
-            background-color: #6c757d; /* Bootstrap secondary gray */
+            background-color: #6c757d;
             border-color: #6c757d;
         }
         .btn-secondary:hover {
-            background-color: #5a6268; /* Darker gray on hover */
+            background-color: #5a6268;
             border-color: #5a6268;
         }
         .btn-info {
-            background-color: #2bcdc3; /* Lighter teal for info buttons */
+            background-color: #2bcdc3;
             border-color: #2bcdc3;
         }
         .btn-info:hover {
-            background-color: #26b7ae; /* Darker teal on hover */
+            background-color: #26b7ae;
             border-color: #26b7ae;
         }
         .btn-success {
-            background-color: #34d399; /* Green from dashboard */
+            background-color: #34d399;
             border-color: #34d399;
         }
         .btn-success:hover {
-            background-color: #2ab88a; /* Darker green on hover */
+            background-color: #2ab88a;
             border-color: #2ab88a;
         }
         .form-control, .form-select {
-            border-color: #1e3a8a; /* Deep blue for input borders */
-            color: #1e3a8a; /* Deep blue for input text */
+            border-color: #1e3a8a;
+            color: #1e3a8a;
         }
         .form-control:focus, .form-select:focus {
-            border-color: #0d9488; /* Teal on focus */
-            box-shadow: 0 0 0 0.2rem rgba(13, 148, 136, 0.25); /* Teal shadow */
+            border-color: #0d9488;
+            box-shadow: 0 0 0 0.2rem rgba(13, 148, 136, 0.25);
         }
         .bi, .fas {
-            color: #1e3a8a; /* Deep blue for icons */
+            color: #1e3a8a;
         }
         h1.text-muted {
-            color: #1e3a8a !important; /* Deep blue for main heading */
+            color: #1e3a8a !important;
         }
         .bucket-row { font-weight: bold; }
         .sub-row { padding-left: 20px; }
@@ -153,7 +153,7 @@
     {% include 'navbar.html' %}
 
     {% import 'breadcrumbs.html' as brd %}
-    {{ brd.render_Breadcrumbs([{"url": manage_pre_disbursement, "label": 'Awaiting Services'}]) }}
+    {{ brd.render_Breadcrumbs([{"url": 'awaiting_service', "label": 'Awaiting Services'}]) }}
 
     <div class="mt-3">{% include 'message_box.html' %}</div>
     <div class="container py-4">
@@ -170,14 +170,9 @@
                         <thead class="table-light">
                             <tr>
                                 <th>NC Distribution</th>
-                                <th>Southern RC</th>
-                                <th>Central RC</th>
-                                <th>Upper Chitral RC</th>
-                                <th>Lower Chitral RC</th>
-                                <th>Hunza RC</th>
-                                <th>Gilgit RC</th>
-                                <th>Iskoman Puniyal RC</th>
-                                <th>Gupis Yasin RC</th>
+                                {% for dist in distributions %}
+                                <th>{{ dist }}</th>
+                                {% endfor %}
                                 <th>Total</th>
                             </tr>
                         </thead>
@@ -185,61 +180,64 @@
                             <!-- Reviewer Bucket -->
                             <tr class="bucket-row">
                                 <td>Reviewer Bucket</td>
-                                <td colspan="9"></td>
+                                <td colspan="{{ distributions|length + 1 }}"></td>
                             </tr>
                             <tr class="sub-row reviewer-enterprise">
                                 <td>Enterprise</td>
-                                <td>{{ data_pending.get(('Southern RC', 'Enterprise', 'Reviewer'), 0) }}</td>
-                                <td>{{ data_pending.get(('Central RC', 'Enterprise', 'Reviewer'), 0) }}</td>
-                                <td>{{ data_pending.get(('Upper Chitral RC', 'Enterprise', 'Reviewer'), 0) }}</td>
-                                <td>{{ data_pending.get(('Lower Chitral RC', 'Enterprise', 'Reviewer'), 0) }}</td>
-                                <td>{{ data_pending.get(('Hunza RC', 'Enterprise', 'Reviewer'), 0) }}</td>
-                                <td>{{ data_pending.get(('Gilgit RC', 'Enterprise', 'Reviewer'), 0) }}</td>
-                                <td>{{ data_pending.get(('Iskoman Puniyal RC', 'Enterprise', 'Reviewer'), 0) }}</td>
-                                <td>{{ data_pending.get(('Gupis Yasin RC', 'Enterprise', 'Reviewer'), 0) }}</td>
-                                <td class="total">{{ data_pending.get(('Southern RC', 'Enterprise', 'Reviewer'), 0) + data_pending.get(('Central RC', 'Enterprise', 'Reviewer'), 0) + data_pending.get(('Upper Chitral RC', 'Enterprise', 'Reviewer'), 0) + data_pending.get(('Lower Chitral RC', 'Enterprise', 'Reviewer'), 0) + data_pending.get(('Hunza RC', 'Enterprise', 'Reviewer'), 0) + data_pending.get(('Gilgit RC', 'Enterprise', 'Reviewer'), 0) + data_pending.get(('Iskoman Puniyal RC', 'Enterprise', 'Reviewer'), 0) + data_pending.get(('Gupis Yasin RC', 'Enterprise', 'Reviewer'), 0) }}</td>
+                                {% for dist in distributions %}
+                                <td>{{ data_pending.get((dist, 'Enterprise', 'Reviewer'), 0) }}</td>
+                                {% endfor %}
+                                <td class="total">
+                                    {% set total = 0 %}
+                                    {% for dist in distributions %}
+                                        {% set total = total + data_pending.get((dist, 'Enterprise', 'Reviewer'), 0) %}
+                                    {% endfor %}
+                                    {{ total }}
+                                </td>
                             </tr>
                             <tr class="sub-row reviewer-student">
                                 <td>Student</td>
-                                <td>{{ data_pending.get(('Southern RC', 'Student', 'Reviewer'), 0) }}</td>
-                                <td>{{ data_pending.get(('Central RC', 'Student', 'Reviewer'), 0) }}</td>
-                                <td>{{ data_pending.get(('Upper Chitral RC', 'Student', 'Reviewer'), 0) }}</td>
-                                <td>{{ data_pending.get(('Lower Chitral RC', 'Student', 'Reviewer'), 0) }}</td>
-                                <td>{{ data_pending.get(('Hunza RC', 'Student', 'Reviewer'), 0) }}</td>
-                                <td>{{ data_pending.get(('Gilgit RC', 'Student', 'Reviewer'), 0) }}</td>
-                                <td>{{ data_pending.get(('Iskoman Puniyal RC', 'Student', 'Reviewer'), 0) }}</td>
-                                <td>{{ data_pending.get(('Gupis Yasin RC', 'Student', 'Reviewer'), 0) }}</td>
-                                <td class="total">{{ data_pending.get(('Southern RC', 'Student', 'Reviewer'), 0) + data_pending.get(('Central RC', 'Student', 'Reviewer'), 0) + data_pending.get(('Upper Chitral RC', 'Student', 'Reviewer'), 0) + data_pending.get(('Lower Chitral RC', 'Student', 'Reviewer'), 0) + data_pending.get(('Hunza RC', 'Student', 'Reviewer'), 0) + data_pending.get(('Gilgit RC', 'Student', 'Reviewer'), 0) + data_pending.get(('Iskoman Puniyal RC', 'Student', 'Reviewer'), 0) + data_pending.get(('Gupis Yasin RC', 'Student', 'Reviewer'), 0) }}</td>
+                                {% for dist in distributions %}
+                                <td>{{ data_pending.get((dist, 'Student', 'Reviewer'), 0) }}</td>
+                                {% endfor %}
+                                <td class="total">
+                                    {% set total = 0 %}
+                                    {% for dist in distributions %}
+                                        {% set total = total + data_pending.get((dist, 'Student', 'Reviewer'), 0) %}
+                                    {% endfor %}
+                                    {{ total }}
+                                </td>
                             </tr>
-
                             <!-- Approver Bucket -->
                             <tr class="bucket-row">
                                 <td>Approver Bucket</td>
-                                <td colspan="9"></td>
+                                <td colspan="{{ distributions|length + 1 }}"></td>
                             </tr>
                             <tr class="sub-row approver-enterprise">
                                 <td>Enterprise</td>
-                                <td>{{ data_pending.get(('Southern RC', 'Enterprise', 'Approver'), 0) }}</td>
-                                <td>{{ data_pending.get(('Central RC', 'Enterprise', 'Approver'), 0) }}</td>
-                                <td>{{ data_pending.get(('Upper Chitral RC', 'Enterprise', 'Approver'), 0) }}</td>
-                                <td>{{ data_pending.get(('Lower Chitral RC', 'Enterprise', 'Approver'), 0) }}</td>
-                                <td>{{ data_pending.get(('Hunza RC', 'Enterprise', 'Approver'), 0) }}</td>
-                                <td>{{ data_pending.get(('Gilgit RC', 'Enterprise', 'Approver'), 0) }}</td>
-                                <td>{{ data_pending.get(('Iskoman Puniyal RC', 'Enterprise', 'Approver'), 0) }}</td>
-                                <td>{{ data_pending.get(('Gupis Yasin RC', 'Enterprise', 'Approver'), 0) }}</td>
-                                <td class="total">{{ data_pending.get(('Southern RC', 'Enterprise', 'Approver'), 0) + data_pending.get(('Central RC', 'Enterprise', 'Approver'), 0) + data_pending.get(('Upper Chitral RC', 'Enterprise', 'Approver'), 0) + data_pending.get(('Lower Chitral RC', 'Enterprise', 'Approver'), 0) + data_pending.get(('Hunza RC', 'Enterprise', 'Approver'), 0) + data_pending.get(('Gilgit RC', 'Enterprise', 'Approver'), 0) + data_pending.get(('Iskoman Puniyal RC', 'Enterprise', 'Approver'), 0) + data_pending.get(('Gupis Yasin RC', 'Enterprise', 'Approver'), 0) }}</td>
+                                {% for dist in distributions %}
+                                <td>{{ data_pending.get((dist, 'Enterprise', 'Approver'), 0) }}</td>
+                                {% endfor %}
+                                <td class="total">
+                                    {% set total = 0 %}
+                                    {% for dist in distributions %}
+                                        {% set total = total + data_pending.get((dist, 'Enterprise', 'Approver'), 0) %}
+                                    {% endfor %}
+                                    {{ total }}
+                                </td>
                             </tr>
                             <tr class="sub-row approver-student">
                                 <td>Student</td>
-                                <td>{{ data_pending.get(('Southern RC', 'Student', 'Approver'), 0) }}</td>
-                                <td>{{ data_pending.get(('Central RC', 'Student', 'Approver'), 0) }}</td>
-                                <td>{{ data_pending.get(('Upper Chitral RC', 'Student', 'Approver'), 0) }}</td>
-                                <td>{{ data_pending.get(('Lower Chitral RC', 'Student', 'Approver'), 0) }}</td>
-                                <td>{{ data_pending.get(('Hunza RC', 'Student', 'Approver'), 0) }}</td>
-                                <td>{{ data_pending.get(('Gilgit RC', 'Student', 'Approver'), 0) }}</td>
-                                <td>{{ data_pending.get(('Iskoman Puniyal RC', 'Student', 'Approver'), 0) }}</td>
-                                <td>{{ data_pending.get(('Gupis Yasin RC', 'Student', 'Approver'), 0) }}</td>
-                                <td class="total">{{ data_pending.get(('Southern RC', 'Student', 'Approver'), 0) + data_pending.get(('Central RC', 'Student', 'Approver'), 0) + data_pending.get(('Upper Chitral RC', 'Student', 'Approver'), 0) + data_pending.get(('Lower Chitral RC', 'Student', 'Approver'), 0) + data_pending.get(('Hunza RC', 'Student', 'Approver'), 0) + data_pending.get(('Gilgit RC', 'Student', 'Approver'), 0) + data_pending.get(('Iskoman Puniyal RC', 'Student', 'Approver'), 0) + data_pending.get(('Gupis Yasin RC', 'Student', 'Approver'), 0) }}</td>
+                                {% for dist in distributions %}
+                                <td>{{ data_pending.get((dist, 'Student', 'Approver'), 0) }}</td>
+                                {% endfor %}
+                                <td class="total">
+                                    {% set total = 0 %}
+                                    {% for dist in distributions %}
+                                        {% set total = total + data_pending.get((dist, 'Student', 'Approver'), 0) %}
+                                    {% endfor %}
+                                    {{ total }}
+                                </td>
                             </tr>
                         </tbody>
                     </table>
@@ -257,28 +255,24 @@
                     <table class="table table-bordered table-hover">
                         <thead class="table-light">
                             <tr>
-                                <th>Southern RC</th>
-                                <th>Central RC</th>
-                                <th>Upper Chitral RC</th>
-                                <th>Lower Chitral RC</th>
-                                <th>Hunza RC</th>
-                                <th>Gilgit RC</th>
-                                <th>Iskoman Puniyal RC</th>
-                                <th>Gupis Yasin RC</th>
+                                {% for dist in distributions %}
+                                <th>{{ dist }}</th>
+                                {% endfor %}
                                 <th>Total</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td>{{ data_agreed.get(('Southern RC',), 0) }}</td>
-                                <td>{{ data_agreed.get(('Central RC',), 0) }}</td>
-                                <td>{{ data_agreed.get(('Upper Chitral RC',), 0) }}</td>
-                                <td>{{ data_agreed.get(('Lower Chitral RC',), 0) }}</td>
-                                <td>{{ data_agreed.get(('Hunza RC',), 0) }}</td>
-                                <td>{{ data_agreed.get(('Gilgit RC',), 0) }}</td>
-                                <td>{{ data_agreed.get(('Iskoman Puniyal RC',), 0) }}</td>
-                                <td>{{ data_agreed.get(('Gupis Yasin RC',), 0) }}</td>
-                                <td class="total">{{ data_agreed.get(('Southern RC',), 0) + data_agreed.get(('Central RC',), 0) + data_agreed.get(('Upper Chitral RC',), 0) + data_agreed.get(('Lower Chitral RC',), 0) + data_agreed.get(('Hunza RC',), 0) + data_agreed.get(('Gilgit RC',), 0) + data_agreed.get(('Iskoman Puniyal RC',), 0) + data_agreed.get(('Gupis Yasin RC',), 0) }}</td>
+                                {% for dist in distributions %}
+                                <td>{{ data_agreed.get((dist,), 0) }}</td>
+                                {% endfor %}
+                                <td class="total">
+                                    {% set total = 0 %}
+                                    {% for dist in distributions %}
+                                        {% set total = total + data_agreed.get((dist,), 0) %}
+                                    {% endfor %}
+                                    {{ total }}
+                                </td>
                             </tr>
                         </tbody>
                     </table>
@@ -296,28 +290,24 @@
                     <table class="table table-bordered table-hover">
                         <thead class="table-light">
                             <tr>
-                                <th>Southern RC</th>
-                                <th>Central RC</th>
-                                <th>Upper Chitral RC</th>
-                                <th>Lower Chitral RC</th>
-                                <th>Hunza RC</th>
-                                <th>Gilgit RC</th>
-                                <th>Iskoman Puniyal RC</th>
-                                <th>Gupis Yasin RC</th>
+                                {% for dist in distributions %}
+                                <th>{{ dist }}</th>
+                                {% endfor %}
                                 <th>Total</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td>{{ data_rejected.get(('Southern RC',), 0) }}</td>
-                                <td>{{ data_rejected.get(('Central RC',), 0) }}</td>
-                                <td>{{ data_rejected.get(('Upper Chitral RC',), 0) }}</td>
-                                <td>{{ data_rejected.get(('Lower Chitral RC',), 0) }}</td>
-                                <td>{{ data_rejected.get(('Hunza RC',), 0) }}</td>
-                                <td>{{ data_rejected.get(('Gilgit RC',), 0) }}</td>
-                                <td>{{ data_rejected.get(('Iskoman Puniyal RC',), 0) }}</td>
-                                <td>{{ data_rejected.get(('Gupis Yasin RC',), 0) }}</td>
-                                <td class="total">{{ data_rejected.get(('Southern RC',), 0) + data_rejected.get(('Central RC',), 0) + data_rejected.get(('Upper Chitral RC',), 0) + data_rejected.get(('Lower Chitral RC',), 0) + data_rejected.get(('Hunza RC',), 0) + data_rejected.get(('Gilgit RC',), 0) + data_rejected.get(('Iskoman Puniyal RC',), 0) + data_rejected.get(('Gupis Yasin RC',), 0) }}</td>
+                                {% for dist in distributions %}
+                                <td>{{ data_rejected.get((dist,), 0) }}</td>
+                                {% endfor %}
+                                <td class="total">
+                                    {% set total = 0 %}
+                                    {% for dist in distributions %}
+                                        {% set total = total + data_rejected.get((dist,), 0) %}
+                                    {% endfor %}
+                                    {{ total }}
+                                </td>
                             </tr>
                         </tbody>
                     </table>

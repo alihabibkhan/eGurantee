@@ -624,6 +624,7 @@
             <li class="nav-item"><a href="#" class="nav-link dropdown-link">Roles & Service Term Update</a></li>
           {% endif %}
           <li class="nav-item"><a href="{{url_for('manage_user_service_hours')}}" class="nav-link dropdown-link">Service Hours-Self Update</a></li>
+          <li class="nav-item"><a href="{{url_for('manage_self_update_community')}}" class="nav-link dropdown-link">Self Update Community Hours</a></li>
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Volunteer Report</a></li>
         </ul>
       </li>
@@ -735,11 +736,11 @@
         <li class="nav-item dropdown-container">
           <a href="#" class="nav-link custom-dropdown-toggle">
             <i class="fa-solid fa-gear fa-xl"></i>
-            <span class="nav-label">Administration/Setting</span>
+            <span class="nav-label">Settings</span>
             <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
           </a>
           <ul class="custom-dropdown-menu">
-            <li class="nav-item"><a class="nav-link dropdown-title">Administration/Setting</a></li>
+            <li class="nav-item"><a class="nav-link dropdown-title">Settings</a></li>
             <li class="nav-item"><a href="{{url_for('manage_bank_details')}}" class="nav-link">Bank Setup</a></li>
             <li class="nav-item"><a href="{{url_for('manage_branches')}}" class="nav-link">Branch Setup</a></li>
             <li class="nav-item"><a class="nav-link dropdown-title">Loan Administration</a></li>

@@ -215,8 +215,8 @@
                                     <label class="form-label">Assigned Branch Role</label>
                                     <select class="form-select" name="assigned_branch">
                                         <option value="" {{ 'selected' if not result.user or not result.user.assigned_branch else '' }}>[Select...]</option>
-                                        {% for branch in result.get_distinct_branches_roles %}
-                                            <option value="{{ branch['role'] }}" {{ 'selected' if result.user and result.user.assigned_branch == branch['role'] else '' }}>{{ branch['role'] }}</option>
+                                        {% for role in result.get_all_branch_roles %}
+                                            <option value="{{ role['branch_role_id'] }}" {{ 'selected' if result.user and result.user.assigned_branch == role['branch_role_id'] else '' }}>{{ role['branch_role_name'] }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>

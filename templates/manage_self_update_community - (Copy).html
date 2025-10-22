@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Self Update Community Service Hours</title>
+    {% include 'head.html' %}
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        .table-responsive {
+            margin-bottom: 1rem;
+        }
+        .pagination .page-item.active .page-link {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        .pagination .page-item.disabled .page-link {
+            cursor: not-allowed;
+            opacity: 0.65;
+        }
+        .card {
+            margin-top: 1rem;
+        }
+        .accordion-button {
+            color: var(--bs-accordion-active-color);
+            background-color: var(--bs-accordion-active-bg);
+        }
+        #ui-datepicker-div {
+            z-index: 1060 !important;
+            margin-top: 5px;
+        }
+        .btn-group {
+            margin-bottom: 1rem;
+        }
+        .btn.loading::after {
+            content: '';
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            margin-left: 8px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .filter-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url":"", "label":"Self Update Community Service Hours"}]) }}
+    <div class="mt-3">
+        {% include 'message_box.html' %}
+    </div>
+
+    <div class="container py-4">
+        <h1 class="mb-4">Self Update Community Service Hours</h1>
+
+        <!-- Data Table Card -->
+        <div class="card">
+            <div class="card-body">
+                <!-- Accordion 1: Volunteer Information -->
+                <div class="accordion mb-3" id="volunteerAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingVolunteer">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseVolunteer" aria-expanded="true" aria-controls="collapseVolunteer">
+                                <span class="fw-semibold">Volunteer Information</span>
+                            </button>
+                        </h2>
+                        <div id="collapseVolunteer" class="accordion-collapse collapse show" aria-labelledby="headingVolunteer" data-bs-parent="#volunteerAccordion">
+                            <div class="accordion-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Volunteer ID</label>
+                                        <input type="text" class="form-control" value="{{ result.volunteer_info.volunteer_id or 'N/A' }}" readonly>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Full Name</label>
+                                        <input type="text" class="form-control" value="{{ result.volunteer_info.name or 'N/A' }}" readonly>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Email / Phone</label>
+                                        <input type="text" class="form-control" value="{{ result.volunteer_info.email or 'N/A' }}" readonly>
+                                    </div>
+                                    <div class="col-md-4 mt-2">
+                                        <label class="form-label">Contact/Phone</label>
+                                        <input type="text" class="form-control" value="{{ result.volunteer_info.phone or 'N/A' }}" readonly>
+                                    </div>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Role</th>
+                                                <th>Responsibility</th>
+                                                <th>Committee</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% if result.get_all_user_privileges_by_user_id %}
+                                                {% for role in result.get_all_user_privileges_by_user_id %}
+                                                    <tr>
+                                                        <td>{{ role.role or 'N/A' }}</td>
+                                                        <td>{{ role.responsibility or 'N/A' }}</td>
+                                                        <td>{{ role.committee or 'N/A' }}</td>
+                                                    </tr>
+                                                {% endfor %}
+                                            {% else %}
+                                                <tr>
+                                                    <td colspan="3">No roles assigned</td>
+                                                </tr>
+                                            {% endif %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Accordion 2: Community Service Hours -->
+                <div class="accordion mb-3" id="serviceHoursAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingServiceHours">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseServiceHours" aria-expanded="true" aria-controls="collapseServiceHours">
+                                <span class="fw-semibold">Community Service Hours</span>
+                            </button>
+                        </h2>
+                        <div id="collapseServiceHours" class="accordion-collapse collapse show" aria-labelledby="headingServiceHours" data-bs-parent="#serviceHoursAccordion">
+                            <div class="accordion-body">
+                                <!-- Filter Section -->
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <label for="filter_month_year" class="form-label">Filter by Month/Year</label>
+                                        <input type="text" class="form-control" id="filter_month_year" name="filter_month_year" placeholder="YYYY-MM">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="filter_service_category" class="form-label">Filter by Service Category</label>
+                                        <select class="form-select" id="filter_service_category" name="filter_service_category">
+                                            <option value="" selected>All</option>
+                                            <option value="Executive Committee">Executive Committee</option>
+                                            <option value="Gilgit Baltistan Committee">Gilgit Baltistan Committee</option>
+                                            <option value="Chitral Committee">Chitral Committee</option>
+                                            <option value="South-Central Committee">South-Central Committee</option>
+                                            <option value="Risk Management Committee">Risk Management Committee</option>
+                                            <option value="Finance Committee">Finance Committee</option>
+                                            <option value="Information Technology Committee">Information Technology Committee</option>
+                                            <option value="Program Impact Committee">Program Impact Committee</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4 align-self-end">
+                                        <div class="filter-buttons">
+                                            <button type="button" class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
+                                            <button type="button" class="btn btn-secondary" onclick="clearFilters()">Clear Filters</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Buttons -->
+                                <div class="btn-group gap-2">
+                                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#serviceHoursModal" onclick="clearModal()">Add New Community Service Hours</button>
+                                    <button type="button" class="btn btn-primary" onclick="exportToExcel()" data-loading-text="Downloading Excel...">Export as Excel</button>
+                                    <button type="button" class="btn btn-primary" onclick="exportToPDF()" data-loading-text="Downloading PDF...">Export as PDF</button>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-striped" id="serviceHoursTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Month/Year</th>
+                                                <th>Hours Contributed</th>
+                                                <th>Service Category</th>
+                                                <th>Brief Key Activities</th>
+                                                <th class="no-export">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% if result.get_user_cumm_service_hours %}
+                                                {% for item in result.get_user_cumm_service_hours %}
+                                                    <tr>
+                                                        <td class="month-year" data-raw-month-year="{{ item.month_year or 'N/A' }}">{{ item.month_year or 'N/A' }}</td>
+                                                        <td>{{ item.hours_contributed or 'N/A' }}</td>
+                                                        <td>{{ item.service_category or 'N/A' }}</td>
+                                                        <td>{{ item.brief_key_activities or 'N/A' }}</td>
+                                                        <td class="no-export">
+                                                            <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#serviceHoursModal" onclick="editServiceHours('{{ item.cum_sev_hr_id }}', '{{ item.hours_contributed }}', '{{ item.service_category }}', '{{ item.brief_key_activities or '' }}', '{{ item.month_year or '' }}')">
+                                                                Edit
+                                                            </button>
+                                                            <button type="button" class="btn btn-sm btn-danger" onclick="deleteServiceHours('{{ item.cum_sev_hr_id }}')">
+                                                                Delete
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                {% endfor %}
+                                            {% else %}
+                                                <tr>
+                                                    <td colspan="5">No service hours available</td>
+                                                </tr>
+                                            {% endif %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Service Hours Modal -->
+    <div class="modal fade" id="serviceHoursModal" tabindex="-1" aria-labelledby="serviceHoursModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="serviceHoursModalLabel">Community Service Hours</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="serviceHoursForm">
+                        <input type="hidden" id="cum_sev_hr_id" name="cum_sev_hr_id">
+                        <div class="mb-3">
+                            <label for="month_year" class="form-label">Month/Year</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="month_year" name="month_year" placeholder="YYYY-MM" required>
+                                <button type="button" class="btn btn-outline-secondary" onclick="$('#month_year').datepicker('show');">
+                                    <i class="bi bi-calendar"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="hours_contributed" class="form-label">Hours Contributed</label>
+                            <input type="number" class="form-control" id="hours_contributed" name="hours_contributed" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="service_category" class="form-label">Service Category</label>
+                            <select class="form-select" id="service_category" name="service_category" required>
+                                <option value="" selected>[Select...]</option>
+                                <option value="Executive Committee">Executive Committee</option>
+                                <option value="Gilgit Baltistan Committee">Gilgit Baltistan Committee</option>
+                                <option value="Chitral Committee">Chitral Committee</option>
+                                <option value="South-Central Committee">South-Central Committee</option>
+                                <option value="Risk Management Committee">Risk Management Committee</option>
+                                <option value="Finance Committee">Finance Committee</option>
+                                <option value="Information Technology Committee">Information Technology Committee</option>
+                                <option value="Program Impact Committee">Program Impact Committee</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="brief_key_activities" class="form-label">Brief Key Activities</label>
+                            <textarea class="form-control" id="brief_key_activities" name="brief_key_activities"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="saveServiceHours()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // Initialize filter_month_year datepicker
+            $("#filter_month_year").datepicker({
+                dateFormat: "yy-mm",
+                changeMonth: true,
+                changeYear: true,
+                showButtonPanel: true,
+                beforeShow: function(input, inst) {
+                    setTimeout(function() {
+                        inst.dpDiv.css({
+                            'z-index': 1050,
+                            'margin-top': '5px'
+                        }).position({
+                            my: "left top",
+                            at: "left bottom",
+                            of: input
+                        });
+                    }, 0);
+                },
+                onClose: function(dateText, inst) {
+                    var month = $("#ui-datepicker-div .ui-datepicker-month :selected").val();
+                    var year = $("#ui-datepicker-div .ui-datepicker-year :selected").val();
+                    if (month !== undefined && year !== undefined) {
+                        $(this).val($.datepicker.formatDate('yy-mm', new Date(year, month, 1)));
+                        applyFilters();
+                    }
+                }
+            }).focus(function() {
+                $(".ui-datepicker-calendar").hide();
+            });
+
+            // Initialize month_year datepicker when modal is shown
+            $('#serviceHoursModal').on('shown.bs.modal', function () {
+                $("#month_year").datepicker("destroy"); // Destroy any existing instance
+                $("#month_year").datepicker({
+                    dateFormat: "yy-mm",
+                    changeMonth: true,
+                    changeYear: true,
+                    showButtonPanel: true,
+                    beforeShow: function(input, inst) {
+                        setTimeout(function() {
+                            inst.dpDiv.css({
+                                'z-index': 1060,
+                                'margin-top': '5px'
+                            }).position({
+                                my: "left top",
+                                at: "left bottom",
+                                of: input
+                            });
+                        }, 0);
+                    },
+                    onClose: function(dateText, inst) {
+                        var month = $("#ui-datepicker-div .ui-datepicker-month :selected").val();
+                        var year = $("#ui-datepicker-div .ui-datepicker-year :selected").val();
+                        if (month !== undefined && year !== undefined) {
+                            $(this).val($.datepicker.formatDate('yy-mm', new Date(year, month, 1)));
+                        }
+                    }
+                }).focus(function() {
+                    $(".ui-datepicker-calendar").hide();
+                });
+                // Trigger datepicker on input click
+                $("#month_year").on('click', function() {
+                    $(this).datepicker('show');
+                });
+            });
+
+            // Format month-year in table
+            formatMonthYear();
+        });
+
+        function formatMonthYear() {
+            $('.month-year').each(function() {
+                const dateStr = $(this).data('raw-month-year');
+                if (dateStr && dateStr !== 'N/A') {
+                    const [year, month] = dateStr.split('-');
+                    const date = new Date(year, month - 1, 1);
+                    const monthName = date.toLocaleString('default', { month: 'short' });
+                    $(this).text(`${monthName}-${year}`);
+                }
+            });
+        }
+
+        function clearModal() {
+            $('#cum_sev_hr_id').val('');
+            $('#month_year').val('');
+            $('#hours_contributed').val('');
+            $('#service_category').val('');
+            $('#brief_key_activities').val('');
+        }
+
+        function editServiceHours(id, hours, category, desc, monthYear) {
+            const escapedDesc = desc.replace(/'/g, "\\'");
+            $('#cum_sev_hr_id').val(id);
+            $('#month_year').val(monthYear);
+            $('#hours_contributed').val(hours);
+            $('#service_category').val(category);
+            $('#brief_key_activities').val(escapedDesc);
+        }
+
+        function clearFilters() {
+            $('#filter_month_year').val('');
+            $('#filter_service_category').val('');
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const monthYear = $('#filter_month_year').val();
+            const serviceCategory = $('#filter_service_category').val();
+            const rows = $('#serviceHoursTable tbody tr');
+
+            rows.each(function() {
+                const rowMonthYear = $(this).find('td:eq(0)').data('raw-month-year') || $(this).find('td:eq(0)').text();
+                const rowCategory = $(this).find('td:eq(2)').text();
+                const showRow = (!monthYear || rowMonthYear === monthYear) &&
+                               (!serviceCategory || rowCategory === serviceCategory);
+                $(this).toggle(showRow);
+            });
+
+            const visibleRows = rows.filter(':visible').length;
+            const noDataRow = rows.filter(function() {
+                return $(this).find('td').length === 1 && $(this).find('td').text() === 'No service hours available';
+            });
+            if (visibleRows === 0 && !monthYear && !serviceCategory) {
+                noDataRow.show();
+            } else if (visibleRows === 0) {
+                noDataRow.hide();
+                if (!$('#no-matching-records').length) {
+                    $('#serviceHoursTable tbody').append('<tr id="no-matching-records"><td colspan="5">No matching records found</td></tr>');
+                }
+            } else {
+                $('#no-matching-records').remove();
+                noDataRow.toggle(noDataRow.length > 0 && visibleRows === 0 && !monthYear && !serviceCategory);
+            }
+        }
+
+        function toggleButtonLoading(button, isLoading) {
+            if (isLoading) {
+                if (!button.dataset.originalText) {
+                    button.dataset.originalText = button.textContent;
+                }
+                button.disabled = true;
+                button.classList.add('loading');
+                button.textContent = button.getAttribute('data-loading-text');
+            } else {
+                button.disabled = false;
+                button.classList.remove('loading');
+                button.textContent = button.dataset.originalText || button.getAttribute('data-loading-text').replace('...', '');
+            }
+        }
+
+        function exportToExcel() {
+            const button = document.querySelector('button[onclick="exportToExcel()"]');
+            try {
+                if (!window.XLSX) {
+                    throw new Error('XLSX library is not loaded.');
+                }
+
+                toggleButtonLoading(button, true);
+                const table = document.getElementById('serviceHoursTable');
+                const rows = table.querySelectorAll('tbody tr');
+                const data = [['Month/Year', 'Hours Contributed', 'Service Category', 'Brief Key Activities']];
+
+                rows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length > 0 && cells[0].textContent !== 'No service hours available' && cells[0].textContent !== 'No matching records found') {
+                        const monthYear = cells[0].dataset.rawMonthYear || cells[0].textContent;
+                        let formattedMonthYear = monthYear;
+                        if (monthYear && monthYear !== 'N/A' && monthYear.match(/^\d{4}-\d{2}$/)) {
+                            const [year, month] = monthYear.split('-');
+                            const date = new Date(year, month - 1, 1);
+                            const monthName = date.toLocaleString('default', { month: 'short' });
+                            formattedMonthYear = `${monthName}-${year}`;
+                        }
+                        data.push([
+                            formattedMonthYear,
+                            cells[1].textContent || 'N/A',
+                            cells[2].textContent || 'N/A',
+                            cells[3].textContent || 'N/A'
+                        ]);
+                    }
+                });
+
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet(data);
+                XLSX.utils.book_append_sheet(wb, ws, 'Community Service Hours');
+
+                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                const blob = new Blob([wbout], { type: 'application/octet-stream' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `community_service_hours.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('Excel export error:', error);
+                alert(`Failed to export Excel file: ${error.message}`);
+            } finally {
+                toggleButtonLoading(button, false);
+            }
+        }
+
+        function exportToPDF() {
+            const button = document.querySelector('button[onclick="exportToPDF()"]');
+            try {
+                if (!window.jspdf || !window.jspdf.jsPDF) {
+                    throw new Error('jsPDF library is not loaded.');
+                }
+
+                toggleButtonLoading(button, true);
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                doc.text("Community Service Hours", 14, 20);
+                doc.autoTable({
+                    html: '#serviceHoursTable',
+                    head: [['Month/Year', 'Hours Contributed', 'Service Category', 'Brief Key Activities']],
+                    columns: [
+                        { dataKey: 'month_year' },
+                        { dataKey: 'hours_contributed' },
+                        { dataKey: 'service_category' },
+                        { dataKey: 'brief_key_activities' }
+                    ],
+                    columnStyles: {
+                        0: { cellWidth: 30 },
+                        1: { cellWidth: 30 },
+                        2: { cellWidth: 50 },
+                        3: { cellWidth: 70 }
+                    },
+                    didParseCell: function(data) {
+                        if (data.section === 'body' && data.column.dataKey === 'month_year' && data.cell.text[0] !== 'N/A') {
+                            const dateStr = data.cell.raw || data.cell.text[0];
+                            if (typeof dateStr === 'string' && dateStr.match(/^\d{4}-\d{2}$/)) {
+                                const [year, month] = dateStr.split('-');
+                                const date = new Date(year, month - 1, 1);
+                                if (!isNaN(date.getTime())) {
+                                    const monthName = date.toLocaleString('default', { month: 'short' });
+                                    data.cell.text = [`${monthName}-${year}`];
+                                } else {
+                                    data.cell.text = [dateStr];
+                                }
+                            }
+                        }
+                    }
+                });
+                doc.save('community_service_hours.pdf');
+            } catch (error) {
+                console.error('PDF export error:', error);
+                alert(`Failed to export PDF file: ${error.message}`);
+            } finally {
+                toggleButtonLoading(button, false);
+            }
+        }
+
+        function saveServiceHours() {
+            const form = document.getElementById('serviceHoursForm');
+            const formData = new FormData(form);
+            const cumSevHrId = formData.get('cum_sev_hr_id');
+            const url = cumSevHrId ? `/edit-user-comm-svc-hours/${cumSevHrId}` : '/add-user-comm-svc-hours';
+
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    alert('Community service hours saved successfully!');
+                    location.reload();
+                },
+                error: function(xhr, status, error) {
+                    alert('Error saving community service hours: ' + (xhr.responseJSON?.error || error));
+                }
+            });
+        }
+
+        function deleteServiceHours(id) {
+            if (confirm('Are you sure you want to delete this record?')) {
+                $.ajax({
+                    url: `/delete-user-comm-svc-hours/${id}`,
+                    type: 'POST',
+                    success: function(response) {
+                        alert('Community service hours deleted successfully!');
+                        location.reload();
+                    },
+                    error: function(xhr, status, error) {
+                        alert('Error deleting community service hours: ' + (xhr.responseJSON?.error || error));
+                    }
+                });
+            }
+        }
+
+        function saveDraft() {
+            const form = document.getElementById('serviceHoursForm');
+            const formData = new FormData(form);
+            const draftData = {};
+            formData.forEach((value, key) => {
+                draftData[key] = value;
+            });
+            localStorage.setItem('commSvcHoursDraft', JSON.stringify(draftData));
+            alert('Draft saved to cache!');
+        }
+    </script>
+</body>
+</html>
