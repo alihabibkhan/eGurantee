@@ -249,7 +249,7 @@
                                     <select class="form-select" name="active" id="ddl_active" required>
                                         <option value="1" {{ 'selected' if result.user and result.user.active == 1 else '' }}>Yes</option>
                                         <option value="0" {{ 'selected' if result.user and result.user.active == 0 else '' }}>No</option>
-                                        <option value="2" {{ 'selected' if result.user and result.user.signature == '2' else '' }}>On Leave</option>
+                                        <option value="2" {{ 'selected' if result.user and result.user.active == 2 else '' }}>On Leave</option>
                                     </select>
                                 </div>
                             </div>

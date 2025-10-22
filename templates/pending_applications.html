@@ -188,11 +188,11 @@
                                 <td>{{ data_pending.get((dist, 'Enterprise', 'Reviewer'), 0) }}</td>
                                 {% endfor %}
                                 <td class="total">
-                                    {% set total = 0 %}
+                                    {% set ns = namespace(total=0) %}
                                     {% for dist in distributions %}
-                                        {% set total = total + data_pending.get((dist, 'Enterprise', 'Reviewer'), 0) %}
+                                        {% set  ns.total =  ns.total + data_pending.get((dist, 'Enterprise', 'Reviewer'), 0) %}
                                     {% endfor %}
-                                    {{ total }}
+                                    {{  ns.total }}
                                 </td>
                             </tr>
                             <tr class="sub-row reviewer-student">
@@ -201,11 +201,11 @@
                                 <td>{{ data_pending.get((dist, 'Student', 'Reviewer'), 0) }}</td>
                                 {% endfor %}
                                 <td class="total">
-                                    {% set total = 0 %}
+                                    {% set ns = namespace(total=0) %}
                                     {% for dist in distributions %}
-                                        {% set total = total + data_pending.get((dist, 'Student', 'Reviewer'), 0) %}
+                                        {% set  ns.total =  ns.total + data_pending.get((dist, 'Student', 'Reviewer'), 0) %}
                                     {% endfor %}
-                                    {{ total }}
+                                    {{  ns.total }}
                                 </td>
                             </tr>
                             <!-- Approver Bucket -->
@@ -219,11 +219,11 @@
                                 <td>{{ data_pending.get((dist, 'Enterprise', 'Approver'), 0) }}</td>
                                 {% endfor %}
                                 <td class="total">
-                                    {% set total = 0 %}
+                                    {% set ns = namespace(total=0) %}
                                     {% for dist in distributions %}
-                                        {% set total = total + data_pending.get((dist, 'Enterprise', 'Approver'), 0) %}
+                                        {% set  ns.total =  ns.total + data_pending.get((dist, 'Enterprise', 'Approver'), 0) %}
                                     {% endfor %}
-                                    {{ total }}
+                                    {{  ns.total }}
                                 </td>
                             </tr>
                             <tr class="sub-row approver-student">
@@ -232,11 +232,11 @@
                                 <td>{{ data_pending.get((dist, 'Student', 'Approver'), 0) }}</td>
                                 {% endfor %}
                                 <td class="total">
-                                    {% set total = 0 %}
+                                    {% set ns = namespace(total=0) %}
                                     {% for dist in distributions %}
-                                        {% set total = total + data_pending.get((dist, 'Student', 'Approver'), 0) %}
+                                        {% set ns.total =  ns.total + data_pending.get((dist, 'Student', 'Approver'), 0) %}
                                     {% endfor %}
-                                    {{ total }}
+                                    {{  ns.total }}
                                 </td>
                             </tr>
                         </tbody>
@@ -267,11 +267,11 @@
                                 <td>{{ data_agreed.get((dist,), 0) }}</td>
                                 {% endfor %}
                                 <td class="total">
-                                    {% set total = 0 %}
-                                    {% for dist in distributions %}
-                                        {% set total = total + data_agreed.get((dist,), 0) %}
-                                    {% endfor %}
-                                    {{ total }}
+                                    {% set ns = namespace(total=0) %}
+                                        {% for dist in distributions %}
+                                            {% set ns.total = ns.total + data_agreed.get((dist,), 0) %}
+                                        {% endfor %}
+                                    {{ ns.total }}
                                 </td>
                             </tr>
                         </tbody>
@@ -302,11 +302,11 @@
                                 <td>{{ data_rejected.get((dist,), 0) }}</td>
                                 {% endfor %}
                                 <td class="total">
-                                    {% set total = 0 %}
+                                    {% set ns = namespace(total=0) %}
                                     {% for dist in distributions %}
-                                        {% set total = total + data_rejected.get((dist,), 0) %}
+                                        {% set ns.total = ns.total + data_rejected.get((dist,), 0) %}
                                     {% endfor %}
-                                    {{ total }}
+                                    {{ ns.total }}
                                 </td>
                             </tr>
                         </tbody>

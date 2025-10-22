@@ -222,7 +222,7 @@
                                        data-orientation="{{ user.orientation_completed_on or '-' }}"
                                        data-manager-id="{{ user.manager_id or '-' }}"
                                        data-branch="{{ user.assigned_branch or '-' }}"
-                                       data-active="{{ 'Active' if user.active == '1' else 'In-Active' }}"
+                                       data-active="{{ 'Active' if user.active|string == '1' else 'On Leave' if user.active|string == '2' else 'In-Active' }}"
                                        data-created-by="{{ user.created_by_name or '-' }}"
                                        data-created-date="{{ user.created_date or '-' }}"
                                        data-date-of-retirement="{{ user.date_of_retirement or '-' }}"
@@ -291,6 +291,7 @@
                                     <dt>Manager ID</dt>
                                     <dd id="modal-manager-id"></dd>
                                     <dt>Assigned Branch</dt>
+                                    <dd id="modal-branch"></dd>
                                     <dt>Status</dt>
                                     <dd id="modal-active"></dd>
                                     <dt>Created By</dt>
@@ -333,6 +334,7 @@
         // Populate modal with user details on click
         document.querySelectorAll('.details-link').forEach(link => {
             link.addEventListener('click', function() {
+                console.log(this.dataset)
                 document.getElementById('modal-user-id').textContent = "***";
                 document.getElementById('modal-name').textContent = this.dataset.name;
                 document.getElementById('modal-email').textContent = this.dataset.email;
