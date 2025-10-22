@@ -5,7 +5,7 @@ from application import application
 @application.route('/manage-user-service-hours')
 def manage_user_service_hours():
     try:
-        if is_login() and is_admin():
+        if is_login():
             user_id = get_current_user_id()
             if not user_id:
                 raise ValueError("No user_id found for current user")
@@ -27,7 +27,7 @@ def manage_user_service_hours():
 @application.route('/edit-user-service-hours/<int:user_service_hours_id>', methods=['GET', 'POST'])
 def add_edit_user_service_hours(user_service_hours_id=None):
     try:
-        if not (is_login() and is_admin()):
+        if not (is_login()):
             return jsonify({'error': 'Unauthorized'}), 401
 
         service_hours_details = None
@@ -111,7 +111,7 @@ def add_edit_user_service_hours(user_service_hours_id=None):
 @application.route('/edit-user-reporting-period/<int:user_reporting_period_id>', methods=['GET', 'POST'])
 def add_edit_user_reporting_period(user_reporting_period_id=None):
     try:
-        if not (is_login() and is_admin()):
+        if not (is_login()):
             return jsonify({'error': 'Unauthorized'}), 401
 
         reporting_period_details = None
@@ -184,7 +184,7 @@ def add_edit_user_reporting_period(user_reporting_period_id=None):
 @application.route('/delete-user-service-hours/<int:user_service_hours_id>', methods=['POST', 'GET'])
 def delete_user_service_hours(user_service_hours_id):
     try:
-        if not (is_login() and is_admin()):
+        if not (is_login()):
             return jsonify({'error': 'Unauthorized'}), 401
 
         current_user_id = get_current_user_id()

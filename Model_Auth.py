@@ -96,7 +96,7 @@ def clear_user_session():
 
 
 def is_login():
-    if session['IsLoggedIn']:
+    if 'IsLoggedIn' in session and session['IsLoggedIn']:
         return True
 
     return False

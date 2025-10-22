@@ -181,7 +181,10 @@ def post_disbursement_report():
                 'product_list': product_list,
                 'branch_list': branch_list,
                 'area_list': area_list,
-                'loan_status_list': loan_status_list
+                'loan_status_list': loan_status_list,
+                'get_all_bank_distributions': get_all_bank_distributions(),
+                'get_all_national_council_distributions': get_all_national_council_distributions(),
+                'get_all_kft_distributions': get_all_kft_distributions(),
             }
             return render_template('post_disbursement_report.html', result=content)
     except Exception as e:
@@ -218,15 +221,18 @@ def get_post_disbursement_report_data():
                 p.overdue_days,
                 p.loan_closed_on,
                 p.collateral_title,
-                b.bank_distribution,
-                b.national_council_distribution,
-                b.kft_distribution,
+                bdd.bank_distribution_name as bank_distribution,
+                ncd.national_council_distribution_name as national_council_distribution,
+                kd.kft_distribution_name as kft_distribution,
                 b.branch,
                 b.area,
                 b.branch_manager
             FROM tbl_post_disbursement p
             LEFT JOIN tbl_branches b ON p.branch_code = b.branch_code
             LEFT JOIN tbl_bank_details bd ON bd.bank_id = b.bank_id
+            LEFT JOIN tbl_bank_distribution bdd ON bdd.bank_distribution_id = b.bank_distribution
+            LEFT JOIN tbl_national_council_distribution ncd ON ncd.national_council_distribution_id = b.national_council_distribution
+            LEFT JOIN tbl_kft_distribution kd ON kd.kft_distribution_id = b.kft_distribution
             WHERE 1=1
         """
 

@@ -6,7 +6,13 @@ from application import application
 def manage_branches():
     try:
         if is_login() and (is_admin() or is_executive_approver()):
-            content = {'get_all_branches_info': get_all_branches_info()}
+            content = {
+                'get_all_branches_info': get_all_branches_info(),
+                'get_all_bank_distributions': get_all_bank_distributions(),
+                'get_all_national_council_distributions': get_all_national_council_distributions(),
+                'get_all_kft_distributions': get_all_kft_distributions(),
+                'get_all_branch_roles': get_all_branch_roles()
+            }
             return render_template('manage_branches.html', result=content)
     except Exception as e:
         print('manage branches exception:- ', str(e))
@@ -104,8 +110,18 @@ def add_edit_branch(branch_id=None):
                 execute_command(query)
             return redirect(url_for('manage_branches'))
 
+        content = {
+            'branch_details': branch_details,
+            'get_all_branches_info': get_all_branches_info(),
+            'get_all_bank_distributions': get_all_bank_distributions(),
+            'get_all_national_council_distributions': get_all_national_council_distributions(),
+            'get_all_kft_distributions': get_all_kft_distributions(),
+            'get_all_branch_roles': get_all_branch_roles(),
+            'bank_details': bank_details
+        }
+
         # Render form for GET request
-        return render_template('add_edit_branch.html', result={'branch_details': branch_details, 'get_all_branches_info': get_all_branches_info(), 'bank_details': bank_details})
+        return render_template('add_edit_branch.html', result=content)
     except Exception as e:
         print('add/edit branch exception:- ', str(e))
         return redirect(url_for('login'))

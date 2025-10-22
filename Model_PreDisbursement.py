@@ -92,6 +92,7 @@ def get_all_pre_disbursement_temp():
         sql_part_temp = f"""
             INNER JOIN tbl_branches b on pdt."Branch_Name" LIKE CONCAT('%', b."branch_code", '%') AND b."live_branch" = '1'
             INNER JOIN tbl_users u on u.assigned_branch = b.role and u."active" = '1'
+            LEFT JOIN tbl_branch_role tbr on u.assigned_branch = tbr.branch_role_id
             LEFT JOIN tbl_users u1 ON u1."user_id" = pdt."uploaded_by"
             LEFT JOIN tbl_users u2 ON u2."user_id" = pdt."approved_by"
             LEFT JOIN tbl_users u3 ON u3."user_id" = pdt."reviewed_by"
@@ -102,6 +103,7 @@ def get_all_pre_disbursement_temp():
     else:
         sql_part_temp = """
             LEFT JOIN tbl_branches b on pdt."Branch_Name" LIKE CONCAT('%', b."branch_code", '%') AND b."live_branch" = '1'
+            LEFT JOIN tbl_branch_role tbr on b.role = tbr.branch_role_id
             LEFT JOIN tbl_users u1 ON u1."user_id" = pdt."uploaded_by"
             LEFT JOIN tbl_users u2 ON u2."user_id" = pdt."approved_by"
             LEFT JOIN tbl_users u3 ON u3."user_id" = pdt."reviewed_by"
@@ -176,7 +178,7 @@ def get_all_pre_disbursement_temp():
             u3."name" AS reviewed_by,
             u4."name" AS rejected_by,
             b.branch,
-            b.role,
+            tbr.branch_role_name as role,
             b.email,
             bd.bank_name,
             pdt."markup_rate",

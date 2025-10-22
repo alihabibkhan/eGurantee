@@ -109,11 +109,12 @@ def get_latest_portfolio_date():
 
 def get_loan_details_by_national_council():
     print("get_loan_details_by_national_council")
+
     # query = """
     #     SELECT
     #         REGEXP_REPLACE(INITCAP(REPLACE(b.national_council_distribution, '_', ' ')), ' Rc$', ' RC') AS national_council_distribution,
     #         COUNT(DISTINCT pd.cnic) AS total_beneficiaries,
-    #         COUNT(CASE WHEN pd.disbursed_amount > 0 THEN 1 END) AS disbursed_count,
+    #         COUNT(*) AS disbursed_count,
     #         COUNT(CASE WHEN pd.principal_outstanding > 0 THEN 1 END) AS active_loan_count
     #     FROM tbl_post_disbursement pd
     #     INNER JOIN tbl_branches b
@@ -129,20 +130,22 @@ def get_loan_details_by_national_council():
 
     query = """
         SELECT 
-            REGEXP_REPLACE(INITCAP(REPLACE(b.national_council_distribution, '_', ' ')), ' Rc$', ' RC') AS national_council_distribution,
+            ncd.national_council_distribution_name AS national_council_distribution,
             COUNT(DISTINCT pd.cnic) AS total_beneficiaries,
             COUNT(*) AS disbursed_count,
             COUNT(CASE WHEN pd.principal_outstanding > 0 THEN 1 END) AS active_loan_count
         FROM tbl_post_disbursement pd
         INNER JOIN tbl_branches b
             ON pd.branch_code = b.branch_code
+        LEFT JOIN tbl_national_council_distribution ncd
+            ON b.national_council_distribution = ncd.national_council_distribution_id
         WHERE 
             b.live_branch = '1'
             AND DATE_TRUNC('month', pd.mis_date) = (
                 SELECT DATE_TRUNC('month', MAX(mis_date)) 
                 FROM tbl_post_disbursement
             )
-        GROUP BY b.national_council_distribution;
+        GROUP BY ncd.national_council_distribution_name
     """
 
     result = fetch_records(query)
