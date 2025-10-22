@@ -5,9 +5,11 @@ def get_all_user_data():
     query = f"""
         SELECT DISTINCT u.user_id, u.name, u.email, u.rights, u.volunteer_id, u.gender, u.dob, u.phone, 
                         u.country_of_residence, u.date_of_joining, u.orientation_completed_on, u.manager_id, 
-                        u.assigned_branch, u.date_of_retirement, u.reason, u1.name AS created_by_name, u.created_date 
+                        br.branch_role_name as assigned_branch, u.date_of_retirement, u.reason, 
+                        u1.name AS created_by_name, u.created_date, u.active 
         FROM tbl_users u 
         LEFT JOIN tbl_users u1 ON u1.user_id = u.created_by
+        left join tbl_branch_role br on br.branch_role_id = u.assigned_branch
         ORDER BY u.user_id     
     """
     print(query)
