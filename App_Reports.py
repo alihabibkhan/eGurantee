@@ -122,15 +122,16 @@ def get_report_data():
         report_date = formatted_report_date
         print('report_date:- ', report_date)
 
-
         query = f"""
-        SELECT *
-        FROM tbl_fund_projection_reports
-        WHERE bank_id = {bank_id} AND created_at::timestamp(0) = '{str(report_date)}'
-        LIMIT 1
+            SELECT *
+            FROM tbl_fund_projection_reports
+            WHERE bank_id = '{bank_id}'
+              AND date_trunc('second', created_at) = '{report_date}'::timestamp
+            LIMIT 1;
         """
+
         # Assuming fetch_records returns a list of dictionaries
-        result = fetch_records(query)
+        result = fetch_records(query, is_print=True)
         print(result)
         if not result:
             return jsonify({'status': 'error', 'message': 'No report found for the selected date'}), 404
