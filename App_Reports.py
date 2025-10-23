@@ -170,3 +170,83 @@ def get_report_data():
     except Exception as e:
         print('get_report_data exception:', e)
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@application.route('/fund_projected_vs_disbursement')
+def fund_projected_vs_disbursement():
+    try:
+        if is_login() and (is_admin() or is_executive_approver()):
+
+            # query = """
+            #     WITH LatestMonth AS (
+            #         SELECT
+            #             report_date,
+            #             total_projected_disbursement,
+            #             projected_recoveries,
+            #             ROW_NUMBER() OVER (PARTITION BY TO_CHAR(report_date, 'Mon-YYYY')
+            #                               ORDER BY created_at DESC) AS rn
+            #         FROM tbl_fund_projection_reports
+            #         WHERE TO_CHAR(report_date, 'YYYY-MM') = (
+            #             SELECT TO_CHAR(MAX(report_date), 'YYYY-MM')
+            #             FROM tbl_fund_projection_reports
+            #         )
+            #     ),
+            #     Disbursement AS (
+            #         SELECT
+            #             SUM(disbursed_amount) AS disbursement
+            #         FROM tbl_post_disbursement
+            #         WHERE DATE_TRUNC('month', mis_date) = (
+            #             SELECT DATE_TRUNC('month', MAX(mis_date))
+            #             FROM tbl_post_disbursement
+            #         )
+            #     )
+            #     SELECT
+            #         TO_CHAR(lm.report_date, 'Mon-YYYY') AS month_year,
+            #         lm.total_projected_disbursement,
+            #         lm.projected_recoveries,
+            #         d.disbursement
+            #     FROM LatestMonth lm
+            #     CROSS JOIN Disbursement d
+            #     WHERE lm.rn = 1;
+            # """
+
+
+            query = """
+                WITH LatestMonth AS (
+                    SELECT 
+                        report_date,
+                        total_projected_disbursement,
+                        projected_recoveries,
+                        ROW_NUMBER() OVER (PARTITION BY TO_CHAR(report_date, 'YYYY-MM') 
+                                          ORDER BY created_at DESC) AS rn
+                    FROM tbl_fund_projection_reports
+                ),
+                Disbursement AS (
+                    SELECT 
+                        SUM(disbursed_amount) AS disbursement
+                    FROM tbl_post_disbursement
+                    WHERE DATE_TRUNC('month', mis_date) = (
+                        SELECT DATE_TRUNC('month', MAX(mis_date))
+                        FROM tbl_post_disbursement
+                    )
+                )
+                SELECT 
+                    TO_CHAR(lm.report_date, 'Mon-YYYY') AS month_year,
+                    lm.total_projected_disbursement,
+                    lm.projected_recoveries,
+                    d.disbursement
+                FROM LatestMonth lm
+                CROSS JOIN Disbursement d
+                WHERE lm.rn = 1
+                ORDER BY lm.report_date;
+            """
+
+            result = fetch_records(query)
+
+            content = {
+                'fund_projection_data': result,
+            }
+            return render_template('fund_projected_vs_disbursement.html', result=content)
+    except Exception as e:
+        print('fund projected vs disbursement exception:- ', str(e))
+    return redirect(url_for('login'))
