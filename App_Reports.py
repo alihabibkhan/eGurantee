@@ -211,6 +211,36 @@ def fund_projected_vs_disbursement():
             # """
 
 
+            # query = """
+            #     WITH LatestMonth AS (
+            #         SELECT
+            #             report_date,
+            #             total_projected_disbursement,
+            #             projected_recoveries,
+            #             ROW_NUMBER() OVER (PARTITION BY TO_CHAR(report_date, 'YYYY-MM')
+            #                               ORDER BY created_at DESC) AS rn
+            #         FROM tbl_fund_projection_reports
+            #     ),
+            #     Disbursement AS (
+            #         SELECT
+            #             SUM(disbursed_amount) AS disbursement
+            #         FROM tbl_post_disbursement
+            #         WHERE DATE_TRUNC('month', mis_date) = (
+            #             SELECT DATE_TRUNC('month', MAX(mis_date))
+            #             FROM tbl_post_disbursement
+            #         )
+            #     )
+            #     SELECT
+            #         TO_CHAR(lm.report_date, 'Mon-YYYY') AS month_year,
+            #         lm.total_projected_disbursement,
+            #         lm.projected_recoveries,
+            #         d.disbursement
+            #     FROM LatestMonth lm
+            #     CROSS JOIN Disbursement d
+            #     WHERE lm.rn = 1
+            #     ORDER BY lm.report_date;
+            # """
+
             query = """
                 WITH LatestMonth AS (
                     SELECT 
@@ -223,12 +253,10 @@ def fund_projected_vs_disbursement():
                 ),
                 Disbursement AS (
                     SELECT 
-                        SUM(disbursed_amount) AS disbursement
+                        SUM(disbursed_amount) AS disbursement,
+                        DATE_TRUNC('month', booked_on) AS booked_month
                     FROM tbl_post_disbursement
-                    WHERE DATE_TRUNC('month', mis_date) = (
-                        SELECT DATE_TRUNC('month', MAX(mis_date))
-                        FROM tbl_post_disbursement
-                    )
+                    GROUP BY DATE_TRUNC('month', booked_on)
                 )
                 SELECT 
                     TO_CHAR(lm.report_date, 'Mon-YYYY') AS month_year,
@@ -236,7 +264,8 @@ def fund_projected_vs_disbursement():
                     lm.projected_recoveries,
                     d.disbursement
                 FROM LatestMonth lm
-                CROSS JOIN Disbursement d
+                LEFT JOIN Disbursement d
+                    ON DATE_TRUNC('month', lm.report_date) = d.booked_month
                 WHERE lm.rn = 1
                 ORDER BY lm.report_date;
             """

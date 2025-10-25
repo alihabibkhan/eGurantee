@@ -183,41 +183,42 @@ of the Pay Order/Demand Draft/Banker’s Cheque from the college/University.
 <br/><br/>
 Thank you for your cooperation and continued support.
 <br/><br/>
+<b>
 Best Regards,
 <br/>
 Khushali Foundation Trust (KFT)
+<br/>
 Community Helping Community
+</b>
             """
         else:
             message = f"""
                 
 <b>Dear HBLMFB {branch_manager}</b>,
-<br/>
-<br/>
+<br/><br/>
 Please find attached the approval for the subject case that was forwarded for our review. Based 
 on satisfactory verification, strong recommendations, and all other checks conducted by the KFT 
 Member and HBL MFB branch, the following loan has been approved:
-<br/>
-<br/>
+<br/><br/>
 <b>Applicant Name</b>: {borrower_name}
 <br/>
 <b>Amount</b>: {kft_approved_limit}
-<br/>
-<br/>
+<br/><br/>
 <b>
 Note: Kindly obtain 3PG before disbursement (if required). Enhancement to be considered after 
 completion of existing requested tenure. Early adjustment of loans to be followed by cooling-off 
 period for future enhancements
 </b>
-<br/>
-<br/>
+<br/><br/>
 Thank you for your cooperation and continued support.
-<br/>
-<br/>
-<b>Best Regards<b/>,
+<br/><br/>
+<b>
+Best Regards,
 <br/>
 Khushali Foundation Trust (KFT)
+<br/>
 Community Helping Community
+</b>
         """
 
         from Model_Email import send_email
