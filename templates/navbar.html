@@ -555,7 +555,7 @@
     <!-- Primary Top Nav -->
     <ul class="nav-list primary-nav">
       <li class="nav-item">
-        <a href="#" class="nav-link">
+        <a href="{{url_for('index')}}" class="nav-link">
           <span class="material-symbols-rounded">dashboard</span>
           <span class="nav-label">Dashboard</span>
         </a>
@@ -607,7 +607,6 @@
               <li class="nav-item"><a href="#" class="nav-link">Non Performance Loan Report</a></li>
             </ul>
           </li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Loan</a></li>
         </ul>
       </li>
       <!-- Dropdown -->
@@ -623,8 +622,7 @@
           {% if session['rights']|string == '3' or session['rights']|string == '4' %}
             <li class="nav-item"><a href="#" class="nav-link dropdown-link">Roles & Service Term Update</a></li>
           {% endif %}
-          <li class="nav-item"><a href="{{url_for('manage_user_service_hours')}}" class="nav-link dropdown-link">Service Hours-Self Update</a></li>
-          <li class="nav-item"><a href="{{url_for('manage_self_update_community')}}" class="nav-link dropdown-link">Self Update Community Hours</a></li>
+          <li class="nav-item"><a href="{{url_for('manage_self_update_community')}}" class="nav-link dropdown-link">Self Update Committee Hours</a></li>
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Volunteer Report</a></li>
         </ul>
       </li>

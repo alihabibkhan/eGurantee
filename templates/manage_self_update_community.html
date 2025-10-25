@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Self Update Community Service Hours</title>
+    <title>Self Update Committee Service Hours</title>
     {% include 'head.html' %}
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -64,13 +64,13 @@
 <body>
     {% include 'navbar.html' %}
     {% import 'breadcrumbs.html' as brd %}
-    {{ brd.render_Breadcrumbs([{"url":"", "label":"Self Update Community Service Hours"}]) }}
+    {{ brd.render_Breadcrumbs([{"url":"", "label":"Self Update Committee Service Hours"}]) }}
     <div class="mt-3">
         {% include 'message_box.html' %}
     </div>
 
     <div class="container py-4">
-        <h1 class="mb-4">Self Update Community Service Hours</h1>
+        <h1 class="mb-4">Self Update Committee Service Hours</h1>
 
         <!-- Data Table Card -->
         <div class="card">
@@ -134,12 +134,12 @@
                     </div>
                 </div>
 
-                <!-- Accordion 2: Community Service Hours -->
+                <!-- Accordion 2: Committee Service Hours -->
                 <div class="accordion mb-3" id="serviceHoursAccordion">
                     <div class="accordion-item">
                         <h2 class="accordion-header" id="headingServiceHours">
                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseServiceHours" aria-expanded="true" aria-controls="collapseServiceHours">
-                                <span class="fw-semibold">Community Service Hours</span>
+                                <span class="fw-semibold">Committee Service Hours</span>
                             </button>
                         </h2>
                         <div id="collapseServiceHours" class="accordion-collapse collapse show" aria-labelledby="headingServiceHours" data-bs-parent="#serviceHoursAccordion">
@@ -151,7 +151,7 @@
                                         <input type="text" class="form-control" id="filter_month_year" name="filter_month_year" placeholder="YYYY-MM">
                                     </div>
                                     <div class="col-md-4">
-                                        <label for="filter_service_category" class="form-label">Filter by Service Category</label>
+                                        <label for="filter_service_category" class="form-label">Filter by Committee</label>
                                         <select class="form-select" id="filter_service_category" name="filter_service_category">
                                             <option value="" selected>All</option>
                                             <option value="Executive Committee">Executive Committee</option>
@@ -173,7 +173,7 @@
                                 </div>
                                 <!-- Buttons -->
                                 <div class="btn-group gap-2">
-                                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#serviceHoursModal" onclick="clearModal()">Add New Community Service Hours</button>
+                                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#serviceHoursModal" onclick="clearModal()">Add New Committee Service Hours</button>
                                     <button type="button" class="btn btn-primary" onclick="exportToExcel()" data-loading-text="Downloading Excel...">Export as Excel</button>
                                     <button type="button" class="btn btn-primary" onclick="exportToPDF()" data-loading-text="Downloading PDF...">Export as PDF</button>
                                 </div>
@@ -183,7 +183,7 @@
                                             <tr>
                                                 <th>Month/Year</th>
                                                 <th>Hours Contributed</th>
-                                                <th>Service Category</th>
+                                                <th>Committee</th>
                                                 <th>Brief Key Activities</th>
                                                 <th class="no-export">Action</th>
                                             </tr>
@@ -253,7 +253,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="serviceHoursModalLabel">Community Service Hours</h5>
+                    <h5 class="modal-title" id="serviceHoursModalLabel">Committee Service Hours</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -273,7 +273,7 @@
                             <input type="number" class="form-control" id="hours_contributed" name="hours_contributed" required>
                         </div>
                         <div class="mb-3">
-                            <label for="service_category" class="form-label">Service Category</label>
+                            <label for="service_category" class="form-label">Committee</label>
                             <select class="form-select" id="service_category" name="service_category" required>
                                 <option value="" selected>[Select...]</option>
                                 <option value="Executive Committee">Executive Committee</option>
@@ -462,7 +462,7 @@
                 toggleButtonLoading(button, true);
                 const table = document.getElementById('serviceHoursTable');
                 const rows = table.querySelectorAll('tbody tr');
-                const data = [['Month/Year', 'Hours Contributed', 'Service Category', 'Brief Key Activities']];
+                const data = [['Month/Year', 'Hours Contributed', 'Committee', 'Brief Key Activities']];
 
                 rows.forEach(row => {
                     const cells = row.querySelectorAll('td');
@@ -486,7 +486,7 @@
 
                 const wb = XLSX.utils.book_new();
                 const ws = XLSX.utils.aoa_to_sheet(data);
-                XLSX.utils.book_append_sheet(wb, ws, 'Community Service Hours');
+                XLSX.utils.book_append_sheet(wb, ws, 'Committee Service Hours');
 
                 const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
                 const blob = new Blob([wbout], { type: 'application/octet-stream' });
@@ -516,10 +516,10 @@
                 toggleButtonLoading(button, true);
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
-                doc.text("Community Service Hours", 14, 20);
+                doc.text("Committee Service Hours", 14, 20);
                 doc.autoTable({
                     html: '#serviceHoursTable',
-                    head: [['Month/Year', 'Hours Contributed', 'Service Category', 'Brief Key Activities']],
+                    head: [['Month/Year', 'Hours Contributed', 'Committee', 'Brief Key Activities']],
                     columns: [
                         { dataKey: 'month_year' },
                         { dataKey: 'hours_contributed' },
@@ -570,7 +570,7 @@
                 processData: false,
                 contentType: false,
                 success: function(response) {
-                    alert('Community service hours saved successfully!');
+                    alert('Committee service hours saved successfully!');
                     location.reload();
                 },
                 error: function(xhr, status, error) {
@@ -585,7 +585,7 @@
                     url: `/delete-user-comm-svc-hours/${id}`,
                     type: 'POST',
                     success: function(response) {
-                        alert('Community service hours deleted successfully!');
+                        alert('Committee service hours deleted successfully!');
                         location.reload();
                     },
                     error: function(xhr, status, error) {
