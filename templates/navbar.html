@@ -599,8 +599,8 @@
             <ul class="sub-dropdown-menu">
               <li class="nav-item"><a class="nav-link dropdown-title">Loan Portfolio Reports</a></li>
               {% if session['rights']|string == '4' or session['rights']|string == '2' or session['rights']|string == '3' %}
-                <li class="nav-item"><a href="#" class="nav-link">Gross / Net Loans Reports</a></li>
-                <li class="nav-item"><a href="#" class="nav-link">Loan Projections Report</a></li>
+                <li class="nav-item"><a href="{{url_for('post_disbursement_report')}}" class="nav-link">Gross / Net Loans Reports</a></li>
+                <li class="nav-item"><a href="{{url_for('loan_projection_report')}}" class="nav-link">Loan Projections Report</a></li>
                 <li class="nav-item"><a href="{{url_for('view_rejected_applications')}}" class="nav-link">Disagreed Loans Report</a></li>
                 <li class="nav-item"><a href="#" class="nav-link">Loan Budget Vs Disbursed</a></li>
               {% endif %}

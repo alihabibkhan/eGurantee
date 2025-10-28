@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loan Projection Report</title>
+    {% include 'head.html' %}
+    <style>
+        body { background-color: #f8f9fa; }
+        .card { margin-top: 1rem; background:#fff; box-shadow:0 6px 12px rgba(0,0,0,.1); }
+        .card-header { background:#1e3a8a; color:#fff; }
+        .table tbody tr:nth-child(odd){background:#e6fff7;}
+        .table tbody tr:nth-child(even){background:#fff;}
+        .btn-primary,.btn-success,.btn-info,.btn-danger,.btn-warning{background:#0d9488;border-color:#0d9488;color:#fff;}
+        .btn-primary:hover,.btn-success:hover,.btn-info:hover,.btn-danger:hover,.btn-warning:hover{background:#0b8278;border-color:#0b8278;}
+        .form-control,.form-select{border-color:#1e3a8a;color:#1e3a8;}
+        .form-control:focus,.form-select:focus{border-color:#0d9488;box-shadow:0 0 0 .2rem rgba(13,148,136,.25);}
+        h1.text-muted{color:#1e3a8a !important;}
+        .table-blur{filter:blur(3px);transition:filter .3s ease;}
+        .spinner-container{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10;}
+        .table-responsive{position:relative;}
+        .export-toast{position:fixed;top:20px;right:20px;z-index:1050;}
+        .export-table{font-size:12px;border-collapse:collapse;width:100%;}
+        .export-table th,.export-table td{border:1px solid #000;padding:8px;text-align:center;}
+        .export-table thead{background:#f8f9fa;}
+        @media print{
+            body *{visibility:hidden;}
+            .table-responsive,.table-responsive *{visibility:visible;}
+            .table-responsive{position:absolute;left:0;top:0;width:100%;}
+            .btn,.pagination,#loading-spinner{display:none !important;}
+        }
+        .modal-body .table + .table { margin-top: 1.5rem; }
+        .modal-title small { font-weight: normal; color: #6c757d; }
+    </style>
+</head>
+<body>
+    {% include 'navbar.html' %}
+
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url":"loan_projection_report","label":"Loan Projection Report"}]) }}
+
+    <div class="mt-3">{% include 'message_box.html' %}</div>
+
+    <div class="container py-4">
+        <h1 class="mb-3 text-muted">Loan Projection Report</h1>
+
+        <!-- FILTER CARD -->
+        <div class="card filter-card">
+            <div class="card-header"><h5 class="mb-0">Filters</h5></div>
+            <div class="card-body">
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-3">
+                        <label class="form-label" for="historical-growth">Historical Growth</label>
+                        <select class="form-select form-select-sm" id="historical-growth">
+                            <option value="all" selected>All</option>
+                            <option value="last_3_months">Last 3 months</option>
+                            <option value="last_6_months">Last 6 months</option>
+                            <option value="last_9_months">Last 9 months</option>
+                            <option value="last_12_months">Last 12 months</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="projection-for">Projection For</label>
+                        <select class="form-select form-select-sm" id="projection-for">
+                            <option value="">-- Select --</option>
+                            <option value="current_month">Current Month</option>
+                            <option value="current_year">Current Year</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="product-code-filter">Product</label>
+                        <select class="form-select form-select-sm" id="product-code-filter" multiple>
+                            <option value="">All</option>
+                            {% for p in result.product_list %}
+                                <option value="{{ p.product_code }}">{{ p.product_code }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="button" class="btn btn-primary btn-sm w-100 mt-4" onclick="applyFilters()">Search</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DATA TABLE -->
+        <div class="card mt-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Projection Results</h5>
+                <div>
+                    <button class="btn btn-success btn-sm me-2" onclick="exportToExcel()">Export Excel</button>
+                    <button class="btn btn-info btn-sm me-2" onclick="printTable()">Print</button>
+                    <button class="btn btn-warning btn-sm" onclick="showAverageModal()">View Average</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover text-center" id="proj-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Month</th>
+                                <th>Actual Disbursement</th>
+                                <th>Actual No of Beneficiaries</th>
+                                <th>Growth Disb. Amount</th>
+                                <th>Growth Disb. %</th>
+                                <th>Growth Benef. Count</th>
+                                <th>Growth Benef. %</th>
+                            </tr>
+                        </thead>
+                        <tbody id="proj-tbody">
+                            <tr><td colspan="7" class="text-muted">Click "Search" to load data</td></tr>
+                        </tbody>
+                    </table>
+                    <div id="loading-spinner" class="spinner-container d-none">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AVERAGE + PROJECTION MODAL -->
+    <div class="modal fade" id="averageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        Projection Summary
+                        <small id="based-on-period"></small>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Table 1: Average -->
+                    <h6 class="mb-3">Average of Last <span id="avg-period">3</span> Months</h6>
+                    <div class="table-responsive mb-4">
+                        <table class="table table-bordered text-center" id="avg-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Month</th>
+                                    <th>Actual Disbursement</th>
+                                    <th>Actual No of Beneficiaries</th>
+                                    <th>Growth Disb. Amount</th>
+                                    <th>Growth Disb. %</th>
+                                    <th>Growth Benef. Count</th>
+                                    <th>Growth Benef. %</th>
+                                </tr>
+                            </thead>
+                            <tbody id="avg-tbody">
+                                <tr><td colspan="7" class="text-muted">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Table 2: Projection for Current Month -->
+                    <h6 class="mb-3">Projection for Current Month</h6>
+                    <div class="table-responsive">
+                        <table class="table table-bordered text-center" style="font-size:0.95rem;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th></th>
+                                    <th>Disbursement</th>
+                                    <th>Beneficiaries</th>
+                                </tr>
+                            </thead>
+                            <tbody id="proj-tbody-summary">
+                                <!-- Filled by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <script>
+        let filteredData = [];
+
+        // Safe number format
+        const fmtNum = (v, isInteger = false) => {
+            if (v == null) return '-';
+            const num = Number(v);
+            if (isNaN(num)) return '-';
+            return isInteger
+                ? Math.round(num).toLocaleString('en-US')
+                : num.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+        };
+
+        // Safe percentage format
+        const fmtPct = v => {
+            if (v == null) return '-';
+            const num = Number(v);
+            return isNaN(num) ? '-' : num.toFixed(2) + '%';
+        };
+
+        // Apply filters
+        function applyFilters() {
+            const btn = document.querySelector('button[onclick="applyFilters()"]');
+            const tbody = document.getElementById('proj-tbody');
+            const spinner = document.getElementById('loading-spinner');
+
+            btn.disabled = true; btn.innerHTML = 'Searching...';
+            tbody.classList.add('table-blur'); spinner.classList.remove('d-none');
+
+            const filters = {
+                historical_growth: document.getElementById('historical-growth').value,
+                projection_for:    document.getElementById('projection-for').value,
+                product_code:      Array.from(document.getElementById('product-code-filter').selectedOptions)
+                                   .map(o => o.value).filter(v => v)
+            };
+
+            fetch('/get_loan_projection_report_data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(filters)
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    filteredData = data.records;
+                    renderTable();
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown'));
+                }
+            })
+            .catch(e => alert('Network error: ' + e))
+            .finally(() => {
+                btn.disabled = false; btn.innerHTML = 'Search';
+                tbody.classList.remove('table-blur'); spinner.classList.add('d-none');
+            });
+        }
+
+        // Render main table
+        function renderTable() {
+            const tbody = document.getElementById('proj-tbody');
+            tbody.innerHTML = '';
+            if (!filteredData.length) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-muted">No records found</td></tr>';
+                return;
+            }
+            filteredData.forEach(r => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${r.Month || '-'}</td>
+                    <td>${fmtNum(r['Actual Disbursement'])}</td>
+                    <td>${fmtNum(r['Actual No of Beneficiaries'], true)}</td>
+                    <td>${fmtNum(r.growth_disbursement_amount)}</td>
+                    <td>${fmtPct(r.growth_disbursement_percentage)}</td>
+                    <td>${fmtNum(r.growth_beneficiaries_count, true)}</td>
+                    <td>${fmtPct(r.growth_beneficiaries_percentage)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // View Average + Projection Modal
+        function showAverageModal() {
+            if (!filteredData.length) return alert('Please search data first.');
+
+            const growth = document.getElementById('historical-growth').value;
+            if (growth === 'all') return alert('Please select a historical growth period.');
+
+            const monthsMap = { 'last_3_months': 3, 'last_6_months': 6, 'last_9_months': 9, 'last_12_months': 12 };
+            const n = monthsMap[growth];
+            document.getElementById('avg-period').textContent = n;
+
+            const recentData = filteredData.slice(-n);
+            if (!recentData.length) return alert(`No data for last ${n} months.`);
+
+            // === Dynamic Header: Aug-2025, Sep-2025, Oct-2025 → Nov-2025 ===
+            const monthsList = recentData.map(r => r.Month).filter(Boolean);
+            const lastMonthStr = recentData[recentData.length - 1]?.Month || '';
+            let nextMonthStr = 'Next Month';
+
+            if (lastMonthStr.includes('-')) {
+                const [m, y] = lastMonthStr.split('-');
+                const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                const idx = monthNames.indexOf(m);
+                if (idx !== -1) {
+                    const ni = (idx + 1) % 12;
+                    const ny = idx === 11 ? parseInt(y) + 1 : parseInt(y);
+                    nextMonthStr = `${monthNames[ni]}-${ny}`;
+                }
+            }
+
+            document.getElementById('based-on-period').innerHTML = `
+                <small>Based on ${monthsList.join(', ')} → <strong>${nextMonthStr}</strong></small>
+            `;
+
+            // === Averages ===
+            const sum = recentData.reduce((a, r) => {
+                a.disb += Number(r['Actual Disbursement']) || 0;
+                a.benef += Number(r['Actual No of Beneficiaries']) || 0;
+                a.gDisbPct += Number(r.growth_disbursement_percentage) || 0;
+                a.gBenefPct += Number(r.growth_beneficiaries_percentage) || 0;
+                return a;
+            }, { disb: 0, benef: 0, gDisbPct: 0, gBenefPct: 0 });
+
+            const avg = {
+                disb: sum.disb / recentData.length,
+                benef: sum.benef / recentData.length,
+                gDisbPct: sum.gDisbPct / recentData.length,
+                gBenefPct: sum.gBenefPct / recentData.length
+            };
+
+            // Table 1: Average
+            const avgTbody = document.getElementById('avg-tbody');
+            avgTbody.innerHTML = `
+                <tr>
+                    <td><strong>Average</strong></td>
+                    <td>${fmtNum(avg.disb)}</td>
+                    <td>${fmtNum(avg.benef, true)}</td>
+                    <td>-</td>
+                    <td>${fmtPct(avg.gDisbPct)}</td>
+                    <td>-</td>
+                    <td>${fmtPct(avg.gBenefPct)}</td>
+                </tr>
+            `;
+
+            // Table 2: Projection for Current Month
+            const projDisb = avg.disb * (1 + avg.gDisbPct / 100);
+            const projBenef = avg.benef * (1 + avg.gBenefPct / 100);
+
+            const projTbody = document.getElementById('proj-tbody-summary');
+            projTbody.innerHTML = `
+                <tr>
+                    <td><strong>${nextMonthStr}</strong></td>
+                    <td>${fmtNum(avg.disb)}</td>
+                    <td>${fmtNum(avg.benef, true)}</td>
+                </tr>
+                <tr class="table-warning">
+                    <td><strong>Add Growth Rate</strong></td>
+                    <td>${fmtPct(avg.gDisbPct)}</td>
+                    <td>${fmtPct(avg.gBenefPct)}</td>
+                </tr>
+                <tr class="table-success">
+                    <td><strong>Projection for Current Month</strong></td>
+                    <td><strong>${fmtNum(projDisb)}</strong></td>
+                    <td><strong>${fmtNum(projBenef, true)}</strong></td>
+                </tr>
+            `;
+
+            const modal = new bootstrap.Modal(document.getElementById('averageModal'));
+            modal.show();
+        }
+
+        // Export / Print (unchanged)
+        function exportToExcel() {
+            if (!filteredData.length) return alert('No data to export');
+            const ws = XLSX.utils.json_to_sheet(filteredData.map(r => ({
+                Month: r.Month,
+                'Actual Disbursement': r['Actual Disbursement'],
+                'Actual No of Beneficiaries': r['Actual No of Beneficiaries'],
+                'Growth Disb. Amount': r.growth_disbursement_amount,
+                'Growth Disb. %': r.growth_disbursement_percentage,
+                'Growth Benef. Count': r.growth_beneficiaries_count,
+                'Growth Benef. %': r.growth_beneficiaries_percentage
+            })));
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Projection');
+            XLSX.writeFile(wb, 'Loan_Projection_Report.xlsx');
+        }
+
+        function printTable() {
+            if (!filteredData.length) return alert('No data to print');
+            const temp = document.createElement('div');
+            temp.style.position = 'absolute'; temp.style.left = '-9999px';
+            const tbl = document.createElement('table');
+            tbl.className = 'export-table';
+            tbl.innerHTML = document.querySelector('#proj-table').outerHTML;
+            temp.appendChild(tbl);
+            document.body.appendChild(temp);
+            window.print();
+            document.body.removeChild(temp);
+        }
+    </script>
+</body>
+</html>

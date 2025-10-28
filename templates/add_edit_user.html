@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>{{ 'Edit Volunteer' if result.user_id else 'Add Volunteer' }}</title>
     {% include 'head.html' %}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <style>
         .card {
             max-width: 1200px;
@@ -213,10 +214,13 @@
                             <div class="form-row">
                                 <div class="mb-3">
                                     <label class="form-label">Assigned Branch Role</label>
-                                    <select class="form-select" name="assigned_branch">
-                                        <option value="" {{ 'selected' if not result.user or not result.user.assigned_branch else '' }}>[Select...]</option>
+                                    <select class="form-select" name="assigned_branch" multiple>
                                         {% for role in result.get_all_branch_roles %}
-                                            <option value="{{ role['branch_role_id'] }}" {{ 'selected' if result.user and result.user.assigned_branch == role['branch_role_id'] else '' }}>{{ role['branch_role_name'] }}</option>
+                                            <option value="{{ role['branch_role_id'] }}"
+                                                {% if result.user and role['branch_role_id']|string in (result.user.assigned_branch or [])|map('string') %}
+                                                    selected
+                                                {% endif %}
+                                            >{{ role['branch_role_name'] }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>
@@ -366,7 +370,7 @@
             </div>
         </div>
     </div>
-
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         // Toggle 'required' attribute for manager_id based on rights selection
         /*
@@ -444,6 +448,14 @@
         });
       });
     });
+    </script>
+    <script>
+        $(document).ready(function() {
+            $('select[name="assigned_branch"]').select2({
+                placeholder: "Select branch roles",
+                allowClear: true
+            });
+        });
     </script>
 </body>
 </html>
