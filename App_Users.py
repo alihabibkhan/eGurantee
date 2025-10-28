@@ -23,6 +23,224 @@ def manage_users():
     return redirect(url_for('login'))
 
 
+# @application.route('/add-edit-user', methods=['GET', 'POST'])
+# @application.route('/add-edit-user/<int:user_id>', methods=['GET', 'POST'])
+# def add_edit_user(user_id=None):
+#     try:
+#         print(f"Entering add_edit_user with user_id: {user_id}")
+#
+#         # Check if user is logged in and is admin
+#         if not (is_login() and (is_admin() or is_executive_approver())):
+#             print("User not logged in or not an admin, redirecting to login")
+#             return redirect(url_for('login'))
+#
+#         user = None
+#         print("Initialized user as None")
+#
+#         # Fetch user data if user_id is provided
+#         if user_id:
+#             query = f"""
+#                 SELECT u.name, u.email, u.rights, u.signature, u.scan_sign, u.active, u.created_by, u.created_date,
+#                        u.volunteer_id, u.gender, u.dob, u.phone, u.country_of_residence, u.date_of_joining,
+#                        u.orientation_completed_on, u.manager_id, u.assigned_branch, u.date_of_retirement, u.reason
+#                 FROM tbl_users u
+#                 WHERE u.user_id = '{user_id}'
+#             """
+#             print(f"Executing query to fetch user: {query}")
+#             user = fetch_records(query)
+#             print(f"Fetched user records: {user}")
+#             user = user[0] if user else None
+#             print(f"Selected user record: {user}")
+#
+#         print(f"Current user_id: {user_id}")
+#
+#         # Handle POST request for adding or editing user
+#         if request.method == 'POST':
+#             print("Processing POST request")
+#             name = request.form.get('name')
+#             print(f"Form data - name: {name}")
+#             email = request.form.get('email')
+#             print(f"Form data - email: {email}")
+#             rights = request.form.get('rights')  # Now an integer
+#             print(f"Form data - rights: {rights}")
+#             signature = request.form.get('signature')
+#             print(f"Form data - signature: {signature}")
+#             active = request.form.get('active')
+#             print(f"Form data - active: {active}")
+#             gender = request.form.get('gender')
+#             print(f"Form data - gender: {gender}")
+#             dob = request.form.get('dob')  # Expected in YYYY-MM-DD format
+#             print(f"Form data - dob: {dob}")
+#             phone = request.form.get('phone')
+#             print(f"Form data - phone: {phone}")
+#             country_of_residence = request.form.get('country_of_residence')
+#             print(f"Form data - country_of_residence: {country_of_residence}")
+#             date_of_joining = request.form.get('date_of_joining')  # Expected in YYYY-MM-DD format
+#             print(f"Form data - date_of_joining: {date_of_joining}")
+#             orientation_completed_on = request.form.get('orientation_completed_on')  # Expected in YYYY-MM-DD format
+#             print(f"Form data - orientation_completed_on: {orientation_completed_on}")
+#             manager_id = request.form.get('manager_id')
+#             print(f"Form data - manager_id: {manager_id}")
+#             assigned_branch = request.form.get('assigned_branch')
+#             print(f"Form data - assigned_branch: {assigned_branch}")
+#             date_of_retirement = request.form.get('date_of_retirement')
+#             print(f"Form data - date_of_retirement: {date_of_retirement}")
+#             reason = request.form.get('reason')
+#             print(f"Form data - reason: {reason}")
+#             scan_sign = request.files.get('scan_sign')
+#             print(f"Form data - scan_sign filename: {scan_sign.filename if scan_sign else None}")
+#
+#             # Handle NULL values for optional fields
+#             gender = f"'{gender}'" if gender else 'NULL'
+#             print(f"Processed gender: {gender}")
+#             dob = f"'{dob}'" if dob else 'NULL'
+#             print(f"Processed dob: {dob}")
+#             phone = f"'{phone}'" if phone else 'NULL'
+#             print(f"Processed phone: {phone}")
+#             country_of_residence = f"'{country_of_residence}'" if country_of_residence else 'NULL'
+#             print(f"Processed country_of_residence: {country_of_residence}")
+#             date_of_joining = f"'{date_of_joining}'" if date_of_joining else 'NULL'
+#             print(f"Processed date_of_joining: {date_of_joining}")
+#             orientation_completed_on = f"'{orientation_completed_on}'" if orientation_completed_on else 'NULL'
+#             print(f"Processed orientation_completed_on: {orientation_completed_on}")
+#             manager_id = f"'{manager_id}'" if manager_id else 'NULL'
+#             print(f"Processed manager_id: {manager_id}")
+#             assigned_branch = f"'{assigned_branch}'" if assigned_branch else 'NULL'
+#             print(f"Processed assigned_branch: {assigned_branch}")
+#             rights = rights if rights else 'NULL'  # Integer, no quotes
+#             print(f"Processed rights: {rights}")
+#             signature = f"'{signature}'" if signature else 'NULL'
+#             print(f"Processed signature: {signature}")
+#             active = f"'{active}'" if active else 'NULL'
+#             print(f"Processed active: {active}")
+#             date_of_retirement = f"'{date_of_retirement}'" if date_of_retirement else 'NULL'
+#             print(f"Processed date_of_retirement: {date_of_retirement}")
+#             reason = f"'{reason}'" if reason else 'NULL'
+#             print(f"Processed reason: {reason}")
+#
+#             scan_sign_data = None
+#             if scan_sign and scan_sign.filename:
+#                 # Convert uploaded file to BYTEA (binary)
+#                 scan_sign_data = scan_sign.read()
+#                 print(f"Read scan_sign file, size: {len(scan_sign_data)} bytes")
+#                 scan_sign_data = psycopg2.Binary(scan_sign_data)
+#                 print("Converted scan_sign to psycopg2.Binary")
+#
+#             if user_id:
+#                 # Update existing user
+#                 print(f"Updating user with user_id: {user_id}")
+#                 if scan_sign_data:
+#                     update_query = f"""
+#                         UPDATE tbl_users
+#                         SET name = '{name}', email = '{email}', rights = {rights}, signature = {signature},
+#                             active = {active}, scan_sign = {scan_sign_data}, gender = {gender}, dob = {dob}, phone = {phone},
+#                             country_of_residence = {country_of_residence}, date_of_joining = {date_of_joining},
+#                             orientation_completed_on = {orientation_completed_on}, manager_id = {manager_id},
+#                             date_of_retirement = {date_of_retirement}, reason = {reason},
+#                             assigned_branch = {assigned_branch}
+#                         WHERE user_id = '{user_id}'
+#                     """
+#                     print(f"Executing update query with scan_sign: {update_query}")
+#                     execute_command(update_query)
+#                 else:
+#                     update_query = f"""
+#                         UPDATE tbl_users
+#                         SET name = '{name}', email = '{email}', rights = {rights}, signature = {signature},
+#                             active = {active}, gender = {gender}, dob = {dob}, phone = {phone},
+#                             country_of_residence = {country_of_residence}, date_of_joining = {date_of_joining},
+#                             orientation_completed_on = {orientation_completed_on}, manager_id = {manager_id},
+#                             date_of_retirement = {date_of_retirement}, reason = {reason},
+#                             assigned_branch = {assigned_branch}
+#                         WHERE user_id = '{user_id}'
+#                     """
+#                     print(f"Executing update query without scan_sign: {update_query}")
+#                     execute_command(update_query)
+#                 print("User update query executed")
+#                 flash('User updated successfully.', 'success')
+#                 print("Flashed success message for user update")
+#             else:
+#                 # Add new user
+#                 print("Adding new user")
+#                 password = generate_random_password()
+#                 print(f"Generated random password: {password}")
+#                 hashed_password = generate_password_hash(password)
+#                 print("Generated hashed password")
+#
+#                 if scan_sign_data:
+#                     insert_query = f"""
+#                         INSERT INTO tbl_users (
+#                             name, email, rights, password, signature, scan_sign, active, created_by, created_date,
+#                             gender, dob, phone, country_of_residence, date_of_joining, orientation_completed_on,
+#                             manager_id, assigned_branch, date_of_retirement, reason
+#                         ) VALUES (
+#                             '{name}', '{email}', {rights}, '{hashed_password}', {signature}, {scan_sign_data}, {active},
+#                             '{str(get_current_user_id())}', '{str(datetime.now())}', {gender}, {dob}, {phone},
+#                             {country_of_residence}, {date_of_joining}, {orientation_completed_on},
+#                             {manager_id}, {assigned_branch}, {date_of_retirement}, {reason}
+#                         )
+#                     """
+#                     print(f"Executing insert query with scan_sign: {insert_query}")
+#                     execute_command(insert_query)
+#                 else:
+#                     insert_query = f"""
+#                         INSERT INTO tbl_users (
+#                             name, email, rights, password, signature, active, created_by, created_date,
+#                             gender, dob, phone, country_of_residence, date_of_joining, orientation_completed_on,
+#                             manager_id, assigned_branch, date_of_retirement, reason
+#                         ) VALUES (
+#                             '{name}', '{email}', {rights}, '{hashed_password}', {signature}, {active},
+#                             '{str(get_current_user_id())}', '{str(datetime.now())}', {gender}, {dob}, {phone},
+#                             {country_of_residence}, {date_of_joining}, {orientation_completed_on},
+#                             {manager_id}, {assigned_branch}, {date_of_retirement}, {reason}
+#                         )
+#                     """
+#                     print(f"Executing insert query without scan_sign: {insert_query}")
+#                     execute_command(insert_query)
+#                 print("User insert query executed")
+#
+#                 # Email content
+#                 url = "https://egurantee-hlut.onrender.com/"
+#                 subject = "Welcome to eGurantee System"
+#                 html_message = f"""
+#                            <h3>Here are your credentials</h3>
+#                            <p>Email: {email}</p>
+#                            <p>Password: {password}</p>
+#                            <a href="{url}">You can login through this link.</a>
+#                            """
+#                 print(f"Prepared email content for {email}")
+#
+#                 from Model_Email import send_email
+#
+#                 # Send email using provided function
+#                 send_email(subject, [email], None, html_message=html_message)
+#                 print(f"Sent email to {email}")
+#
+#                 flash('User added successfully. Password has been sent to the user.', 'success')
+#                 print("Flashed success message for user addition")
+#
+#             print("Redirecting to manage_users")
+#             return redirect(url_for('manage_users'))
+#
+#         # Handle GET request
+#         print("Processing GET request")
+#         content = {
+#             'get_all_user_data': get_all_user_data(),
+#             'get_all_user_privileges': get_all_user_privileges(),
+#             'get_all_user_service_terms': get_all_user_service_terms(),
+#             'get_all_branch_roles': get_all_branch_roles(),
+#             'user': user,
+#             'user_id': user_id
+#         }
+#         print(f"Prepared template content: {content}")
+#         return render_template('add_edit_user.html', result=content)
+#
+#     except Exception as e:
+#         print(f"Exception in add_edit_user: {str(e)}")
+#         flash('An error occurred while processing the user.', 'danger')
+#         print("Flashed error message")
+#         return redirect(url_for('manage_users'))
+
+
 @application.route('/add-edit-user', methods=['GET', 'POST'])
 @application.route('/add-edit-user/<int:user_id>', methods=['GET', 'POST'])
 def add_edit_user(user_id=None):
@@ -81,8 +299,9 @@ def add_edit_user(user_id=None):
             print(f"Form data - orientation_completed_on: {orientation_completed_on}")
             manager_id = request.form.get('manager_id')
             print(f"Form data - manager_id: {manager_id}")
-            assigned_branch = request.form.get('assigned_branch')
-            print(f"Form data - assigned_branch: {assigned_branch}")
+            # Get multiple assigned_branch values
+            assigned_branches = request.form.getlist('assigned_branch')
+            print(f"Form data - assigned_branch: {assigned_branches}")
             date_of_retirement = request.form.get('date_of_retirement')
             print(f"Form data - date_of_retirement: {date_of_retirement}")
             reason = request.form.get('reason')
@@ -105,7 +324,8 @@ def add_edit_user(user_id=None):
             print(f"Processed orientation_completed_on: {orientation_completed_on}")
             manager_id = f"'{manager_id}'" if manager_id else 'NULL'
             print(f"Processed manager_id: {manager_id}")
-            assigned_branch = f"'{assigned_branch}'" if assigned_branch else 'NULL'
+            # Convert assigned_branches list to PostgreSQL array format
+            assigned_branch = f"ARRAY[{','.join(assigned_branches)}]::INTEGER[]" if assigned_branches else 'NULL'
             print(f"Processed assigned_branch: {assigned_branch}")
             rights = rights if rights else 'NULL'  # Integer, no quotes
             print(f"Processed rights: {rights}")
@@ -133,7 +353,7 @@ def add_edit_user(user_id=None):
                     update_query = f"""
                         UPDATE tbl_users 
                         SET name = '{name}', email = '{email}', rights = {rights}, signature = {signature}, 
-                            active = {active}, scan_sign = {scan_sign_data}, gender = {gender}, dob = {dob}, phone = {phone}, 
+                            active = {active}, scan_sign = %s, gender = {gender}, dob = {dob}, phone = {phone}, 
                             country_of_residence = {country_of_residence}, date_of_joining = {date_of_joining}, 
                             orientation_completed_on = {orientation_completed_on}, manager_id = {manager_id}, 
                             date_of_retirement = {date_of_retirement}, reason = {reason},
@@ -141,7 +361,7 @@ def add_edit_user(user_id=None):
                         WHERE user_id = '{user_id}'
                     """
                     print(f"Executing update query with scan_sign: {update_query}")
-                    execute_command(update_query)
+                    execute_command(update_query, (scan_sign_data,))
                 else:
                     update_query = f"""
                         UPDATE tbl_users 
@@ -173,14 +393,14 @@ def add_edit_user(user_id=None):
                             gender, dob, phone, country_of_residence, date_of_joining, orientation_completed_on,
                             manager_id, assigned_branch, date_of_retirement, reason
                         ) VALUES (
-                            '{name}', '{email}', {rights}, '{hashed_password}', {signature}, {scan_sign_data}, {active}, 
+                            '{name}', '{email}', {rights}, '{hashed_password}', {signature}, %s, {active}, 
                             '{str(get_current_user_id())}', '{str(datetime.now())}', {gender}, {dob}, {phone}, 
                             {country_of_residence}, {date_of_joining}, {orientation_completed_on}, 
                             {manager_id}, {assigned_branch}, {date_of_retirement}, {reason}
                         )
                     """
                     print(f"Executing insert query with scan_sign: {insert_query}")
-                    execute_command(insert_query)
+                    execute_command(insert_query, (scan_sign_data,))
                 else:
                     insert_query = f"""
                         INSERT INTO tbl_users (
@@ -239,6 +459,7 @@ def add_edit_user(user_id=None):
         flash('An error occurred while processing the user.', 'danger')
         print("Flashed error message")
         return redirect(url_for('manage_users'))
+
 
 
 @application.route('/add-edit-user-privilege', methods=['GET', 'POST'])

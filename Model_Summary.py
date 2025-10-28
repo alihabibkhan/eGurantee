@@ -70,7 +70,7 @@ def send_email_of_pending_applications():
             u.created_date 
         FROM tbl_users u 
         INNER JOIN tbl_branches b 
-            ON u.assigned_branch = b.role 
+            ON b.role = ANY (u.assigned_branch) 
             AND b.branch_code IN ({str(unique_branches_code)[1:-1]}) 
             AND b."live_branch" = '1'
     """

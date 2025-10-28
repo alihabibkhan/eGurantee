@@ -279,3 +279,111 @@ def fund_projected_vs_disbursement():
     except Exception as e:
         print('fund projected vs disbursement exception:- ', str(e))
     return redirect(url_for('login'))
+
+
+# --------------------------------------------------------------
+# 1. Render the page (same as before)
+# --------------------------------------------------------------
+@application.route('/loan_projection_report')
+def loan_projection_report():
+    try:
+        if not (is_login() and (is_admin() or is_executive_approver())):
+            return redirect(url_for('login'))
+
+        # Product list
+        prod_sql = "SELECT DISTINCT product_code FROM tbl_loan_products ORDER BY product_code"
+        product_list = fetch_records(prod_sql)
+
+        return render_template(
+            'loan_projection_report.html',
+            result={'product_list': product_list}
+        )
+    except Exception as e:
+        print('loan_projection_report error:', e)
+        return redirect(url_for('login'))
+
+
+@application.route('/get_loan_projection_report_data', methods=['POST'])
+def get_loan_projection_report_data():
+    try:
+        filters = request.get_json() or {}
+
+        # ------------------------------------------------------------------
+        # Base CTE – PostgreSQL (with fixes)
+        # ------------------------------------------------------------------
+        query = """
+            WITH monthly_data AS (
+                SELECT
+                    TO_CHAR(booked_on, 'Mon-YYYY') AS "Month",
+                    SUM(disbursed_amount) AS "Actual Disbursement",
+                    COUNT(DISTINCT cnic)::INTEGER AS "Actual No of Beneficiaries",
+                    MIN(booked_on) AS month_start
+                FROM tbl_post_disbursement
+                WHERE 1=1
+        """
+
+        # ------------------ FILTER: Product ------------------
+        product_codes = [code for code in filters.get('product_code', []) if code]
+        if product_codes:
+            safe_codes = "', '".join(code.replace("'", "''") for code in product_codes)
+            query += f" AND product_code IN ('{safe_codes}')"
+
+        # ------------------ FILTER: Historical Growth ------------------
+        growth = filters.get('historical_growth')
+        if growth and growth != 'all':
+            months_map = {
+                'last_3_months': 3, 'last_6_months': 6,
+                'last_9_months': 9, 'last_12_months': 12
+            }
+            months = months_map[growth]
+            query += f" AND booked_on >= CURRENT_DATE - INTERVAL '{months} months'"
+
+        # ------------------ FILTER: Projection For ------------------
+        proj = filters.get('projection_for')
+        if proj == 'current_month':
+            query += " AND DATE_TRUNC('month', booked_on) = DATE_TRUNC('month', CURRENT_DATE)"
+        elif proj == 'current_year':
+            query += " AND DATE_PART('year', booked_on) = DATE_PART('year', CURRENT_DATE)"
+
+        # ------------------ Complete monthly_data ------------------
+        query += """
+                GROUP BY TO_CHAR(booked_on, 'Mon-YYYY'), DATE_TRUNC('month', booked_on)
+            ),
+            ranked_data AS (
+                SELECT
+                    "Month",
+                    "Actual Disbursement",
+                    "Actual No of Beneficiaries",
+                    month_start,
+                    LAG("Actual Disbursement") OVER (ORDER BY month_start) AS prev_disbursement,
+                    LAG("Actual No of Beneficiaries") OVER (ORDER BY month_start) AS prev_beneficiaries
+                FROM monthly_data
+            )
+            SELECT
+                "Month",
+                "Actual Disbursement",
+                "Actual No of Beneficiaries",
+                CASE WHEN prev_disbursement IS NOT NULL
+                     THEN "Actual Disbursement" - prev_disbursement
+                     ELSE NULL END AS growth_disbursement_amount,
+                CASE WHEN prev_disbursement IS NOT NULL AND prev_disbursement > 0
+                     THEN ROUND((("Actual Disbursement" - prev_disbursement) * 100.0 / prev_disbursement), 2)
+                     ELSE NULL END AS growth_disbursement_percentage,
+                CASE WHEN prev_beneficiaries IS NOT NULL
+                     THEN ("Actual No of Beneficiaries" - prev_beneficiaries)::INTEGER
+                     ELSE NULL END AS growth_beneficiaries_count,
+                CASE WHEN prev_beneficiaries IS NOT NULL AND prev_beneficiaries > 0
+                     THEN ROUND((("Actual No of Beneficiaries" - prev_beneficiaries) * 100.0 / prev_beneficiaries), 2)
+                     ELSE NULL END AS growth_beneficiaries_percentage
+            FROM ranked_data
+            ORDER BY month_start;  -- Chronological order
+        """
+
+        print("Final Query:\n", query)
+        rows = fetch_records(query)
+
+        return jsonify({'success': True, 'records': rows})
+
+    except Exception as e:
+        print("Error:", str(e))
+        return jsonify({'success': False, 'error': str(e)})

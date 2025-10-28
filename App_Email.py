@@ -158,7 +158,7 @@ def send_email():
 
         if loan_product_code.__contains__('student'):
             message = f"""
-<b>Dear HBLMFB {branch_manager}</b>,
+<b>Dear HBLMFB {branch_name}</b>,
 <br/><br/>
 Please find attached the approval for the subject case that was forwarded for our review. Based 
 on satisfactory verification, strong recommendations, and all other checks conducted by the KFT 
@@ -194,7 +194,7 @@ Community Helping Community
         else:
             message = f"""
                 
-<b>Dear HBLMFB {branch_manager}</b>,
+<b>Dear HBLMFB {branch_name}</b>,
 <br/><br/>
 Please find attached the approval for the subject case that was forwarded for our review. Based 
 on satisfactory verification, strong recommendations, and all other checks conducted by the KFT 

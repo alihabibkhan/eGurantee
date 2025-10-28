@@ -2,15 +2,59 @@ from imports import *
 
 
 def get_all_user_data():
-    query = f"""
-        SELECT DISTINCT u.user_id, u.name, u.email, u.rights, u.volunteer_id, u.gender, u.dob, u.phone, 
-                        u.country_of_residence, u.date_of_joining, u.orientation_completed_on, u.manager_id, 
-                        br.branch_role_name as assigned_branch, u.date_of_retirement, u.reason, 
-                        u1.name AS created_by_name, u.created_date, u.active 
-        FROM tbl_users u 
+    # query = f"""
+    #     SELECT DISTINCT u.user_id, u.name, u.email, u.rights, u.volunteer_id, u.gender, u.dob, u.phone,
+    #                     u.country_of_residence, u.date_of_joining, u.orientation_completed_on, u.manager_id,
+    #                     br.branch_role_name as assigned_branch, u.date_of_retirement, u.reason,
+    #                     u1.name AS created_by_name, u.created_date, u.active
+    #     FROM tbl_users u
+    #     LEFT JOIN tbl_users u1 ON u1.user_id = u.created_by
+    #     left join tbl_branch_role br on br.branch_role_id = u.assigned_branch
+    #     ORDER BY u.user_id
+    # """
+
+    query = """
+        SELECT DISTINCT
+            u.user_id,
+            u.name,
+            u.email,
+            u.rights,
+            u.volunteer_id,
+            u.gender,
+            u.dob,
+            u.phone,
+            u.country_of_residence,
+            u.date_of_joining,
+            u.orientation_completed_on,
+            u.manager_id,
+            STRING_AGG(br.branch_role_name, ', ') AS assigned_branch,
+            u.date_of_retirement,
+            u.reason,
+            u1.name AS created_by_name,
+            u.created_date,
+            u.active
+        FROM tbl_users u
         LEFT JOIN tbl_users u1 ON u1.user_id = u.created_by
-        left join tbl_branch_role br on br.branch_role_id = u.assigned_branch
-        ORDER BY u.user_id     
+        LEFT JOIN tbl_branch_role br ON br.branch_role_id = ANY (u.assigned_branch)
+        GROUP BY
+            u.user_id,
+            u.name,
+            u.email,
+            u.rights,
+            u.volunteer_id,
+            u.gender,
+            u.dob,
+            u.phone,
+            u.country_of_residence,
+            u.date_of_joining,
+            u.orientation_completed_on,
+            u.manager_id,
+            u.date_of_retirement,
+            u.reason,
+            u1.name,
+            u.created_date,
+            u.active
+        ORDER BY u.user_id;
     """
     print(query)
     result = fetch_records(query)
