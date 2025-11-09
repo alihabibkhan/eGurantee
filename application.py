@@ -56,6 +56,19 @@ def date_format(value):
         return ''
 
 
+@application.template_filter('month_year_short')
+def month_year_short(value):
+    """
+    Format a date or datetime as 'Mon-YY', e.g. 'Jan-25' or 'Oct-25'.
+    """
+    if not value:
+        return ""
+    try:
+        return value.strftime("%b-%y").title()
+    except AttributeError:
+        return value
+
+
 # --- Custom Error Handlers ---
 @application.errorhandler(404)
 def page_not_found(e):
@@ -359,7 +372,7 @@ from App_National_Council_Distribution import *
 from App_KFT_Distribution import *
 from App_Branch_Role import *
 from App_User_Self_Update_Community import *
-
+from App_Meeting_Setup import *
 
 if __name__ == '__main__':
     application.run(debug=True, port=8080)

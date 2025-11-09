@@ -291,7 +291,7 @@ def loan_projection_report():
             return redirect(url_for('login'))
 
         # Product list
-        prod_sql = "SELECT DISTINCT product_code FROM tbl_loan_products ORDER BY product_code"
+        prod_sql = "SELECT DISTINCT product_code FROM tbl_post_disbursement ORDER BY product_code"
         product_list = fetch_records(prod_sql)
 
         return render_template(
