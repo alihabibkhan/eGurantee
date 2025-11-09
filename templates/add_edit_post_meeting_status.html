@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% include 'head.html' %}
+    <title>{{ 'Edit Post-Meeting Status' if result.post_ms_details else 'Add Post-Meeting Status' }}</title>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url": "manage_meeting_setup", "label": "Manage Meeting Setup"}, {"url": "", "label": 'Edit Post-Meeting Status' if result.post_ms_details else 'Add Post-Meeting Status' }]) }}
+
+    <div class="container mt-4">
+        {% include 'message_box.html' %}
+
+        <div class="card">
+            <div class="card-header">
+                <h2>{{ 'Edit Post-Meeting Status' if result.post_ms_details else 'Add Post-Meeting Status' }}</h2>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="form-group mb-3">
+                        <label for="post_ms_name">Name</label>
+                        <input type="text" name="post_ms_name" class="form-control" value="{{ result.post_ms_details.post_ms_name if result.post_ms_details else '' }}" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">{{ 'Update Post-Meeting Status' if result.post_ms_details else 'Add Post-Meeting Status' }}</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

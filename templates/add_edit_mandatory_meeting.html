@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% include 'head.html' %}
+    <title>{{ 'Edit Recurring Meeting' if result.mand_meet_details else 'Add Recurring Meeting' }}</title>
+    <style>
+        #freq-range {
+            display: none;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url": "manage_meeting_setup", "label": "Manage Meeting Setup"}, {"url": "", "label": 'Edit Recurring Meeting' if result.mand_meet_details else 'Add Recurring Meeting' }]) }}
+
+    <div class="container mt-4">
+        {% include 'message_box.html' %}
+
+        <div class="card">
+            <div class="card-header">
+                <h2>{{ 'Edit Recurring Meeting' if result.mand_meet_details else 'Add Recurring Meeting' }}</h2>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <!-- Meeting Category -->
+                    <div class="form-group mb-3">
+                        <label for="meeting_category_id">Meeting Category</label>
+                        <select name="meeting_category_id" class="form-control form-select" required>
+                            <option value="" disabled {{ 'selected' if not result.mand_meet_details else '' }}>[Select...]</option>
+                            {% for category in result.get_all_meeting_categories %}
+                                <option value="{{ category.meeting_category_id }}" {{ 'selected' if result.mand_meet_details and result.mand_meet_details.meeting_category_id == category.meeting_category_id else '' }}>{{ category.meeting_category_name }} - {{category.meeting_category_code}}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Frequency -->
+                    <div class="form-group mb-3">
+                        <label for="meeting_freq_id">Frequency</label>
+                        <select name="meeting_freq_id" id="meeting_freq_id" class="form-control form-select" required>
+                            <option value="" disabled {{ 'selected' if not result.mand_meet_details else '' }}>[Select...]</option>
+                            {% for frequency in result.get_all_meeting_frequencies %}
+                                <option value="{{ frequency.meeting_freq_id }}" data-min="{{ frequency.min_freq }}" data-max="{{ frequency.max_freq }}" {{ 'selected' if result.mand_meet_details and result.mand_meet_details.meeting_freq_id == frequency.meeting_freq_id else '' }}>{{ frequency.meeting_freq_title }}</option>
+                            {% endfor %}
+                        </select>
+                        <div id="freq-range" class="text-muted">
+                            Target Range - Annual # of Meetings: <span id="min-freq"></span> - <span id="max-freq"></span>
+                        </div>
+                    </div>
+
+                    <!-- Proposed Month -->
+                    <div class="form-group mb-3">
+                        <label for="proposed_month">Proposed Month (Year and Month)</label>
+                        <input type="month" name="proposed_month" class="form-control" value="{{ result.mand_meet_details.proposed_month if result.mand_meet_details else '' }}" required>
+                    </div>
+
+                    <!-- NC Distribution -->
+                    <div class="form-group mb-3">
+                        <label for="nc_disb_id">National Council Distribution</label>
+                        <select name="nc_disb_id" class="form-control form-select" required>
+                            <option value="" disabled {{ 'selected' if not result.mand_meet_details else '' }}>[Select...]</option>
+                            {% for item in result.get_all_national_council_distributions %}
+                                <option value="{{ item.national_council_distribution_id }}" {{ 'selected' if result.mand_meet_details and result.mand_meet_details.nc_disb_id == item.national_council_distribution_id else '' }}>{{ item.national_council_distribution_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Responsible Committee -->
+                    <div class="form-group mb-3">
+                        <label for="resp_committ">Responsible Committee</label>
+                        <select name="resp_committ" class="form-control form-select" required>
+                            <option value="" disabled {{ 'selected' if not result.mand_meet_details else '' }}>[Select...]</option>
+                            <option value="Executive Committee" {{ 'selected' if result.mand_meet_details and result.mand_meet_details.resp_committ == 'Executive Committee' else '' }}>Executive Committee</option>
+                            <option value="Gilgit Baltistan Committee" {{ 'selected' if result.mand_meet_details and result.mand_meet_details.resp_committ == 'Gilgit Baltistan Committee' else '' }}>Gilgit Baltistan Committee</option>
+                            <option value="Chitral Committee" {{ 'selected' if result.mand_meet_details and result.mand_meet_details.resp_committ == 'Chitral Committee' else '' }}>Chitral Committee</option>
+                            <option value="South-Central Committee" {{ 'selected' if result.mand_meet_details and result.mand_meet_details.resp_committ == 'South-Central Committee' else '' }}>South-Central Committee</option>
+                            <option value="Risk Management Committee" {{ 'selected' if result.mand_meet_details and result.mand_meet_details.resp_committ == 'Risk Management Committee' else '' }}>Risk Management Committee</option>
+                            <option value="Finance Committee" {{ 'selected' if result.mand_meet_details and result.mand_meet_details.resp_committ == 'Finance Committee' else '' }}>Finance Committee</option>
+                            <option value="Information Technology Committee" {{ 'selected' if result.mand_meet_details and result.mand_meet_details.resp_committ == 'Information Technology Committee' else '' }}>Information Technology Committee</option>
+                            <option value="Program Impact Committee" {{ 'selected' if result.mand_meet_details and result.mand_meet_details.resp_committ == 'Program Impact Committee' else '' }}>Program Impact Committee</option>
+                        </select>
+                    </div>
+
+                    <!-- Meeting Priority -->
+                    <div class="form-group mb-3">
+                        <label for="meeting_priority_id">Meeting Priority</label>
+                        <select name="meeting_priority_id" class="form-control form-select" required>
+                            <option value="" disabled {{ 'selected' if not result.mand_meet_details else '' }}>[Select...]</option>
+                            {% for priority in result.get_all_meeting_priorities %}
+                                <option value="{{ priority.meeting_priority_id }}" {{ 'selected' if result.mand_meet_details and result.mand_meet_details.meeting_priority_id == priority.meeting_priority_id else '' }}>{{ priority.meeting_priority_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">{{ 'Update Recurring Meeting' if result.mand_meet_details else 'Add Recurring Meeting' }}</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Update frequency range display
+        document.getElementById('meeting_freq_id').addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const minFreq = selectedOption.getAttribute('data-min');
+            const maxFreq = selectedOption.getAttribute('data-max');
+            const freqRangeDiv = document.getElementById('freq-range');
+            const minFreqSpan = document.getElementById('min-freq');
+            const maxFreqSpan = document.getElementById('max-freq');
+
+            if (minFreq && maxFreq) {
+                minFreqSpan.textContent = minFreq;
+                maxFreqSpan.textContent = maxFreq;
+                freqRangeDiv.style.display = 'block';
+            } else {
+                freqRangeDiv.style.display = 'none';
+            }
+        });
+
+        // Trigger change event on page load to display range for edit mode
+        window.addEventListener('DOMContentLoaded', function() {
+            const freqSelect = document.getElementById('meeting_freq_id');
+            if (freqSelect.value) {
+                const event = new Event('change');
+                freqSelect.dispatchEvent(event);
+            }
+        });
+    </script>
+</body>
+</html>

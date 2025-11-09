@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% include 'head.html' %}
+    <title>My Meetings</title>
+    <style>
+        .table-responsive {
+            margin-bottom: 1rem;
+        }
+        .card {
+            margin-top: 1rem;
+        }
+        .meetings-box {
+            margin-bottom: 2rem;
+        }
+        .badge {
+            margin-left: 0.5rem;
+            cursor: pointer;
+        }
+        /* Ensure long agenda text is readable */
+        #meeting-detail-body td.agenda-cell {
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        /* Modal styling for full details */
+        #full-detail-modal .modal-dialog {
+            max-width: 90%;
+        }
+    </style>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url": "", "label": "My Meetings"}]) }}
+
+    <div class="container mt-4">
+        {% include 'message_box.html' %}
+
+        <div class="card">
+            <div class="card-header">
+                <h2>My Meetings</h2>
+            </div>
+            <div class="card-body">
+                <div class="meetings-box">
+                    <h3>Scheduled Meetings</h3>
+                    {% if result.schedule_meetings %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Meeting Title</th>
+                                        <th>Category Code</th>
+                                        <th>Schedule Date</th>
+                                        <th>Meeting Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for meeting in result.schedule_meetings %}
+                                        <tr>
+                                            <td>{{ meeting.meeting_title or 'N/A' }}</td>
+                                            <td>{{ meeting.meeting_category_code or 'N/A' }}</td>
+                                            <td>{{ meeting.schedule_date or 'N/A' }}</td>
+                                            <td>
+                                                <span class="badge {% if meeting.pre_ms_id == 1 %}bg-danger{% else %}bg-success{% endif %}">
+                                                    {{ meeting.pre_ms_name or 'N/A' }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <a href="#" class="btn btn-primary btn-sm"
+                                                   onclick="showFullDetails('{{ meeting.schedule_meeting_id }}', true); return false;">
+                                                    View More Details
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No scheduled meetings found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Viewing Full Details -->
+    <div class="modal fade" id="full-detail-modal" tabindex="-1" aria-labelledby="fullDetailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="fullDetailModalLabel">Meeting Full Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-bordered">
+                        <tbody id="full-detail-body"></tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+    <script>
+        // Show full details in modal
+        function showFullDetails(id, isScheduled) {
+            let record;
+            if (isScheduled) {
+                record = {{ result.schedule_meetings | tojson | safe }}.find(r => String(r.schedule_meeting_id) === String(id));
+                if (!record) {
+                    console.error('Scheduled meeting not found for ID:', id);
+                    return;
+                }
+                const fields = [
+                    { key: 'meeting_category_code', label: 'Category Code' },
+                    { key: 'meeting_title', label: 'Meeting Title' },
+                    { key: 'schedule_date', label: 'Schedule Date' },
+                    { key: 'pre_ms_name', label: 'Meeting Status' },
+                    { key: 'meeting_aganda', label: 'Meeting Agenda', class: 'agenda-cell' }
+                ];
+                const tbody = document.getElementById('full-detail-body');
+                tbody.innerHTML = '';
+                fields.forEach(field => {
+                    const value = record[field.key] || 'N/A';
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <th>${field.label}</th>
+                        <td${field.class ? ` class="${field.class}"` : ''}>${value}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+            const modalElement = document.getElementById('full-detail-modal');
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+            modalElement.addEventListener('hidden.bs.modal', function () {
+                modal.dispose();
+                document.body.classList.remove('modal-open');
+                const backdrops = document.querySelectorAll('.modal-backdrop');
+                backdrops.forEach(backdrop => backdrop.remove());
+                document.body.style.overflow = 'auto';
+            }, { once: true });
+        }
+    </script>
+</body>
+</html>

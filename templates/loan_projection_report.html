@@ -7,27 +7,27 @@
     {% include 'head.html' %}
     <style>
         body { background-color: #f8f9fa; }
-        .card { margin-top: 1rem; background:#fff; box-shadow:0 6px 12px rgba(0,0,0,.1); }
-        .card-header { background:#1e3a8a; color:#fff; }
-        .table tbody tr:nth-child(odd){background:#e6fff7;}
-        .table tbody tr:nth-child(even){background:#fff;}
-        .btn-primary,.btn-success,.btn-info,.btn-danger,.btn-warning{background:#0d9488;border-color:#0d9488;color:#fff;}
-        .btn-primary:hover,.btn-success:hover,.btn-info:hover,.btn-danger:hover,.btn-warning:hover{background:#0b8278;border-color:#0b8278;}
-        .form-control,.form-select{border-color:#1e3a8a;color:#1e3a8;}
-        .form-control:focus,.form-select:focus{border-color:#0d9488;box-shadow:0 0 0 .2rem rgba(13,148,136,.25);}
-        h1.text-muted{color:#1e3a8a !important;}
-        .table-blur{filter:blur(3px);transition:filter .3s ease;}
-        .spinner-container{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10;}
-        .table-responsive{position:relative;}
-        .export-toast{position:fixed;top:20px;right:20px;z-index:1050;}
-        .export-table{font-size:12px;border-collapse:collapse;width:100%;}
-        .export-table th,.export-table td{border:1px solid #000;padding:8px;text-align:center;}
-        .export-table thead{background:#f8f9fa;}
-        @media print{
-            body *{visibility:hidden;}
-            .table-responsive,.table-responsive *{visibility:visible;}
-            .table-responsive{position:absolute;left:0;top:0;width:100%;}
-            .btn,.pagination,#loading-spinner{display:none !important;}
+        .card { margin-top: 1rem; background: #fff; box-shadow: 0 6px 12px rgba(0,0,0,.1); }
+        .card-header { background: #1e3a8a; color: #fff; }
+        .table tbody tr:nth-child(odd) { background: #e6fff7; }
+        .table tbody tr:nth-child(even) { background: #fff; }
+        .btn-primary, .btn-success, .btn-info, .btn-danger, .btn-warning { background: #0d9488; border-color: #0d9488; color: #fff; }
+        .btn-primary:hover, .btn-success:hover, .btn-info:hover, .btn-danger:hover, .btn-warning:hover { background: #0b8278; border-color: #0b8278; }
+        .form-control, .form-select { border-color: #1e3a8a; color: #1e3a8; }
+        .form-control:focus, .form-select:focus { border-color: #0d9488; box-shadow: 0 0 0 .2rem rgba(13,148,136,.25); }
+        h1.text-muted { color: #1e3a8a !important; }
+        .table-blur { filter: blur(3px); transition: filter .3s ease; }
+        .spinner-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 10; }
+        .table-responsive { position: relative; }
+        .export-toast { position: fixed; top: 20px; right: 20px; z-index: 1050; }
+        .export-table { font-size: 12px; border-collapse: collapse; width: 100%; }
+        .export-table th, .export-table td { border: 1px solid #000; padding: 8px; text-align: center; }
+        .export-table thead { background: #f8f9fa; }
+        @media print {
+            body * { visibility: hidden; }
+            .table-responsive, .table-responsive * { visibility: visible; }
+            .table-responsive { position: absolute; left: 0; top: 0; width: 100%; }
+            .btn, .pagination, #loading-spinner { display: none !important; }
         }
         .modal-body .table + .table { margin-top: 1.5rem; }
         .modal-title small { font-weight: normal; color: #6c757d; }
@@ -49,7 +49,7 @@
             <div class="card-header"><h5 class="mb-0">Filters</h5></div>
             <div class="card-body">
                 <div class="row g-3 align-items-center">
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label class="form-label" for="historical-growth">Historical Growth</label>
                         <select class="form-select form-select-sm" id="historical-growth">
                             <option value="all" selected>All</option>
@@ -59,15 +59,7 @@
                             <option value="last_12_months">Last 12 months</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label" for="projection-for">Projection For</label>
-                        <select class="form-select form-select-sm" id="projection-for">
-                            <option value="">-- Select --</option>
-                            <option value="current_month">Current Month</option>
-                            <option value="current_year">Current Year</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label class="form-label" for="product-code-filter">Product</label>
                         <select class="form-select form-select-sm" id="product-code-filter" multiple>
                             <option value="">All</option>
@@ -76,7 +68,7 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-3 d-flex align-items-end">
+                    <div class="col-md-4 d-flex align-items-end">
                         <button type="button" class="btn btn-primary btn-sm w-100 mt-4" onclick="applyFilters()">Search</button>
                     </div>
                 </div>
@@ -90,7 +82,8 @@
                 <div>
                     <button class="btn btn-success btn-sm me-2" onclick="exportToExcel()">Export Excel</button>
                     <button class="btn btn-info btn-sm me-2" onclick="printTable()">Print</button>
-                    <button class="btn btn-warning btn-sm" onclick="showAverageModal()">View Average</button>
+                    <button class="btn btn-warning btn-sm me-2" onclick="showAverageModal()">View Average</button>
+                    <button class="btn btn-warning btn-sm me-2" onclick="showProjectionModal()">View Projection</button>
                 </div>
             </div>
             <div class="card-body">
@@ -121,19 +114,18 @@
         </div>
     </div>
 
-    <!-- AVERAGE + PROJECTION MODAL -->
+    <!-- AVERAGE MODAL -->
     <div class="modal fade" id="averageModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">
-                        Projection Summary
+                        Average Summary
                         <small id="based-on-period"></small>
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Table 1: Average -->
                     <h6 class="mb-3">Average of Last <span id="avg-period">3</span> Months</h6>
                     <div class="table-responsive mb-4">
                         <table class="table table-bordered text-center" id="avg-table">
@@ -153,9 +145,37 @@
                             </tbody>
                         </table>
                     </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                    <!-- Table 2: Projection for Current Month -->
-                    <h6 class="mb-3">Projection for Current Month</h6>
+    <!-- PROJECTION MODAL -->
+    <div class="modal fade" id="projectionModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        Projection Summary
+                        <small id="proj-based-on-period"></small>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="projection-for">Projection For</label>
+                            <select class="form-select form-select-sm" id="projection-for">
+                                <option value="">-- Select --</option>
+                                <option value="next_month">Next Month</option>
+                                <option value="current_month">Current Month</option>
+                                <option value="current_year">Current Year</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="table-responsive">
                         <table class="table table-bordered text-center" style="font-size:0.95rem;">
                             <thead class="table-light">
@@ -166,7 +186,7 @@
                                 </tr>
                             </thead>
                             <tbody id="proj-tbody-summary">
-                                <!-- Filled by JS -->
+                                <tr><td colspan="3" class="text-muted">Select projection period</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -213,9 +233,8 @@
 
             const filters = {
                 historical_growth: document.getElementById('historical-growth').value,
-                projection_for:    document.getElementById('projection-for').value,
-                product_code:      Array.from(document.getElementById('product-code-filter').selectedOptions)
-                                   .map(o => o.value).filter(v => v)
+                product_code: Array.from(document.getElementById('product-code-filter').selectedOptions)
+                             .map(o => o.value).filter(v => v)
             };
 
             fetch('/get_loan_projection_report_data', {
@@ -262,7 +281,7 @@
             });
         }
 
-        // View Average + Projection Modal
+        // View Average Modal
         function showAverageModal() {
             if (!filteredData.length) return alert('Please search data first.');
 
@@ -276,76 +295,40 @@
             const recentData = filteredData.slice(-n);
             if (!recentData.length) return alert(`No data for last ${n} months.`);
 
-            // === Dynamic Header: Aug-2025, Sep-2025, Oct-2025 → Nov-2025 ===
             const monthsList = recentData.map(r => r.Month).filter(Boolean);
-            const lastMonthStr = recentData[recentData.length - 1]?.Month || '';
-            let nextMonthStr = 'Next Month';
+            document.getElementById('based-on-period').innerHTML = `<small>Based on ${monthsList.join(', ')}</small>`;
 
-            if (lastMonthStr.includes('-')) {
-                const [m, y] = lastMonthStr.split('-');
-                const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-                const idx = monthNames.indexOf(m);
-                if (idx !== -1) {
-                    const ni = (idx + 1) % 12;
-                    const ny = idx === 11 ? parseInt(y) + 1 : parseInt(y);
-                    nextMonthStr = `${monthNames[ni]}-${ny}`;
-                }
-            }
-
-            document.getElementById('based-on-period').innerHTML = `
-                <small>Based on ${monthsList.join(', ')} → <strong>${nextMonthStr}</strong></small>
-            `;
-
-            // === Averages ===
+            // Calculate averages
             const sum = recentData.reduce((a, r) => {
                 a.disb += Number(r['Actual Disbursement']) || 0;
                 a.benef += Number(r['Actual No of Beneficiaries']) || 0;
+                a.gDisbAmt += Number(r.growth_disbursement_amount) || 0;
                 a.gDisbPct += Number(r.growth_disbursement_percentage) || 0;
+                a.gBenefCnt += Number(r.growth_beneficiaries_count) || 0;
                 a.gBenefPct += Number(r.growth_beneficiaries_percentage) || 0;
                 return a;
-            }, { disb: 0, benef: 0, gDisbPct: 0, gBenefPct: 0 });
+            }, { disb: 0, benef: 0, gDisbAmt: 0, gDisbPct: 0, gBenefCnt: 0, gBenefPct: 0 });
 
             const avg = {
                 disb: sum.disb / recentData.length,
                 benef: sum.benef / recentData.length,
+                gDisbAmt: sum.gDisbAmt / recentData.length,
                 gDisbPct: sum.gDisbPct / recentData.length,
+                gBenefCnt: sum.gBenefCnt / recentData.length,
                 gBenefPct: sum.gBenefPct / recentData.length
             };
 
-            // Table 1: Average
+            // Table: Average
             const avgTbody = document.getElementById('avg-tbody');
             avgTbody.innerHTML = `
                 <tr>
                     <td><strong>Average</strong></td>
                     <td>${fmtNum(avg.disb)}</td>
                     <td>${fmtNum(avg.benef, true)}</td>
-                    <td>-</td>
+                    <td>${fmtNum(avg.gDisbAmt)}</td>
                     <td>${fmtPct(avg.gDisbPct)}</td>
-                    <td>-</td>
+                    <td>${fmtNum(avg.gBenefCnt, true)}</td>
                     <td>${fmtPct(avg.gBenefPct)}</td>
-                </tr>
-            `;
-
-            // Table 2: Projection for Current Month
-            const projDisb = avg.disb * (1 + avg.gDisbPct / 100);
-            const projBenef = avg.benef * (1 + avg.gBenefPct / 100);
-
-            const projTbody = document.getElementById('proj-tbody-summary');
-            projTbody.innerHTML = `
-                <tr>
-                    <td><strong>${nextMonthStr}</strong></td>
-                    <td>${fmtNum(avg.disb)}</td>
-                    <td>${fmtNum(avg.benef, true)}</td>
-                </tr>
-                <tr class="table-warning">
-                    <td><strong>Add Growth Rate</strong></td>
-                    <td>${fmtPct(avg.gDisbPct)}</td>
-                    <td>${fmtPct(avg.gBenefPct)}</td>
-                </tr>
-                <tr class="table-success">
-                    <td><strong>Projection for Current Month</strong></td>
-                    <td><strong>${fmtNum(projDisb)}</strong></td>
-                    <td><strong>${fmtNum(projBenef, true)}</strong></td>
                 </tr>
             `;
 
@@ -353,7 +336,105 @@
             modal.show();
         }
 
-        // Export / Print (unchanged)
+        // View Projection Modal
+        function showProjectionModal() {
+            if (!filteredData.length) return alert('Please search data first.');
+
+            const growth = document.getElementById('historical-growth').value;
+            if (growth === 'all') return alert('Please select a historical growth period.');
+
+            const projSelect = document.getElementById('projection-for');
+            projSelect.value = ''; // Reset dropdown
+            const projTbody = document.getElementById('proj-tbody-summary');
+            projTbody.innerHTML = `<tr><td colspan="3" class="text-muted">Select projection period</td></tr>`;
+
+            const modal = new bootstrap.Modal(document.getElementById('projectionModal'));
+            modal.show();
+
+            projSelect.onchange = function() {
+                const period = this.value;
+                if (!period) {
+                    projTbody.innerHTML = `<tr><td colspan="3" class="text-muted">Select projection period</td></tr>`;
+                    return;
+                }
+
+                const monthsMap = { 'last_3_months': 3, 'last_6_months': 6, 'last_9_months': 9, 'last_12_months': 12 };
+                const n = monthsMap[growth];
+                const recentData = filteredData.slice(-n);
+                if (!recentData.length) return alert(`No data for last ${n} months.`);
+
+                const monthsList = recentData.map(r => r.Month).filter(Boolean);
+                const lastMonthStr = recentData[recentData.length - 1]?.Month || '';
+                let projPeriod = '';
+                let projDisb, projBenef;
+
+                // Calculate averages
+                const sum = recentData.reduce((a, r) => {
+                    a.disb += Number(r['Actual Disbursement']) || 0;
+                    a.benef += Number(r['Actual No of Beneficiaries']) || 0;
+                    a.gDisbPct += Number(r.growth_disbursement_percentage) || 0;
+                    a.gBenefPct += Number(r.growth_beneficiaries_percentage) || 0;
+                    return a;
+                }, { disb: 0, benef: 0, gDisbPct: 0, gBenefPct: 0 });
+
+                const avg = {
+                    disb: sum.disb / recentData.length,
+                    benef: sum.benef / recentData.length,
+                    gDisbPct: sum.gDisbPct / recentData.length,
+                    gBenefPct: sum.gBenefPct / recentData.length
+                };
+
+                // Calculate projections based on period
+                if (period === 'next_month') {
+                    projPeriod = 'Next Month';
+                    projDisb = avg.disb * (1 + avg.gDisbPct / 100);
+                    projBenef = avg.benef * (1 + avg.gBenefPct / 100);
+
+                    if (lastMonthStr.includes('-')) {
+                        const [m, y] = lastMonthStr.split('-');
+                        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                        const idx = monthNames.indexOf(m);
+                        if (idx !== -1) {
+                            const ni = (idx + 1) % 12;
+                            const ny = idx === 11 ? parseInt(y) + 1 : parseInt(y);
+                            projPeriod = `${monthNames[ni]}-${ny}`;
+                        }
+                    }
+                } else if (period === 'current_month') {
+                    projPeriod = 'Current Month';
+                    projDisb = avg.disb;
+                    projBenef = avg.benef;
+                } else if (period === 'current_year') {
+                    projPeriod = 'Current Year';
+                    projDisb = avg.disb * (1 + avg.gDisbPct / 100 * 12);
+                    projBenef = avg.benef * (1 + avg.gBenefPct / 100 * 12);
+                }
+
+                document.getElementById('proj-based-on-period').innerHTML = `
+                    <small>Based on ${monthsList.join(', ')} → <strong>${projPeriod}</strong></small>
+                `;
+
+                projTbody.innerHTML = `
+                    <tr>
+                        <td><strong>${projPeriod}</strong></td>
+                        <td>${fmtNum(avg.disb)}</td>
+                        <td>${fmtNum(avg.benef, true)}</td>
+                    </tr>
+                    <tr class="table-warning">
+                        <td><strong>Add Growth Rate</strong></td>
+                        <td>${fmtPct(avg.gDisbPct)}</td>
+                        <td>${fmtPct(avg.gBenefPct)}</td>
+                    </tr>
+                    <tr class="table-success">
+                        <td><strong>Projection for ${projPeriod}</strong></td>
+                        <td><strong>${fmtNum(projDisb)}</strong></td>
+                        <td><strong>${fmtNum(projBenef, true)}</strong></td>
+                    </tr>
+                `;
+            };
+        }
+
+        // Export to Excel
         function exportToExcel() {
             if (!filteredData.length) return alert('No data to export');
             const ws = XLSX.utils.json_to_sheet(filteredData.map(r => ({
@@ -370,6 +451,7 @@
             XLSX.writeFile(wb, 'Loan_Projection_Report.xlsx');
         }
 
+        // Print table
         function printTable() {
             if (!filteredData.length) return alert('No data to print');
             const temp = document.createElement('div');

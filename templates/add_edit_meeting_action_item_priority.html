@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% include 'head.html' %}
+    <title>{{ 'Edit Meeting Action Item Priority' if result.maip_details else 'Add Meeting Action Item Priority' }}</title>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url": "manage_meeting_setup", "label": "Manage Meeting Setup"}, {"url": "", "label": 'Edit Meeting Action Item Priority' if result.maip_details else 'Add Meeting Action Item Priority' }]) }}
+
+    <div class="container mt-4">
+        {% include 'message_box.html' %}
+
+        <div class="card">
+            <div class="card-header">
+                <h2>{{ 'Edit Meeting Action Item Priority' if result.maip_details else 'Add Meeting Action Item Priority' }}</h2>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="form-group mb-3">
+                        <label for="maip_name">Name</label>
+                        <input type="text" name="maip_name" class="form-control" value="{{ result.maip_details.maip_name if result.maip_details else '' }}" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">{{ 'Update Meeting Action Item Priority' if result.maip_details else 'Add Meeting Action Item Priority' }}</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

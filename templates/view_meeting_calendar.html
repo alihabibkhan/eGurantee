@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% include 'head.html' %}
+    <title>Meeting Calendar</title>
+    <style>
+        .table-responsive {
+            margin-bottom: 1rem;
+        }
+        .card {
+            margin-top: 1rem;
+        }
+        #calendar {
+            max-width: 900px;
+            margin: 0 auto 2rem;
+        }
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .calendar-header .left-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .calendar-header .right-buttons {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.5rem;
+        }
+        #calendar-month-year {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        .meetings-box {
+            margin-bottom: 2rem;
+        }
+        .meetings-box .list-group-item {
+            display block;
+            padding: 1rem;
+        }
+        .fc-event-title-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .fc-event-title-container .badge {
+            margin-top: 0.2rem;
+            font-size: 0.7em;
+            cursor: pointer;
+        }
+        /* Ensure long agenda text is readable */
+        #meeting-detail-body td.agenda-cell {
+            white-space: pre-wrap; /* Allow text wrapping */
+            word-break: break-word; /* Break long words */
+            max-height: 200px; /* Limit height */
+            overflow-y: auto; /* Add scrollbar if needed */
+        }
+    </style>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url": "", "label": "Meeting Calendar"}]) }}
+
+    <div class="container mt-4">
+        {% include 'message_box.html' %}
+
+        <div class="card mb-5">
+            <div class="card-header">
+                <h2>Meeting Calendar</h2>
+            </div>
+            <div class="card-body">
+                <div class="calendar-header">
+                    <div class="left-buttons">
+                        <a href="#" class="btn btn-secondary">Quick View Action Items Master Book</a>
+                        <a href="#" class="btn btn-primary">+ Add Meetings & Post Meeting Update</a>
+                    </div>
+                    <div class="right-buttons">
+                        <a href="{{url_for('view_my_meetings')}}" class="btn btn-primary">View My upcoming Meetings</a>
+                        <a href="{{url_for('view_schedule_meetings')}}" class="btn btn-primary">Schedule Meetings</a>
+                        <div id="calendar-month-year" class="d-none"></div>
+                    </div>
+                </div>
+                <div id="calendar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Viewing Meeting Details -->
+    <div class="modal fade" id="meetingDetailModal" tabindex="-1" aria-labelledby="meetingDetailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="meetingDetailModalLabel">Meeting Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-bordered">
+                        <tbody id="meeting-detail-body"></tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+    <script>
+        // Meeting data from Flask
+        const mandatoryMeetingData = [];
+        const scheduleMeetingData = {{ result.schedule_meetings | tojson | safe }} || [];
+
+        // Format date
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            const date = new Date(dateStr);
+            return isNaN(date) ? dateStr : date.toLocaleDateString('en-US', { timeZone: 'Asia/Karachi' });
+        }
+
+        // Show meeting details in modal
+        function showMeetingDetails(id, isScheduled) {
+            let record;
+            if (isScheduled) {
+                record = scheduleMeetingData.find(r => String(r.schedule_meeting_id) === String(id));
+                if (!record) {
+                    console.error('Scheduled meeting not found for ID:', id);
+                    return;
+                }
+                const fields = [
+                    { key: 'meeting_category_code', label: 'Category Code' },
+                    { key: 'meeting_title', label: 'Meeting Title' },
+                    { key: 'schedule_date', label: 'Schedule Date', format: formatDate },
+                    { key: 'pre_ms_name', label: 'Pre-Meeting Status' },
+                    { key: 'meeting_aganda', label: 'Meeting Agenda', class: 'agenda-cell' }
+                ];
+                const tbody = document.getElementById('meeting-detail-body');
+                tbody.innerHTML = '';
+                fields.forEach(field => {
+                    const value = field.format ? field.format(record[field.key]) : (record[field.key] || 'N/A');
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <th>${field.label}</th>
+                        <td${field.class ? ` class="${field.class}"` : ''}>${value}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } else {
+                record = mandatoryMeetingData.find(r => String(r.mand_meet_id) === String(id));
+                if (!record) {
+                    console.error('Mandatory meeting not found for ID:', id);
+                    return;
+                }
+                const fields = [
+                    { key: 'meeting_category_name', label: 'Category' },
+                    { key: 'meeting_freq_title', label: 'Frequency' },
+                    { key: 'proposed_month', label: 'Proposed Month', format: formatDate },
+                    { key: 'national_council_distribution_name', label: 'NC Distribution' },
+                    { key: 'resp_committ', label: 'Responsible Committee' },
+                    { key: 'meeting_priority_name', label: 'Priority' },
+                    { key: 'created_by', label: 'Created By' },
+                    { key: 'created_date', label: 'Created Date', format: formatDate }
+                ];
+                const tbody = document.getElementById('meeting-detail-body');
+                tbody.innerHTML = '';
+                fields.forEach(field => {
+                    if (field.key !== 'mand_meet_id') {
+                        const value = field.format ? field.format(record[key]) : (record[key] || 'N/A');
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <th>${field.label}</th>
+                            <td>${value}</td>
+                        `;
+                        tbody.appendChild(row);
+                    }
+                });
+            }
+            const modalElement = document.getElementById('meetingDetailModal');
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+            modalElement.addEventListener('hidden.bs.modal', function () {
+                modal.dispose();
+                document.body.classList.remove('modal-open');
+                const backdrop = document.querySelector('.modal-backdrop');
+                if (backdrop) {
+                    backdrop.remove();
+                }
+            }, { once: true });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const calendarEl = document.getElementById('calendar');
+            const monthYearEl = document.getElementById('calendar-month-year');
+
+            // Prepare events for FullCalendar
+            const mandatoryEvents = mandatoryMeetingData.map(meeting => ({
+                id: meeting.mand_meet_id,
+                title: meeting.meeting_category_name || 'Unnamed Meeting',
+                start: meeting.proposed_month || '',
+                description: `Category: ${meeting.meeting_category_name || 'N/A'}, Committee: ${meeting.resp_committ || 'N/A'}`,
+                backgroundColor: '#007bff',
+                borderColor: '#0056b3',
+                extendedProps: { isScheduled: false }
+            }));
+
+            const scheduleEvents = scheduleMeetingData.map(meeting => {
+                console.log(`Meeting ${meeting.schedule_meeting_id}: pre_ms_id = ${meeting.pre_ms_id}`); // Debug log
+                return {
+                    id: meeting.schedule_meeting_id,
+                    title: meeting.meeting_category_code || 'N/A',
+                    start: meeting.schedule_date || '',
+                    description: `Pre-Meeting Status: ${meeting.pre_ms_name || 'N/A'}`,
+                    backgroundColor: '#28a745',
+                    borderColor: '#218838',
+                    extendedProps: {
+                        isScheduled: true,
+                        pre_ms_name: meeting.pre_ms_name || 'N/A',
+                        pre_ms_id: meeting.pre_ms_id // Ensure pre_ms_id is passed
+                    }
+                };
+            });
+
+            const events = [...mandatoryEvents, ...scheduleEvents];
+
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                events: events,
+                eventClick: function(info) {
+                    showMeetingDetails(info.event.id, info.event.extendedProps.isScheduled);
+                },
+                eventContent: function(info) {
+                    const isScheduled = info.event.extendedProps.isScheduled;
+                    if (isScheduled) {
+                        const preMsId = info.event.extendedProps.pre_ms_id;
+                        const badgeClass = preMsId === 1 ? 'badge-danger' :
+                                          preMsId === 2 ? 'badge-success' : 'badge-secondary';
+                        console.log(`Event ${info.event.id}: pre_ms_id = ${preMsId}, badgeClass = ${badgeClass}`); // Debug log
+                        return {
+                            html: `
+                                <div class="fc-event-title-container">
+                                    <div>${info.event.title}</div>
+                                    <div style="background-color: ${preMsId === 1 ? '#dc3545' : preMsId === 2 ? '#28a745' : '#6c757d'}; color: white; padding: 0.25em 0.4em; border-radius: 0.25rem; display: inline-block;">
+                                        <span class="${badgeClass} badge"
+                                              onclick="showMeetingDetails('${info.event.id}', ${info.event.extendedProps.isScheduled})">
+                                            ${info.event.extendedProps.pre_ms_name}
+                                        </span>
+                                    </div>
+                                </div>
+                            `
+                        };
+                    }
+                    return { html: `<div>${info.event.title}</div>` };
+                },
+                datesSet: function(dateInfo) {
+                    const date = new Date(dateInfo.start);
+                    const month = date.toLocaleString('default', { month: 'long' });
+                    const year = date.getFullYear();
+                    //monthYearEl.textContent = `${month} ${year}`;
+                }
+            });
+
+            calendar.render();
+        });
+    </script>
+</body>
+</html>

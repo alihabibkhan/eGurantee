@@ -650,7 +650,6 @@
                 <li class="nav-item"><a href="#" class="nav-link dropdown-link">Bank Account Statement</a></li>
                 <li class="nav-item"><a href="#" class="nav-link dropdown-link">Loan to Value Report</a></li>
               {% endif %}
-              <li class="nav-item"><a href="#" class="nav-link dropdown-link">Loan Projection Analysis</a></li>
               {% if session['rights']|string == '3' or session['rights']|string == '4' %}
                 <li class="nav-item"><a href="{{url_for('fund_projection_report')}}" class="nav-link dropdown-link">Funds Projection Analysis</a></li>
                 <li class="nav-item"><a href="{{url_for('fund_projected_vs_disbursement')}}" class="nav-link dropdown-link">Funds Projected Vs Actual</a></li>
@@ -748,6 +747,7 @@
             <li class="nav-item"><a href="{{url_for('manage_file')}}" class="nav-link">Loan Assessment File Uploading</a></li>
             <li class="nav-item"><a href="#" class="nav-link">Volunteers Roles Update</a></li>
             <li class="nav-item"><a href="{{url_for('manage_users')}}" class="nav-link dropdown-link">Volunteers Setup</a></li>
+            <li class="nav-item"><a href="{{url_for('manage_meeting_setup')}}" class="nav-link dropdown-link">Meeting Setup</a></li>
             <li class="nav-item"><a href="#" class="nav-link">Partner Organization</a></li>
           </ul>
         </li>

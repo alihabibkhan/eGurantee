@@ -175,15 +175,18 @@
     </div>
 
     <div class="container mt-5">
-        {% if result.is_executive_approver or result.is_admin %}
-            <div class="container mb-3">
-                <div class="row me-5 ps-5">
-                    <div class="d-flex justify-content-between">
+
+        <div class="container mb-3">
+            <div class="row me-5 ps-5">
+                <div class="d-flex justify-content-between">
+                    <a href="{{url_for('view_meeting_calendar')}}" class="btn btn-primary">My Meeting</a>
+                    {% if result.is_executive_approver or result.is_admin %}
                         <a href="{{url_for('awaiting_service')}}" class="btn btn-primary">Awaiting Services</a>
-                    </div>
+                    {% endif %}
                 </div>
             </div>
-        {% endif %}
+        </div>
+
 
         <div class="dashboard-parent-card shadow-lg">
             <div class="d-flex justify-content-between mb-3">

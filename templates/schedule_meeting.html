@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% include 'head.html' %}
+    <title>{{ 'Edit Scheduled Meeting' if result.schedule_meeting_details else 'Schedule Meeting' }}</title>
+    <style>
+        .card {
+            margin-top: 1rem;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .meetings-box {
+            margin-bottom: 2rem;
+        }
+        .meetings-box .list-group-item {
+            display: block;
+            padding: 1rem;
+        }
+    </style>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url": "view_meeting_calendar", "label": "Meeting Calendar"}, {"url": "", "label": 'Edit Scheduled Meeting' if result.schedule_meeting_details else 'Schedule Meeting'}]) }}
+
+    <div class="container mt-4">
+        {% include 'message_box.html' %}
+
+        <div class="card">
+            <div class="card-header">
+                <h2>{{ 'Edit Scheduled Meeting' if result.schedule_meeting_details else 'Schedule Meeting' }}</h2>
+            </div>
+            <div class="card-body">
+                <!-- Mandatory Meeting Details -->
+                <div class="meetings-box">
+                    <h3>Mandatory Meeting Details</h3>
+                    {% if result.mandatory_meeting %}
+                        <ul class="list-group">
+                            <li class="list-group-item">
+                                <strong>{{ result.mandatory_meeting.meeting_category_name or 'N/A' }}</strong><br>
+                                Frequency: {{ result.mandatory_meeting.meeting_freq_title or 'N/A' }}<br>
+                                Date: {{ result.mandatory_meeting.proposed_month|month_year_short or 'N/A' }}<br>
+                                Committee: {{ result.mandatory_meeting.resp_committ or 'N/A' }}<br>
+                                Priority: {{ result.mandatory_meeting.meeting_priority_name or 'N/A' }}<br>
+                                NC Distribution: {{ result.mandatory_meeting.national_council_distribution_name or 'N/A' }}
+                            </li>
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">No mandatory meeting details available.</p>
+                    {% endif %}
+                </div>
+
+                <form method="POST">
+                    <!-- Meeting Title -->
+                    <div class="form-group">
+                        <label for="meeting_title">Meeting Title</label>
+                        <input type="text" name="meeting_title" class="form-control"
+                               value="{{ result.schedule_meeting_details.meeting_title if result.schedule_meeting_details else result.mandatory_meeting.meeting_category_name if result.mandatory_meeting else '' }}"
+                               required>
+                    </div>
+
+                    <!-- Meeting Agenda -->
+                    <div class="form-group">
+                        <label for="meeting_aganda">Meeting Agenda</label>
+                        <textarea name="meeting_aganda" class="form-control" rows="5">{{ result.schedule_meeting_details.meeting_aganda if result.schedule_meeting_details else '' }}</textarea>
+                    </div>
+
+                    <!-- Schedule Date -->
+                    <div class="form-group">
+                        <label for="schedule_date">Schedule Date</label>
+                        <input type="date" name="schedule_date" class="form-control"
+                               value="{{ result.schedule_meeting_details.schedule_date if result.schedule_meeting_details else result.mandatory_meeting.proposed_month if result.mandatory_meeting else '' }}"
+                               required>
+                    </div>
+
+                    <!-- Pre-Meeting Status -->
+                    <div class="form-group">
+                        <label for="pre_ms_id">Pre-Meeting Status</label>
+                        <select name="pre_ms_id" class="form-control form-select" required>
+                            <option value="" disabled {{ 'selected' if not result.schedule_meeting_details else '' }}>[Select...]</option>
+                            {% for status in result.get_all_pre_meeting_status %}
+                                <option value="{{ status.pre_ms_id }}"
+                                        {{ 'selected' if result.schedule_meeting_details and result.schedule_meeting_details.pre_ms_id == status.pre_ms_id else '' }}>
+                                    {{ status.pre_ms_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        {{ 'Update Meeting' if result.schedule_meeting_details else 'Schedule Meeting' }}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

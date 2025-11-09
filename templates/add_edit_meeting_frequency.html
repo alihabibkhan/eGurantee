@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% include 'head.html' %}
+    <title>{{ 'Edit Meeting Frequency' if result.meeting_freq_details else 'Add Meeting Frequency' }}</title>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url": "manage_meeting_setup", "label": "Manage Meeting Setup"}, {"url": "", "label": 'Edit Meeting Frequency' if result.meeting_freq_details else 'Add Meeting Frequency' }]) }}
+
+    <div class="container mt-4">
+        {% include 'message_box.html' %}
+
+        <div class="card">
+            <div class="card-header">
+                <h2>{{ 'Edit Meeting Frequency' if result.meeting_freq_details else 'Add Meeting Frequency' }}</h2>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="form-group mb-3">
+                        <label for="meeting_freq_title">Title</label>
+                        <input type="text" name="meeting_freq_title" class="form-control" value="{{ result.meeting_freq_details.meeting_freq_title if result.meeting_freq_details else '' }}" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="min_freq">Minimum Frequency</label>
+                        <input type="number" name="min_freq" class="form-control" value="{{ result.meeting_freq_details.min_freq if result.meeting_freq_details else '' }}" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="max_freq">Maximum Frequency</label>
+                        <input type="number" name="max_freq" class="form-control" value="{{ result.meeting_freq_details.max_freq if result.meeting_freq_details else '' }}" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">{{ 'Update Meeting Frequency' if result.meeting_freq_details else 'Add Meeting Frequency' }}</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

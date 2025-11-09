@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% include 'head.html' %}
+    <title>Scheduled Meetings</title>
+    <style>
+        .table-responsive {
+            margin-bottom: 1rem;
+        }
+        .card {
+            margin-top: 1rem;
+        }
+        .meetings-box {
+            margin-bottom: 2rem;
+        }
+        .meetings-box .list-group-item {
+            display: block;
+            padding: 1rem;
+        }
+        /* Ensure long agenda text is readable */
+        #meeting-detail-body td.agenda-cell {
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url": "", "label": "Scheduled Meetings"}]) }}
+
+    <div class="container mt-4">
+        {% include 'message_box.html' %}
+
+        <div class="card">
+            <div class="card-header">
+                <h2>Scheduled Meetings</h2>
+            </div>
+            <div class="card-body">
+                <!-- Meetings Box -->
+                <div class="meetings-box">
+                    <h3>Upcoming Meetings for This Month</h3>
+                    {% if result.mandatory_meetings %}
+                        <ul class="list-group">
+                            {% for meeting in result.mandatory_meetings %}
+                                <a href="{{ url_for('schedule_meeting', mand_meet_id=meeting.mand_meet_id) }}" class="text-decoration-none">
+                                    <li class="list-group-item">
+                                        <strong>{{ meeting.meeting_category_name or 'N/A' }}</strong><br>
+                                        Frequency: {{ meeting.meeting_freq_title or 'N/A' }}<br>
+                                        Date: {{ meeting.proposed_month|month_year_short or 'N/A' }}<br>
+                                        Committee: {{ meeting.resp_committ or 'N/A' }}<br>
+                                        Priority: {{ meeting.meeting_priority_name or 'N/A' }}<br>
+                                        NC Distribution: {{ meeting.national_council_distribution_name or 'N/A' }}
+                                    </li>
+                                </a>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">No meetings for this month.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Viewing Meeting Details -->
+    <div class="modal fade" id="meetingDetailModal" tabindex="-1" aria-labelledby="meetingDetailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="meetingDetailModalLabel">Meeting Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-bordered">
+                        <tbody id="meeting-detail-body"></tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+    <script>
+        // Meeting data from Flask
+        const scheduleMeetingData = {{ result.mandatory_meetings | tojson | safe }} || [];
+
+        // Format date
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            const date = new Date(dateStr);
+            return isNaN(date) ? dateStr : date.toLocaleDateString('en-US', { timeZone: 'Asia/Karachi' });
+        }
+
+        // Show meeting details in modal
+        function showMeetingDetails(id, isScheduled) {
+            let record;
+            if (isScheduled) {
+                record = scheduleMeetingData.find(r => String(r.schedule_meeting_id) === String(id));
+                if (!record) {
+                    console.error('Scheduled meeting not found for ID:', id);
+                    return;
+                }
+                const fields = [
+                    { key: 'meeting_category_code', label: 'Category Code' },
+                    { key: 'meeting_title', label: 'Meeting Title' },
+                    { key: 'schedule_date', label: 'Schedule Date', format: formatDate },
+                    { key: 'pre_ms_name', label: 'Pre-Meeting Status' },
+                    { key: 'meeting_aganda', label: 'Meeting Agenda', class: 'agenda-cell' }
+                ];
+                const tbody = document.getElementById('meeting-detail-body');
+                tbody.innerHTML = '';
+                fields.forEach(field => {
+                    const value = field.format ? field.format(record[field.key]) : (record[field.key] || 'N/A');
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <th>${field.label}</th>
+                        <td${field.class ? ` class="${field.class}"` : ''}>${value}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+            const modalElement = document.getElementById('meetingDetailModal');
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+            modalElement.addEventListener('hidden.bs.modal', function () {
+                modal.dispose();
+                document.body.classList.remove('modal-open');
+                const backdrop = document.querySelector('.modal-backdrop');
+                if (backdrop) {
+                    backdrop.remove();
+                }
+            }, { once: true });
+        }
+    </script>
+</body>
+</html>
