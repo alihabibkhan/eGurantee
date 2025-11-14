@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Book Action Items</title>
+    {% include 'head.html' %}
+    <style>
+        body { background-color: #f8f9fa; }
+        .table-responsive { margin-bottom: 1rem; }
+        .pagination .page-item.active .page-link { background-color: #0d9488; border-color: #0d9488; }
+        .pagination .page-item.disabled .page-link { cursor: not-allowed; opacity: 0.65; }
+        .card { margin-top: 1rem; background-color: #ffffff; box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1); }
+        .card-header { background-color: #1e3a8a; color: #ffffff; }
+        .filter-card .form-group { margin-bottom: 0; }
+        .table-light { background-color: #f8f9fa; }
+        .table tbody tr:nth-child(odd) { background-color: #e6fff7; }
+        .table tbody tr:nth-child(even) { background-color: #ffffff; }
+        .btn-primary, .btn-success, .btn-info, .btn-danger { background-color: #0d9488; border-color: #0d9488; color: white; }
+        .btn-primary:hover, .btn-success:hover, .btn-info:hover, .btn-danger:hover { background-color: #0b8278; border-color: #0b8278; }
+        .form-control, .form-select { border-color: #1e3a8a; color: #1e3a8a; }
+        .form-control:focus, .form-select:focus { border-color: #0d9488; box-shadow: 0 0 0 0.2rem rgba(13, 148, 136, 0.25); }
+        h1.text-muted { color: #1e3a8a !important; }
+        .table-blur { filter: blur(3px); transition: filter 0.3s ease; }
+        .spinner-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; }
+        .table-responsive { position: relative; }
+        #master-book-table { width: 100%; margin-top: 1rem; }
+        #master-book-table td { vertical-align: middle; }
+        .loading { text-align: center; padding: 1rem; }
+        @media print {
+            body * { visibility: hidden; }
+            .table-responsive, .table-responsive * { visibility: visible; }
+            .table-responsive { position: absolute; left: 0; top: 0; width: 100%; }
+            .btn, .pagination, #loading-spinner { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+    {% include 'navbar.html' %}
+
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url": "master_book_action_items", "label": "Master Book Action Items"}]) }}
+
+    <div class="mt-3">{% include 'message_box.html' %}</div>
+
+    <div class="container py-4">
+        <h1 class="mb-3 text-muted">Master Book Action Items</h1>
+
+        <!-- Filter Card -->
+        <div class="card filter-card">
+            <div class="card-header">
+                <h5 class="mb-0">Filters</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="meetingCategoryWithCode-filter" class="form-label">Category with Code</label>
+                            <input type="text" class="form-control form-control-sm" id="meetingCategoryWithCode-filter">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="Frequency-filter" class="form-label">Frequency</label>
+                            <input type="text" class="form-control form-control-sm" id="Frequency-filter">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="TragetRangeAnnualOfMeetings-filter" class="form-label">Target Range</label>
+                            <input type="text" class="form-control form-control-sm" id="TragetRangeAnnualOfMeetings-filter">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="proposed_month-filter" class="form-label">Proposed Month</label>
+                            <input type="text" class="form-control form-control-sm" id="proposed_month-filter">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="national_council_distribution_name-filter" class="form-label">NC Distribution</label>
+                            <input type="text" class="form-control form-control-sm" id="national_council_distribution_name-filter">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="resp_committ-filter" class="form-label">Responsible Committee</label>
+                            <input type="text" class="form-control form-control-sm" id="resp_committ-filter">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="meeting_priority_name-filter" class="form-label">Priority</label>
+                            <input type="text" class="form-control form-control-sm" id="meeting_priority_name-filter">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="meeting_title-filter" class="form-label">Meeting Title</label>
+                            <input type="text" class="form-control form-control-sm" id="meeting_title-filter">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="meeting_aganda-filter" class="form-label">Agenda</label>
+                            <input type="text" class="form-control form-control-sm" id="meeting_aganda-filter">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="assigned_leads-filter" class="form-label">Assigned Leads</label>
+                            <input type="text" class="form-control form-control-sm" id="assigned_leads-filter">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="last_updated_by-filter" class="form-label">Last Updated By</label>
+                            <input type="text" class="form-control form-control-sm" id="last_updated_by-filter">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="schedule_date-filter" class="form-label">Schedule Date</label>
+                            <input type="text" class="form-control form-control-sm" id="schedule_date-filter">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="pre_ms_name-filter" class="form-label">Meeting Status</label>
+                            <input type="text" class="form-control form-control-sm" id="pre_ms_name-filter">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="action_items-filter" class="form-label">Action Items</label>
+                            <input type="text" class="form-control form-control-sm" id="action_items-filter">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="action_item_priority-filter" class="form-label">Action Item Priority</label>
+                            <input type="text" class="form-control form-control-sm" id="action_item_priority-filter">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="assigned_to-filter" class="form-label">Assigned To</label>
+                            <input type="text" class="form-control form-control-sm" id="assigned_to-filter">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="target_completion_date-filter" class="form-label">Target Completion Date</label>
+                            <input type="text" class="form-control form-control-sm" id="target_completion_date-filter">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="action_item_status-filter" class="form-label">Action Item Status</label>
+                            <input type="text" class="form-control form-control-sm" id="action_item_status-filter">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="notes_followup-filter" class="form-label">Notes Followup</label>
+                            <input type="text" class="form-control form-control-sm" id="notes_followup-filter">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="date_followup-filter" class="form-label">Date Followup</label>
+                            <input type="text" class="form-control form-control-sm" id="date_followup-filter">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="date_completed-filter" class="form-label">Date Completed</label>
+                            <input type="text" class="form-control form-control-sm" id="date_completed-filter">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="pmu_created_by-filter" class="form-label">Created By</label>
+                            <input type="text" class="form-control form-control-sm" id="pmu_created_by-filter">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="pmu_modified_by-filter" class="form-label">Modified By</label>
+                            <input type="text" class="form-control form-control-sm" id="pmu_modified_by-filter">
+                        </div>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="button" class="btn btn-primary btn-sm w-100 mt-4" onclick="applyFilters()">Apply Filters</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Table Card -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Master Book Action Items</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openColumnsModal()">Customize Columns</button>
+                    <button type="button" class="btn btn-success btn-sm" onclick="exportToExcel()">Export as Excel</button>
+                    <button type="button" class="btn btn-info btn-sm" onclick="printTable()">Print</button>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="exportToPDF()">Export as PDF</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table tbl_records text-nowrap text-center table-responsive table-responsive-sm table-responsive-md table-responsive-lg table-responsive-xl table-responsive-xxl m-auto table-bordered table-hover" id="master-book-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col">Category with Code</th>
+                                <th scope="col">Frequency</th>
+                                <th scope="col">Target Range</th>
+                                <th scope="col">Proposed Month</th>
+                                <th scope="col">NC Distribution</th>
+                                <th scope="col">Responsible Committee</th>
+                                <th scope="col">Priority</th>
+                                <th scope="col">Meeting Title</th>
+                                <th scope="col">Agenda</th>
+                                <th scope="col">Assigned Leads</th>
+                                <th scope="col">Last Updated By</th>
+                                <th scope="col">Schedule Date</th>
+                                <th scope="col">Meeting Status</th>
+                                <th scope="col">Action Items</th>
+                                <th scope="col">Action Item Priority</th>
+                                <th scope="col">Assigned To</th>
+                                <th scope="col">Target Completion Date</th>
+                                <th scope="col">Action Item Status</th>
+                                <th scope="col">Notes Followup</th>
+                                <th scope="col">Date Followup</th>
+                                <th scope="col">Date Completed</th>
+                                <th scope="col">Created By</th>
+                                <th scope="col">Modified By</th>
+                            </tr>
+                        </thead>
+                        <tbody id="master-book-table-body">
+                            <tr><td colspan="23" class="text-center text-muted">No records to display</td></tr>
+                        </tbody>
+                    </table>
+                    <div id="loading-spinner" class="spinner-container d-none">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+                <nav aria-label="Master book pagination">
+                    <ul class="pagination justify-content-center" id="master-book-pagination"></ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <!-- Columns Modal -->
+    <div class="modal fade" id="columnsModal" tabindex="-1" aria-labelledby="columnsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="columnsModalLabel">Select Columns to Display</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="columnsCheckboxes"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="applyColumnVisibility()">Apply</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script>
+        const { jsPDF } = window.jspdf;
+        const itemsPerPage = 10;
+        let currentPage = 1;
+        let filteredData = [];
+
+        const columns = [
+            {name: 'Category with Code', index: 0},
+            {name: 'Frequency', index: 1},
+            {name: 'Target Range', index: 2},
+            {name: 'Proposed Month', index: 3},
+            {name: 'NC Distribution', index: 4},
+            {name: 'Responsible Committee', index: 5},
+            {name: 'Priority', index: 6},
+            {name: 'Meeting Title', index: 7},
+            {name: 'Agenda', index: 8},
+            {name: 'Assigned Leads', index: 9},
+            {name: 'Last Updated By', index: 10},
+            {name: 'Schedule Date', index: 11},
+            {name: 'Meeting Status', index: 12},
+            {name: 'Action Items', index: 13},
+            {name: 'Action Item Priority', index: 14},
+            {name: 'Assigned To', index: 15},
+            {name: 'Target Completion Date', index: 16},
+            {name: 'Action Item Status', index: 17},
+            {name: 'Notes Followup', index: 18},
+            {name: 'Date Followup', index: 19},
+            {name: 'Date Completed', index: 20},
+            {name: 'Created By', index: 21},
+            {name: 'Modified By', index: 22}
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const checkboxesDiv = document.getElementById('columnsCheckboxes');
+            columns.forEach(col => {
+                const label = document.createElement('label');
+                label.className = 'd-block';
+                const input = document.createElement('input');
+                input.type = 'checkbox';
+                input.checked = true;
+                input.dataset.index = col.index;
+                label.appendChild(input);
+                label.appendChild(document.createTextNode(' ' + col.name));
+                checkboxesDiv.appendChild(label);
+            });
+            applyFilters();
+        });
+
+        function formatDate(dateStr) {
+            if (!dateStr) return 'Not Received';
+            const date = new Date(dateStr);
+            if (isNaN(date) || date.toLocaleDateString() === '1/1/1900' || date.toLocaleDateString() === '1900/1/1' || dateStr === '1900-01-01 00:00:00') {
+                return 'Not Received';
+            }
+            const options = { month: 'short', day: '2-digit', year: 'numeric' };
+            const formatted = date.toLocaleDateString('en-US', options);
+            return formatted.replace(', ', '/').replace(' ', '/');
+        }
+
+        function showToast(message, duration, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `alert alert-${type} alert-dismissible fade show`;
+            toast.style.position = 'fixed';
+            toast.style.top = '20px';
+            toast.style.right = '20px';
+            toast.style.zIndex = '1050';
+            toast.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                const toastInstance = bootstrap.Alert.getOrCreateInstance(toast);
+                if (toastInstance) toastInstance.close();
+            }, duration);
+        }
+
+        function applyFilters() {
+            const filters = {
+                meetingCategoryWithCode: document.getElementById('meetingCategoryWithCode-filter').value,
+                Frequency: document.getElementById('Frequency-filter').value,
+                TragetRangeAnnualOfMeetings: document.getElementById('TragetRangeAnnualOfMeetings-filter').value,
+                proposed_month: document.getElementById('proposed_month-filter').value,
+                national_council_distribution_name: document.getElementById('national_council_distribution_name-filter').value,
+                resp_committ: document.getElementById('resp_committ-filter').value,
+                meeting_priority_name: document.getElementById('meeting_priority_name-filter').value,
+                meeting_title: document.getElementById('meeting_title-filter').value,
+                meeting_aganda: document.getElementById('meeting_aganda-filter').value,
+                assigned_leads: document.getElementById('assigned_leads-filter').value,
+                last_updated_by: document.getElementById('last_updated_by-filter').value,
+                schedule_date: document.getElementById('schedule_date-filter').value,
+                pre_ms_name: document.getElementById('pre_ms_name-filter').value,
+                action_items: document.getElementById('action_items-filter').value,
+                action_item_priority: document.getElementById('action_item_priority-filter').value,
+                assigned_to: document.getElementById('assigned_to-filter').value,
+                target_completion_date: document.getElementById('target_completion_date-filter').value,
+                action_item_status: document.getElementById('action_item_status-filter').value,
+                notes_followup: document.getElementById('notes_followup-filter').value,
+                date_followup: document.getElementById('date_followup-filter').value,
+                date_completed: document.getElementById('date_completed-filter').value,
+                pmu_created_by: document.getElementById('pmu_created_by-filter').value,
+                pmu_modified_by: document.getElementById('pmu_modified_by-filter').value
+            };
+
+            const button = document.querySelector('button[onclick="applyFilters()"]');
+            const tbody = document.getElementById('master-book-table-body');
+            const spinner = document.getElementById('loading-spinner');
+
+            button.disabled = true;
+            button.innerHTML = 'Applying...';
+            tbody.classList.add('table-blur');
+            spinner.classList.remove('d-none');
+
+            fetch('/get-master-book-action-items', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(filters)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    filteredData = data.records;
+                    currentPage = 1;
+                    renderTable(filteredData, 'master-book-table-body', currentPage);
+                    renderPagination(filteredData, 'master-book-pagination', currentPage);
+                } else {
+                    showToast('Error fetching data: ' + (data.message || 'Unknown error'), 3000, 'warning');
+                }
+            })
+            .catch(error => {
+                showToast('Error fetching data: ' + error.message, 3000, 'warning');
+            })
+            .finally(() => {
+                button.disabled = false;
+                button.innerHTML = 'Apply Filters';
+                tbody.classList.remove('table-blur');
+                spinner.classList.add('d-none');
+            });
+        }
+
+        function renderTable(data, tableBodyId, currentPage) {
+            const tbody = document.getElementById(tableBodyId);
+            tbody.innerHTML = '';
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const pageData = data.slice(start, end);
+
+            if (pageData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="23" class="text-center text-muted">No records found</td></tr>';
+                return;
+            }
+
+            pageData.forEach(record => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${record.meetingcategorywithcode || 'N/A'}</td>
+                    <td>${record.frequency || 'N/A'}</td>
+                    <td>${record.tragetrangeannualofmeetings || 'N/A'}</td>
+                    <td>${record.proposed_month || 'N/A'}</td>
+                    <td>${record.national_council_distribution_name || 'N/A'}</td>
+                    <td>${record.resp_committ || 'N/A'}</td>
+                    <td>${record.meeting_priority_name || 'N/A'}</td>
+                    <td>${record.meeting_title || 'N/A'}</td>
+                    <td>${record.meeting_aganda || 'N/A'}</td>
+                    <td>${record.assigned_leads || 'N/A'}</td>
+                    <td>${record.last_updated_by || 'N/A'}</td>
+                    <td>${formatDate(record.schedule_date)}</td>
+                    <td>${record.pre_ms_name || 'N/A'}</td>
+                    <td>${record.action_items || 'N/A'}</td>
+                    <td>${record.action_item_priority || 'N/A'}</td>
+                    <td>${record.assigned_to || 'N/A'}</td>
+                    <td>${formatDate(record.target_completion_date)}</td>
+                    <td>${record.action_item_status || 'N/A'}</td>
+                    <td>${record.notes_followup || 'N/A'}</td>
+                    <td>${formatDate(record.date_followup)}</td>
+                    <td>${formatDate(record.date_completed)}</td>
+                    <td>${record.pmu_created_by || 'N/A'}</td>
+                    <td>${record.pmu_modified_by || 'N/A'}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function renderPagination(data, paginationId, currentPage) {
+            const pagination = document.getElementById(paginationId);
+            pagination.innerHTML = '';
+            const totalPages = Math.ceil(data.length / itemsPerPage);
+            if (totalPages <= 1) return;
+
+            const prevLi = document.createElement('li');
+            prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `<a class="page-link" href="#" ${currentPage === 1 ? '' : `onclick="changePage(${currentPage - 1})"`}>Previous</a>`;
+            pagination.appendChild(prevLi);
+
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            if (endPage - startPage + 1 < maxVisiblePages) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+
+            if (startPage > 1) {
+                const firstLi = document.createElement('li');
+                firstLi.className = 'page-item';
+                firstLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(1)">1</a>`;
+                pagination.appendChild(firstLi);
+                if (startPage > 2) {
+                    const ellipsisLi = document.createElement('li');
+                    ellipsisLi.className = 'page-item disabled';
+                    ellipsisLi.innerHTML = '<span class="page-link">...</span>';
+                    pagination.appendChild(ellipsisLi);
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                const pageLi = document.createElement('li');
+                pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                pageLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i})">${i}</a>`;
+                pagination.appendChild(pageLi);
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    const ellipsisLi = document.createElement('li');
+                    ellipsisLi.className = 'page-item disabled';
+                    ellipsisLi.innerHTML = '<span class="page-link">...</span>';
+                    pagination.appendChild(ellipsisLi);
+                }
+                const lastLi = document.createElement('li');
+                lastLi.className = 'page-item';
+                lastLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${totalPages})">${totalPages}</a>`;
+                pagination.appendChild(lastLi);
+            }
+
+            const nextLi = document.createElement('li');
+            nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+            nextLi.innerHTML = `<a class="page-link" href="#" ${currentPage === totalPages ? '' : `onclick="changePage(${currentPage + 1})"`}>Next</a>`;
+            pagination.appendChild(nextLi);
+        }
+
+        function openColumnsModal() {
+            const modalElement = document.getElementById('columnsModal');
+            const existingInstance = bootstrap.Modal.getInstance(modalElement);
+            if (existingInstance) existingInstance.dispose();
+            const newModalInstance = new bootstrap.Modal(modalElement, { backdrop: true, keyboard: true, focus: true });
+            newModalInstance.show();
+        }
+
+        function changePage(page) {
+            currentPage = page;
+            renderTable(filteredData, 'master-book-table-body', currentPage);
+            renderPagination(filteredData, 'master-book-pagination', currentPage);
+        }
+
+        function applyColumnVisibility() {
+            const table = document.querySelector('.table');
+            const ths = table.querySelectorAll('th');
+            const trs = table.querySelectorAll('tbody tr');
+            const checkboxes = document.querySelectorAll('#columnsCheckboxes input');
+
+            checkboxes.forEach(cb => {
+                const index = parseInt(cb.dataset.index);
+                const visible = cb.checked;
+                if (ths[index]) ths[index].classList.toggle('d-none', !visible);
+                trs.forEach(tr => {
+                    if (tr.children[index]) tr.children[index].classList.toggle('d-none', !visible);
+                });
+            });
+
+            const modalElement = document.getElementById('columnsModal');
+            const modalInstance = bootstrap.Modal.getInstance(modalElement);
+            if (modalInstance) {
+                document.body.focus();
+                modalInstance.hide();
+                modalElement.addEventListener('hidden.bs.modal', function handler() {
+                    const focusedElement = document.activeElement;
+                    if (modalElement.contains(focusedElement)) document.body.focus();
+                    const backdrop = document.querySelector('.modal-backdrop');
+                    if (backdrop) backdrop.remove();
+                    document.body.classList.remove('modal-open');
+                    document.body.style.overflow = '';
+                    document.body.style.paddingRight = '';
+                    modalElement.classList.remove('show');
+                    modalElement.style.display = '';
+                    modalElement.removeAttribute('aria-modal');
+                    modalElement.setAttribute('aria-hidden', 'true');
+                    modalInstance.dispose();
+                    modalElement.removeEventListener('hidden.bs.modal', handler);
+                }, { once: true });
+            }
+        }
+
+        function createTempTable(data) {
+            const visibleColumns = columns.filter(col => {
+                const checkbox = document.querySelector(`#columnsCheckboxes input[data-index="${col.index}"]`);
+                return checkbox && checkbox.checked;
+            });
+
+            const tempTable = document.createElement('table');
+            tempTable.className = 'export-table';
+            const thead = document.createElement('thead');
+            thead.innerHTML = `<tr>${visibleColumns.map(col => `<th>${col.name}</th>`).join('')}</tr>`;
+            tempTable.appendChild(thead);
+
+            const tbody = document.createElement('tbody');
+            data.forEach(record => {
+                const row = document.createElement('tr');
+                row.innerHTML = visibleColumns.map(col => `<td>${record[col.name.replace(/\s+/g, '')] || 'N/A'}</td>`).join('');
+                tbody.appendChild(row);
+            });
+            tempTable.appendChild(tbody);
+
+            return tempTable;
+        }
+
+        function exportToExcel() {
+            if (filteredData.length === 0) {
+                showToast('No data to export', 3000, 'warning');
+                return;
+            }
+            const worksheetData = filteredData.map(record => {
+                const row = {};
+                columns.forEach(col => {
+                    row[col.name] = record[col.name.replace(/\s+/g, '')] || 'N/A';
+                });
+                return row;
+            });
+            const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Master_Book_Action_Items');
+            XLSX.writeFile(workbook, 'Master_Book_Action_Items.xlsx');
+        }
+
+        function printTable() {
+            if (filteredData.length === 0) {
+                showToast('No data to print', 3000, 'warning');
+                return;
+            }
+            const tempTable = createTempTable(filteredData);
+            const tempDiv = document.createElement('div');
+            tempDiv.style.position = 'absolute';
+            tempDiv.style.left = '-9999px';
+            tempDiv.appendChild(tempTable);
+            document.body.appendChild(tempDiv);
+            const tableContainer = document.querySelector('.table-responsive');
+            const originalTable = document.querySelector('.table');
+            tableContainer.replaceChild(tempTable, originalTable);
+            window.print();
+            tableContainer.replaceChild(originalTable, tempTable);
+            document.body.removeChild(tempDiv);
+        }
+
+        async function exportToPDF() {
+            if (filteredData.length === 0) {
+                showToast('No data to export', 3000, 'warning');
+                return;
+            }
+            const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+            const pageHeight = 210;
+            const imgWidth = 280;
+            const margin = 10;
+            let position = 10;
+            const chunkSize = 50;
+            for (let i = 0; i < filteredData.length; i += chunkSize) {
+                const chunk = filteredData.slice(i, i + chunkSize);
+                const tempTable = createTempTable(chunk);
+                const tempDiv = document.createElement('div');
+                tempDiv.style.position = 'absolute';
+                tempDiv.style.left = '-9999px';
+                tempDiv.appendChild(tempTable);
+                document.body.appendChild(tempDiv);
+                const canvas = await html2canvas(tempTable, { scale: 1, useCORS: true, backgroundColor: '#ffffff' });
+                const imgData = canvas.toDataURL('image/png');
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                if (i > 0 && position + imgHeight > pageHeight) {
+                    pdf.addPage();
+                    position = 10;
+                }
+                pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+                position += imgHeight + 5;
+                document.body.removeChild(tempDiv);
+                await new Promise(resolve => setTimeout(resolve, 10));
+            }
+            pdf.save('Master_Book_Action_Items.pdf');
+        }
+    </script>
+</body>
+</html>

@@ -76,8 +76,8 @@
             <div class="card-body">
                 <div class="calendar-header">
                     <div class="left-buttons">
-                        <a href="#" class="btn btn-secondary">Quick View Action Items Master Book</a>
-                        <a href="#" class="btn btn-primary">+ Add Meetings & Post Meeting Update</a>
+                        <a href="{{url_for('master_book_action_items')}}" class="btn btn-primary">Quick View Action Items Master Book</a>
+                        <a href="{{url_for('post_meeting_action_items')}}" class="btn btn-primary">Post Meeting Action Items</a>
                     </div>
                     <div class="right-buttons">
                         <a href="{{url_for('view_my_meetings')}}" class="btn btn-primary">View My upcoming Meetings</a>
@@ -237,14 +237,14 @@
                     const isScheduled = info.event.extendedProps.isScheduled;
                     if (isScheduled) {
                         const preMsId = info.event.extendedProps.pre_ms_id;
-                        const badgeClass = preMsId === 1 ? 'badge-danger' :
-                                          preMsId === 2 ? 'badge-success' : 'badge-secondary';
+                        const badgeClass = preMsId === 1 ? 'badge-danger' : 'badge-success';
+
                         console.log(`Event ${info.event.id}: pre_ms_id = ${preMsId}, badgeClass = ${badgeClass}`); // Debug log
                         return {
                             html: `
                                 <div class="fc-event-title-container">
                                     <div>${info.event.title}</div>
-                                    <div style="background-color: ${preMsId === 1 ? '#dc3545' : preMsId === 2 ? '#28a745' : '#6c757d'}; color: white; padding: 0.25em 0.4em; border-radius: 0.25rem; display: inline-block;">
+                                    <div style="background-color: ${preMsId === 1 ? '#dc3545' : preMsId === 2 ? '#28a745' : '#28a745'}; color: white; padding: 0.25em 0.4em; border-radius: 0.25rem; display: inline-block;">
                                         <span class="${badgeClass} badge"
                                               onclick="showMeetingDetails('${info.event.id}', ${info.event.extendedProps.isScheduled})">
                                             ${info.event.extendedProps.pre_ms_name}

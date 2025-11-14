@@ -40,7 +40,7 @@
                             <li class="list-group-item">
                                 <strong>{{ result.mandatory_meeting.meeting_category_name or 'N/A' }}</strong><br>
                                 Frequency: {{ result.mandatory_meeting.meeting_freq_title or 'N/A' }}<br>
-                                Date: {{ result.mandatory_meeting.proposed_month|month_year_short or 'N/A' }}<br>
+                                Date: {{ result.mandatory_meeting.proposed_month | month_year_short or 'N/A' }}<br>
                                 Committee: {{ result.mandatory_meeting.resp_committ or 'N/A' }}<br>
                                 Priority: {{ result.mandatory_meeting.meeting_priority_name or 'N/A' }}<br>
                                 NC Distribution: {{ result.mandatory_meeting.national_council_distribution_name or 'N/A' }}
@@ -75,13 +75,11 @@
                     </div>
 
                     <!-- Pre-Meeting Status -->
-                    <div class="form-group">
-                        <label for="pre_ms_id">Pre-Meeting Status</label>
+                    <div class="form-group d-none">
+                        <label for="pre_ms_id">Meeting Status</label>
                         <select name="pre_ms_id" class="form-control form-select" required>
-                            <option value="" disabled {{ 'selected' if not result.schedule_meeting_details else '' }}>[Select...]</option>
                             {% for status in result.get_all_pre_meeting_status %}
-                                <option value="{{ status.pre_ms_id }}"
-                                        {{ 'selected' if result.schedule_meeting_details and result.schedule_meeting_details.pre_ms_id == status.pre_ms_id else '' }}>
+                                <option value="{{ status.pre_ms_id }}" {% if status.pre_ms_id == 2 %}selected{% endif %}>
                                     {{ status.pre_ms_name }}
                                 </option>
                             {% endfor %}

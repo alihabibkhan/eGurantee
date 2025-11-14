@@ -49,7 +49,7 @@
                                     <li class="list-group-item">
                                         <strong>{{ meeting.meeting_category_name or 'N/A' }}</strong><br>
                                         Frequency: {{ meeting.meeting_freq_title or 'N/A' }}<br>
-                                        Date: {{ meeting.proposed_month|month_year_short or 'N/A' }}<br>
+                                        Date: {{ meeting.proposed_month | month_year_short or 'N/A' }}<br>
                                         Committee: {{ meeting.resp_committ or 'N/A' }}<br>
                                         Priority: {{ meeting.meeting_priority_name or 'N/A' }}<br>
                                         NC Distribution: {{ meeting.national_council_distribution_name or 'N/A' }}
