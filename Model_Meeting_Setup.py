@@ -133,7 +133,6 @@ def get_user_committee_meetings_current_month():
             LEFT JOIN tbl_schedule_meetings sm ON mm.mand_meet_id = sm.mand_meet_id AND sm.status != 3
             WHERE up.user_id = {current_user_id}
             AND mm.status != 3
-            AND DATE_TRUNC('month', mm.proposed_month) = DATE_TRUNC('month', CURRENT_DATE)
             AND sm.mand_meet_id IS NULL
             ORDER BY mm.proposed_month
         """
@@ -203,7 +202,7 @@ def get_schedule_meeting(mand_meet_id):
         return None
 
 
-def get_all_schedule_meetings():
+def get_all_schedule_meetings(user_specific = None):
     try:
         current_user_id = get_current_user_id()
         today = datetime.now().date()  # Get current date (e.g., 2025-11-06)
@@ -212,14 +211,13 @@ def get_all_schedule_meetings():
         pre_ms_query = """
             SELECT pre_ms_id, pre_ms_name
             FROM tbl_pre_meeting_status
-            WHERE pre_ms_id IN (1, 2)
         """
         pre_ms_results = fetch_records(pre_ms_query)
         pre_ms_map = {row['pre_ms_id']: row['pre_ms_name'] for row in pre_ms_results} if pre_ms_results else {}
 
         # Fetch all scheduled meetings
         query = f"""
-            SELECT sm.schedule_meeting_id, sm.mand_meet_id, sm.meeting_title, sm.meeting_aganda,
+             SELECT DISTINCT sm.schedule_meeting_id, sm.mand_meet_id, sm.meeting_title, sm.meeting_aganda, mm.resp_committ,
                    sm.schedule_date, sm.pre_ms_id, sm.status,
                    mc.meeting_category_code, pms.pre_ms_name
             FROM tbl_schedule_meetings sm
@@ -230,7 +228,7 @@ def get_all_schedule_meetings():
             LEFT JOIN tbl_national_council_distribution ncd ON mm.nc_disb_id = ncd.national_council_distribution_id
             LEFT JOIN tbl_pre_meeting_status pms ON sm.pre_ms_id = pms.pre_ms_id
             LEFT JOIN tbl_user_privileges up ON up.committee = mm.resp_committ
-            WHERE up.user_id = {current_user_id}
+            {(f'WHERE up.user_id = {current_user_id}') if user_specific is not None else ''}
             AND sm.status != 3
             AND mm.status != 3
         """
@@ -251,6 +249,7 @@ def get_all_schedule_meetings():
                 # Check if schedule_date is in the past
                 try:
                     schedule_date = datetime.strptime(record['schedule_date'], '%Y-%m-%d').date()
+
                     if schedule_date < today and record['pre_ms_id'] != 1:
                         # Update pre_ms_id to 1
                         update_query = f"""
@@ -265,6 +264,28 @@ def get_all_schedule_meetings():
                         record['pre_ms_id'] = 1
                         # Set pre_ms_name from pre_ms_map
                         record['pre_ms_name'] = pre_ms_map.get(1, 'N/A')
+
+                    query = f"""
+                        select * from tbl_post_meeting_updates where schedule_meeting_id = '{record['schedule_meeting_id']}'
+                    """
+                    post_meeting_records = fetch_records(query)
+
+                    if post_meeting_records:
+                        if len(post_meeting_records) > 0:
+                            update_query = f"""
+                                UPDATE tbl_schedule_meetings
+                                SET pre_ms_id = 3,
+                                    modified_by = {current_user_id},
+                                    modified_date = '{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}'
+                                WHERE schedule_meeting_id = {record['schedule_meeting_id']}
+                            """
+                            execute_command(update_query)
+
+                            # Update the record to reflect the new pre_ms_id
+                            record['pre_ms_id'] = 3
+                            # Set pre_ms_name from pre_ms_map
+                            record['pre_ms_name'] = pre_ms_map.get(3, 'N/A')
+
                 except ValueError as e:
                     print(f"Error parsing schedule_date for meeting {record['schedule_meeting_id']}: {str(e)}")
                     continue
@@ -273,3 +294,78 @@ def get_all_schedule_meetings():
     except Exception as e:
         print('get_all_schedule_meetings exception:- ', str(e))
         return []
+
+
+def get_meeting_master_book_data():
+    query = """
+        SELECT CONCAT(mc.meeting_category_name, ' - ', mc.meeting_category_code) as meetingCategoryWithCode,
+               mf.meeting_freq_title as Frequency,
+               CONCAT(mf.min_freq, '-', mf.max_freq) as TragetRangeAnnualOfMeetings,
+               mm.proposed_month,
+               ncd.national_council_distribution_name,
+               mm.resp_committ,
+               mp.meeting_priority_name,
+               sm.meeting_title,
+               sm.meeting_aganda,
+               (
+                   SELECT string_agg(DISTINCT u.name, ',')
+                   FROM tbl_users u
+                   INNER JOIN tbl_user_privileges up ON up.user_id = u.user_id
+                   WHERE up.committee = mm.resp_committ
+               ) as assigned_leads,
+               sm.schedule_meeting_id,
+               u_sch.name as last_updated_by,
+               sm.schedule_date,
+               pms.pre_ms_name
+        FROM tbl_mandatory_meetings mm
+        INNER JOIN tbl_schedule_meetings sm ON sm.mand_meet_id = mm.mand_meet_id
+        LEFT JOIN tbl_meeting_categories mc ON mm.meeting_category_id = mc.meeting_category_id
+        LEFT JOIN tbl_meeting_frequencies mf ON mm.meeting_freq_id = mf.meeting_freq_id
+        LEFT JOIN tbl_meeting_priorities mp ON mm.meeting_priority_id = mp.meeting_priority_id
+        LEFT JOIN tbl_national_council_distribution ncd ON mm.nc_disb_id = ncd.national_council_distribution_id
+        LEFT JOIN tbl_pre_meeting_status pms ON sm.pre_ms_id = pms.pre_ms_id
+        LEFT JOIN tbl_users u_sch ON u_sch.user_id = sm.modified_by
+        WHERE mm.status = '1'
+    """
+    result = fetch_records(query)
+    print(result)
+    return result
+
+
+def get_meeting_master_book_data():
+
+    sql_part = ''
+
+    if is_approver() or is_reviewer():
+        sql_part = f" AND pmu.assigned_to = '{str(get_current_user_id())}' "
+
+    query = f"""
+        select CONCAT(mc.meeting_category_name, ' - ', mc.meeting_category_code) as meetingcategorywithcode, mf.meeting_freq_title as frequency, 
+        CONCAT(mf.min_freq, '-' ,mf.max_freq) as tragetrangeannualOfmeetings, mm.proposed_month, ncd.national_council_distribution_name, mm.resp_committ,
+        mp.meeting_priority_name, sm.meeting_title, sm.meeting_aganda,
+        (
+          select string_agg(DISTINCT u.name, ',') from tbl_users u
+          inner join tbl_user_privileges up on up.user_id = u.user_id
+          where up.committee = mm.resp_committ
+        ) as assigned_leads, u_sch.name as last_updated_by, sm.schedule_date, pms.pre_ms_name, pmu.action_items, maip.maip_name as action_item_priority, 
+        u_assigne.name as assigned_to, pmu.target_completion_date, mais.mais_name as action_item_status, pmu.notes_followup, pmu.date_followup, 
+        pmu.date_completed, u_pmu_cb.name as pmu_created_by, u_pmu_mb.name as pmu_modified_by
+        from tbl_mandatory_meetings mm
+        inner join tbl_schedule_meetings sm on sm.mand_meet_id =  mm.mand_meet_id  
+        LEFT JOIN tbl_meeting_categories mc ON mm.meeting_category_id = mc.meeting_category_id
+        LEFT JOIN tbl_meeting_frequencies mf ON mm.meeting_freq_id = mf.meeting_freq_id
+        LEFT JOIN tbl_meeting_priorities mp ON mm.meeting_priority_id = mp.meeting_priority_id
+        LEFT JOIN tbl_national_council_distribution ncd ON mm.nc_disb_id = ncd.national_council_distribution_id
+        LEFT JOIN tbl_pre_meeting_status pms ON sm.pre_ms_id = pms.pre_ms_id  
+        LEFT JOIN tbl_post_meeting_updates pmu on pmu.schedule_meeting_id = sm.schedule_meeting_id and pmu.status = '1' 
+        LEFT JOIN tbl_meeting_action_items_priorities maip on maip.maip_id = pmu.action_item_priority
+        LEFT JOIN tbl_meeting_action_items_status mais on mais.mais_id = pmu.action_item_status  
+        LEFT JOIN tbl_users u_assigne on u_assigne.user_id = pmu.assigned_to
+        LEFT JOIN tbl_users u_pmu_cb on u_pmu_cb.user_id = pmu.created_by
+        LEFT JOIN tbl_users u_pmu_mb on u_pmu_mb.user_id = pmu.created_by  
+        LEFT JOIN tbl_users u_sch on u_sch.user_id = sm.modified_by
+        where mm.status = '1' {sql_part}
+    """
+    result = fetch_records(query)
+    print(result)
+    return result

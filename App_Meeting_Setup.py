@@ -10,7 +10,7 @@ def view_meeting_calendar():
 
         # Fetch meetings for the current user's committee and current month
        # mandatory_meetings = get_user_committee_meetings_current_month()
-        schedule_meetings = get_all_schedule_meetings()
+        schedule_meetings = get_all_schedule_meetings(user_specific=True)
 
         return render_template('view_meeting_calendar.html',
                               result={
@@ -29,7 +29,7 @@ def view_my_meetings():
         if not is_login():
             return redirect(url_for('login'))
 
-        meetings = get_all_schedule_meetings()
+        meetings = get_all_schedule_meetings(user_specific=True)
         return render_template('view_my_meetings.html', result={'schedule_meetings': meetings})
     except Exception as e:
         print('view_my_meetings exception:- ', str(e))
@@ -47,6 +47,225 @@ def view_schedule_meetings():
     except Exception as e:
         print('view_schedule_meetings exception:- ', str(e))
         return redirect(url_for('login'))
+
+
+@application.route('/post-meeting-action-items')
+def post_meeting_action_items():
+    try:
+        if not is_login():
+            return redirect(url_for('login'))
+
+        meetings = get_all_schedule_meetings()
+
+        # Fetch dropdown data with IDs
+        priorities = get_all_meeting_action_items_priorities()
+
+        query = """
+            select distinct u.user_id, u.name, up.committee from tbl_users u
+            inner join tbl_user_privileges up on up.user_id = u.user_id
+        """
+        assignees = fetch_records(query)
+
+        statuses = get_all_meeting_action_items_status()
+        return render_template('post_meeting_action_item.html', result={'schedule_meetings': meetings}, priorities=priorities, assignees=assignees, statuses=statuses)
+    except Exception as e:
+        print('view_my_action_items exception:- ', str(e))
+        return redirect(url_for('login'))
+
+
+@application.route('/save-action-item', methods=['POST'])
+def save_action_item():
+    try:
+        schedule_meeting_id = request.form.get('schedule_meeting_id')
+        action_item_id = request.form.get('action_item_id')  # For editing
+        action_items = request.form.get('action_items')
+        action_item_priority = request.form.get('action_item_priority')
+        assigned_to = request.form.get('assigned_to')
+        target_completion_date = request.form.get('target_completion_date')
+        action_item_status = request.form.get('action_item_status')
+        notes_followup = request.form.get('notes_followup')
+        date_followup = request.form.get('date_followup')
+        date_completed = request.form.get('date_completed')
+
+        # Validate required fields
+        if not all([schedule_meeting_id, action_items, action_item_priority, assigned_to, target_completion_date, action_item_status]):
+            return jsonify({'success': False, 'message': 'All required fields must be filled.'})
+
+        created_by = get_current_user_id()  # Replace with actual user (e.g., from session)
+        created_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        modified_by = created_by if action_item_id else None
+        modified_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S') if action_item_id else None
+
+        print('is action_item_id available? :- ', action_item_id)
+
+        if action_item_id:
+            # Preprocess values using if/else without ternary operators
+            if action_item_priority:
+                action_item_priority = int(action_item_priority)
+            else:
+                action_item_priority = 'NULL'
+
+            if assigned_to:
+                assigned_to = int(assigned_to)
+            else:
+                assigned_to = 'NULL'
+
+            if action_item_status:
+                action_item_status = int(action_item_status)
+            else:
+                action_item_status = 'NULL'
+
+            if notes_followup:
+                notes_followup = "'" + notes_followup + "'"
+            else:
+                notes_followup = 'NULL'
+
+            if date_followup:
+                date_followup = "'" + date_followup + "'::date"
+            else:
+                date_followup = 'NULL'
+
+            if date_completed:
+                date_completed = "'" + date_completed + "'::date"
+            else:
+                date_completed = 'NULL'
+
+            # Construct the UPDATE query using string concatenation
+            query = """
+                UPDATE tbl_post_meeting_updates
+                SET action_items = '""" + action_items + """',
+                    action_item_priority = """ + str(action_item_priority) + """,
+                    assigned_to = """ + str(assigned_to) + """,
+                    target_completion_date = '""" + target_completion_date + """'::date,
+                    action_item_status = """ + str(action_item_status) + """,
+                    notes_followup = """ + notes_followup + """,
+                    date_followup = """ + date_followup + """,
+                    date_completed = """ + date_completed + """,
+                    modified_by = '""" + modified_by + """',
+                    modified_date = '""" + modified_date + """'
+                WHERE post_meeting_id = """ + str(int(action_item_id)) + """ AND status = 1
+            """
+        else:
+            # Preprocess values to handle NULLs and conditionals in Python
+            if action_item_priority:
+                action_item_priority = int(action_item_priority)
+            else:
+                action_item_priority = 'NULL'
+
+            if assigned_to:
+                assigned_to = int(assigned_to)
+            else:
+                assigned_to = 'NULL'
+
+            if action_item_status:
+                action_item_status = int(action_item_status)
+            else:
+                action_item_status = 'NULL'
+
+            if notes_followup:
+                notes_followup = "'" + notes_followup + "'"
+            else:
+                notes_followup = 'NULL'
+
+            if date_followup:
+                date_followup = "'" + date_followup + "'::date"
+            else:
+                date_followup = 'NULL'
+
+            if date_completed:
+                date_completed = "'" + date_completed + "'::date"
+            else:
+                date_completed = 'NULL'
+
+            # Construct the SQL query
+            query = f"""
+                INSERT INTO tbl_post_meeting_updates (
+                    schedule_meeting_id, action_items, action_item_priority, assigned_to,
+                    target_completion_date, action_item_status, notes_followup, date_followup,
+                    date_completed, status, created_by, created_date, modified_by, modified_date
+                ) VALUES (
+                    {int(schedule_meeting_id)},
+                    '{action_items}',
+                    {action_item_priority},
+                    {assigned_to},
+                    '{target_completion_date}'::date,
+                    {action_item_status},
+                    {notes_followup},
+                    {date_followup},
+                    {date_completed},
+                    1,
+                    '{created_by}',
+                    '{created_date}',
+                    '{created_by}',
+                    '{created_date}'
+                )
+            """
+
+        execute_command(query)
+        return jsonify({'success': True, 'message': 'Action item saved successfully.'})
+    except Exception as e:
+        print('save_action_item exception:- ', str(e))
+        return jsonify({'success': False, 'message': str(e)})
+
+@application.route('/get-action-items/<int:schedule_meeting_id>')
+def get_action_items(schedule_meeting_id):
+    try:
+        print('schedule_meeting_id:- ', schedule_meeting_id)
+        query = f"""
+            SELECT pmu.post_meeting_id, pmu.action_items, pmu.target_completion_date,
+                   maip.maip_name AS priority_name, u.name AS assignee_name,
+                   mais.mais_name AS status_name, date_followup, notes_followup, date_completed
+            FROM tbl_post_meeting_updates pmu
+            LEFT JOIN tbl_meeting_action_items_priorities maip ON pmu.action_item_priority = maip.maip_id
+            LEFT JOIN tbl_users u ON pmu.assigned_to = u.user_id
+            LEFT JOIN tbl_meeting_action_items_status mais ON pmu.action_item_status = mais.mais_id
+            WHERE pmu.schedule_meeting_id = {schedule_meeting_id} AND pmu.status = 1
+        """
+        print(query)
+        result = fetch_records(query)  # Assuming it returns a list of rows
+        print(result)
+
+        return jsonify({'success': True, 'action_items': result})
+    except Exception as e:
+        print('get_action_items exception:- ', str(e))
+        return jsonify({'success': False, 'message': str(e)})
+
+@application.route('/get-action-item/<int:post_meeting_id>')
+def get_action_item(post_meeting_id):
+    try:
+        print('post_meeting_id:- ', post_meeting_id)
+        query = f"""
+            SELECT pmu.post_meeting_id, pmu.action_items, pmu.action_item_priority,
+                   pmu.assigned_to, pmu.target_completion_date, pmu.action_item_status,
+                   pmu.notes_followup, pmu.date_followup, pmu.date_completed
+            FROM tbl_post_meeting_updates pmu
+            WHERE pmu.post_meeting_id = {post_meeting_id} AND pmu.status = 1
+        """
+        result = fetch_records(query)  # Assuming it returns a single row or list
+
+        if result:
+            return jsonify({'success': True, 'action_item': result[0]})
+
+        return jsonify({'success': False, 'message': 'Action item not found.'})
+    except Exception as e:
+        print('get_action_item exception:- ', str(e))
+        return jsonify({'success': False, 'message': str(e)})
+
+@application.route('/delete-action-item/<int:post_meeting_id>', methods=['POST'])
+def delete_action_item(post_meeting_id):
+    try:
+        modified_by = get_current_user_id()  # Replace with actual user
+        modified_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        query = f"""
+            UPDATE tbl_post_meeting_updates
+            SET status = 2, modified_by = '{modified_by}', modified_date = '{modified_date}'
+            WHERE post_meeting_id = {post_meeting_id} AND status = 1
+        """
+        execute_command(query)
+        return jsonify({'success': True, 'message': 'Action item deleted successfully.'})
+    except Exception as e:
+        print('delete_action_item exception:- ', str(e))
+        return jsonify({'success': False, 'message': str(e)})
 
 
 @application.route('/schedule-meeting/<int:mand_meet_id>', methods=['GET', 'POST'])
@@ -855,3 +1074,47 @@ def delete_mandatory_meeting(mand_meet_id):
     except Exception as e:
         print('delete mandatory meeting exception:- ', str(e))
         return redirect(url_for('login'))
+
+
+@application.route('/master-book-action-items')
+def master_book_action_items():
+    try:
+        if not is_login():
+            return redirect(url_for('login'))
+
+        return render_template('view_master_book_action_items.html')
+    except Exception as e:
+        print('view_master_book_action_items exception:- ', str(e))
+        return redirect(url_for('login'))
+
+
+@application.route('/get-master-book-action-items', methods=['POST'])
+def get_master_book_action_items():
+    try:
+        filters = {
+            'meetingCategoryWithCode': request.json.get('meetingCategoryWithCode', ''),
+            'Frequency': request.json.get('Frequency', ''),
+            'TragetRangeAnnualOfMeetings': request.json.get('TragetRangeAnnualOfMeetings', ''),
+            'proposed_month': request.json.get('proposed_month', ''),
+            'national_council_distribution_name': request.json.get('national_council_distribution_name', ''),
+            'resp_committ': request.json.get('resp_committ', ''),
+            'meeting_priority_name': request.json.get('meeting_priority_name', ''),
+            'meeting_title': request.json.get('meeting_title', ''),
+            'meeting_aganda': request.json.get('meeting_aganda', ''),
+            'assigned_leads': request.json.get('assigned_leads', ''),
+            'schedule_meeting_id': request.json.get('schedule_meeting_id', ''),
+            'last_updated_by': request.json.get('last_updated_by', ''),
+            'schedule_date': request.json.get('schedule_date', ''),
+            'pre_ms_name': request.json.get('pre_ms_name', '')
+        }
+
+        mandatory_meetings = get_meeting_master_book_data()
+        filtered_data = mandatory_meetings
+        for key, value in filters.items():
+            if value:
+                filtered_data = [m for m in filtered_data if str(m.get(key, '')).lower().find(value.lower()) != -1]
+
+        return jsonify({'success': True, 'records': filtered_data})
+    except Exception as e:
+        print('get_master_book_action_items exception:- ', str(e))
+        return jsonify({'success': False, 'message': str(e)})
