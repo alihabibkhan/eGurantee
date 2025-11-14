@@ -284,29 +284,29 @@
         let filteredData = [];
 
         const columns = [
-            {name: 'Category with Code', index: 0},
-            {name: 'Frequency', index: 1},
-            {name: 'Target Range', index: 2},
-            {name: 'Proposed Month', index: 3},
-            {name: 'NC Distribution', index: 4},
-            {name: 'Responsible Committee', index: 5},
-            {name: 'Priority', index: 6},
-            {name: 'Meeting Title', index: 7},
-            {name: 'Agenda', index: 8},
-            {name: 'Assigned Leads', index: 9},
-            {name: 'Last Updated By', index: 10},
-            {name: 'Schedule Date', index: 11},
-            {name: 'Meeting Status', index: 12},
-            {name: 'Action Items', index: 13},
-            {name: 'Action Item Priority', index: 14},
-            {name: 'Assigned To', index: 15},
-            {name: 'Target Completion Date', index: 16},
-            {name: 'Action Item Status', index: 17},
-            {name: 'Notes Followup', index: 18},
-            {name: 'Date Followup', index: 19},
-            {name: 'Date Completed', index: 20},
-            {name: 'Created By', index: 21},
-            {name: 'Modified By', index: 22}
+            {name: 'Category with Code', key: 'meetingcategorywithcode', index: 0},
+            {name: 'Frequency', key: 'frequency', index: 1},
+            {name: 'Target Range', key: 'tragetrangeannualofmeetings', index: 2},
+            {name: 'Proposed Month', key: 'proposed_month', index: 3},
+            {name: 'NC Distribution', key: 'national_council_distribution_name', index: 4},
+            {name: 'Responsible Committee', key: 'resp_committ', index: 5},
+            {name: 'Priority', key: 'meeting_priority_name', index: 6},
+            {name: 'Meeting Title', key: 'meeting_title', index: 7},
+            {name: 'Agenda', key: 'meeting_aganda', index: 8},
+            {name: 'Assigned Leads', key: 'assigned_leads', index: 9},
+            {name: 'Last Updated By', key: 'last_updated_by', index: 10},
+            {name: 'Schedule Date', key: 'schedule_date', index: 11},
+            {name: 'Meeting Status', key: 'pre_ms_name', index: 12},
+            {name: 'Action Items', key: 'action_items', index: 13},
+            {name: 'Action Item Priority', key: 'action_item_priority', index: 14},
+            {name: 'Assigned To', key: 'assigned_to', index: 15},
+            {name: 'Target Completion Date', key: 'target_completion_date', index: 16},
+            {name: 'Action Item Status', key: 'action_item_status', index: 17},
+            {name: 'Notes Followup', key: 'notes_followup', index: 18},
+            {name: 'Date Followup', key: 'date_followup', index: 19},
+            {name: 'Date Completed', key: 'date_completed', index: 20},
+            {name: 'Created By', key: 'pmu_created_by', index: 21},
+            {name: 'Modified By', key: 'pmu_modified_by', index: 22}
         ];
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -577,6 +577,24 @@
 
             const tempTable = document.createElement('table');
             tempTable.className = 'export-table';
+            tempTable.style.borderCollapse = 'collapse';
+            tempTable.style.fontSize = '12px';
+
+            // Add inline CSS for spacing
+            const style = document.createElement('style');
+            style.textContent = `
+                .export-table th, .export-table td {
+                    padding: 8px 12px;
+                    border: 1px solid #ddd;
+                    text-align: left;
+                }
+                .export-table th {
+                    background-color: #f2f2f2;
+                    font-weight: bold;
+                }
+            `;
+            tempTable.appendChild(style);
+
             const thead = document.createElement('thead');
             thead.innerHTML = `<tr>${visibleColumns.map(col => `<th>${col.name}</th>`).join('')}</tr>`;
             tempTable.appendChild(thead);
@@ -584,7 +602,7 @@
             const tbody = document.createElement('tbody');
             data.forEach(record => {
                 const row = document.createElement('tr');
-                row.innerHTML = visibleColumns.map(col => `<td>${record[col.name.replace(/\s+/g, '')] || 'N/A'}</td>`).join('');
+                row.innerHTML = visibleColumns.map(col => `<td>${record[col.key] || 'N/A'}</td>`).join('');
                 tbody.appendChild(row);
             });
             tempTable.appendChild(tbody);
@@ -600,33 +618,21 @@
             const worksheetData = filteredData.map(record => {
                 const row = {};
                 columns.forEach(col => {
-                    row[col.name] = record[col.name.replace(/\s+/g, '')] || 'N/A';
+                    row[col.name] = record[col.key] || 'N/A';
                 });
                 return row;
             });
             const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+
+            // Set column widths (in characters, approximate)
+            const colWidths = columns.map(col => ({
+                wch: Math.max(col.name.length, 15) // Minimum width of 15 characters, or header length
+            }));
+            worksheet['!cols'] = colWidths;
+
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, 'Master_Book_Action_Items');
             XLSX.writeFile(workbook, 'Master_Book_Action_Items.xlsx');
-        }
-
-        function printTable() {
-            if (filteredData.length === 0) {
-                showToast('No data to print', 3000, 'warning');
-                return;
-            }
-            const tempTable = createTempTable(filteredData);
-            const tempDiv = document.createElement('div');
-            tempDiv.style.position = 'absolute';
-            tempDiv.style.left = '-9999px';
-            tempDiv.appendChild(tempTable);
-            document.body.appendChild(tempDiv);
-            const tableContainer = document.querySelector('.table-responsive');
-            const originalTable = document.querySelector('.table');
-            tableContainer.replaceChild(tempTable, originalTable);
-            window.print();
-            tableContainer.replaceChild(originalTable, tempTable);
-            document.body.removeChild(tempDiv);
         }
 
         async function exportToPDF() {
