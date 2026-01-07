@@ -2,23 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Upload</title>
     {% include 'head.html' %}
     <style>
-        .view-section {
-            display: none;
-        }
-        .view-section.active {
-            display: block;
-        }
-        .progress {
-            height: 20px;
-            border-radius: 4px;
-        }
-        .progress-bar {
-            transition: width 0.3s ease;
-        }
+        .view-section { display: none; }
+        .view-section.active { display: block; }
+        .progress { height: 20px; border-radius: 4px; }
+        .progress-bar { transition: width 0.3s ease; }
         @keyframes pulse {
             0% { transform: scale(1); }
             50% { transform: scale(1.05); }
@@ -31,6 +20,18 @@
         #downloadSummaryBtn:hover {
             animation: none;
             transform: scale(1.05);
+        }
+        .result-card { transition: transform 0.2s; }
+        .result-card:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0,0,0,0.15); }
+
+        /* Processing button styles */
+        .btn-processing {
+            pointer-events: none !important;
+            opacity: 0.9;
+            cursor: not-allowed;
+        }
+        .btn-processing .spinner-border {
+            margin-right: 0.6rem;
         }
     </style>
 </head>
@@ -46,51 +47,117 @@
 
     <div class="container mt-5">
         <div class="row justify-content-center">
-            <div class="col-md-8">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="text-center">
+            <div class="col-md-10 col-lg-8">
+                <div class="card shadow-lg border-0">
+                    <div class="card-header text-white text-center py-3">
+                        <h3 class="mb-0">
                             {% if view == 'upload' %}File Uploading & Validation{% endif %}
                             {% if view == 'validation_result' %}Validation Results - {{ filename }}{% endif %}
                             {% if view == 'upload_result' %}Data Upload Results{% endif %}
+                            {% if view == 'zip_result' %}ZIP Image Upload Results{% endif %}
                         </h3>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body p-4">
 
-                        <!-- Upload Form View -->
+                        <!-- Upload Form -->
                         <div class="view-section {% if view == 'upload' %}active{% endif %}">
                             <form method="POST" action="{{ url_for('manage_file') }}" enctype="multipart/form-data" id="uploadForm">
                                 <input type="hidden" name="action_type" id="action_type" value="validate">
-                                <div class="mb-3">
-                                    <label for="file_type" class="form-label">Select File Type</label>
-                                    <select class="form-control form-select" id="file_type" name="file_type" required>
-                                        <option value="" disabled selected>Select an option</option>
-                                        <option value="pre_disbursement">Pre disbursement</option>
-                                        <option value="post_disbursement">Post disbursement</option>
+
+                                <div class="mb-4">
+                                    <label for="file_type" class="form-label fw-bold fs-5">Upload Type</label>
+                                    <select class="form-select form-select-lg shadow-sm" id="file_type" name="file_type" required>
+                                        <option value="" disabled selected>Select type...</option>
+                                        <option value="pre_disbursement">Pre Disbursement (Excel)</option>
+                                        <option value="post_disbursement">Post Disbursement (Excel)</option>
+                                        <option value="images_zip">Image Uploading via (.ZIP)</option>
                                     </select>
                                 </div>
-                                <div class="mb-3" id="category_div" style="display: none;">
-                                    <label for="category" class="form-label">Select Category</label>
-                                    <select class="form-control form-select" id="category" name="category" required disabled>
-                                        <option value="" disabled selected>Select an option</option>
+
+                                <div class="mb-4" id="category_div" style="display: none;">
+                                    <label for="category" class="form-label fw-bold">Category</label>
+                                    <select class="form-select" id="category" name="category" required disabled>
+                                        <option value="" disabled selected>Select category...</option>
                                         <option value="los">LOS</option>
                                         <option value="mis">MIS</option>
-                                        <option value="both">Both</option>
+                                        <option value="both">Both (LOS + MIS)</option>
                                     </select>
                                 </div>
-                                <div class="mb-3" id="div_timestamp" style="display: none;">
-                                    <label for="category" class="form-label">File Of The Month</label>
+
+                                <div class="mb-4" id="div_timestamp" style="display: none;">
+                                    <label for="input_timestamp" class="form-label fw-bold">File Month/Period</label>
                                     <input type="datetime-local" id="input_timestamp" name="input_timestamp" class="form-control" required disabled>
                                 </div>
-                                <div class="mb-3">
-                                    <label for="file" class="form-label">Select Excel File (.xlsx only)</label>
-                                    <input class="form-control" type="file" id="file" name="file" accept=".xlsx" required disabled>
-                                    <small id="fileHelp" class="form-text text-muted">Select a file type first.</small>
+
+                                <div class="mb-4">
+                                    <label for="file" class="form-label fw-bold">Select File</label>
+                                    <input class="form-control form-control-lg shadow-sm" type="file" id="file" name="file" required disabled>
+                                    <div id="fileHelp" class="form-text text-muted mt-2">
+                                        Select an upload type first.
+                                    </div>
                                 </div>
-                                <div class="d-grid gap-2">
-                                    <button type="submit" class="btn btn-primary" id="validateBtn">Validate File</button>
+
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <button type="submit" class="btn btn-primary btn-lg px-5" id="processBtn">
+                                        <span id="btnIcon" class="me-2"><i class="bi bi-upload"></i></span>
+                                        <span id="btnText">Process File</span>
+                                    </button>
                                 </div>
                             </form>
+                        </div>
+
+                        <!-- ZIP Result View -->
+                        <div class="view-section {% if view == 'zip_result' %}active{% endif %}">
+                            {% if zip_results and zip_results.processed > 0 %}
+                                <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+                                    <strong>Success!</strong> {{ zip_results.processed }} new image{{ 's' if zip_results.processed != 1 else '' }} added
+                                    ({{ zip_results.skipped }} already existed).
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+
+                                <h5 class="mb-4">Processed Applications</h5>
+                                <div class="row g-4">
+                                    {% for app in zip_results.applications %}
+                                    <div class="col-md-6">
+                                        <div class="card result-card border-success h-100 shadow-sm">
+                                            <div class="card-header bg-success text-white fw-bold">
+                                                Application {{ app.application_no }}
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <span class="badge bg-light text-dark">Images: {{ app.images_added }}</span>
+                                                    {% if app.skipped > 0 %}
+                                                    <span class="badge bg-warning text-dark">Skipped: {{ app.skipped }}</span>
+                                                    {% endif %}
+                                                </div>
+                                                {% if app.customer_name %}
+                                                <p class="mb-1"><strong>Applicant:</strong> {{ app.customer_name }}</p>
+                                                {% endif %}
+                                                {% if app.cnic %}
+                                                <p class="mb-1 small text-muted">CNIC: {{ app.cnic }}</p>
+                                                {% endif %}
+                                                <p class="mb-0 small text-muted">Folder: {{ app.folder_name or 'Root' }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% elif zip_results %}
+                                <div class="alert alert-info">
+                                    No new images were added. All images in the ZIP already exist in the system.
+                                </div>
+                            {% else %}
+                                <div class="alert alert-danger">
+                                    No valid images or application folders found in the ZIP file.
+                                    Please verify the file structure and naming.
+                                </div>
+                            {% endif %}
+
+                            <div class="d-grid gap-2 mt-5">
+                                <a href="{{ url_for('manage_file') }}" class="btn btn-primary btn-lg">
+                                    <i class="bi bi-arrow-repeat me-2"></i>Upload Another File
+                                </a>
+                            </div>
                         </div>
 
                         <!-- Validation Result View -->
@@ -98,8 +165,8 @@
                             <h4>Sheets Found (Category: {{ category }}):</h4>
                             <ul class="list-group mb-4">
                                 {% for sheet in sheet_info_list %}
-                                    <li class="list-group-item">
-                                        {{ sheet.sheet_name }} - {{ sheet.record_count }} records
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        {{ sheet.sheet_name }} — {{ sheet.record_count }} records
                                         {% if sheet.sheet_name %}
                                             <span class="badge bg-success">Valid</span>
                                         {% else %}
@@ -109,7 +176,7 @@
                                 {% endfor %}
                             </ul>
 
-                            <div class="flash-alert alert alert-info">
+                            <div class="alert alert-info">
                                 File validation successful. You can now upload the data.
                             </div>
 
@@ -118,40 +185,40 @@
                                 <input type="hidden" name="file_type" value="{{ file_type }}">
                                 <input type="hidden" name="category" value="{{ category }}">
                                 <div class="d-grid gap-2">
-                                    <button type="submit" class="btn btn-success">Upload Valid Data</button>
-                                    <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
+                                    <button type="submit" class="btn btn-success btn-lg">Upload Valid Data</button>
+                                    <a href="{{ url_for('index') }}" class="btn btn-secondary btn-lg">Cancel</a>
                                 </div>
                             </form>
                         </div>
 
                         <!-- Upload Result View -->
                         <div class="view-section {% if view == 'upload_result' %}active{% endif %}">
-                            <h4>Records Processed:</h4>
-                            <div class="row mb-4">
+                            <h4>Records Processed</h4>
+                            <div class="row mb-4 g-4">
                                 <div class="col-md-6">
-                                    <div class="card bg-light">
+                                    <div class="card bg-light h-100">
                                         <div class="card-body">
-                                            <h5 class="card-title">New Records Added</h5>
+                                            <h5 class="card-title text-success">New Records Added</h5>
                                             {% if new_records %}
                                                 {% for sheet, count in new_records.items() %}
                                                     <p class="card-text">{{ sheet }}: {{ count }}</p>
                                                 {% endfor %}
                                             {% else %}
-                                                <p class="card-text">0 new record(s) have been found!</p>
+                                                <p class="card-text text-muted">0 new records added</p>
                                             {% endif %}
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
-                                    <div class="card bg-light">
+                                    <div class="card bg-light h-100">
                                         <div class="card-body">
-                                            <h5 class="card-title">Duplicate Records Found</h5>
+                                            <h5 class="card-title text-warning">Duplicate Records Found</h5>
                                             {% if duplicates %}
                                                 {% for sheet, count in duplicates.items() %}
                                                     <p class="card-text">{{ sheet }}: {{ count }}</p>
                                                 {% endfor %}
                                             {% else %}
-                                                <p class="card-text">0 new duplicate(s) have been found!</p>
+                                                <p class="card-text text-muted">No duplicates found</p>
                                             {% endif %}
                                         </div>
                                     </div>
@@ -159,22 +226,23 @@
                             </div>
 
                             {% if has_summary %}
-                                <div class="alert alert-warning" id="download-summary-block">
-                                    <h5>Duplicate Records Summary</h5>
-                                    <p>Some records were identified as duplicates and were not uploaded. You can download the summary file below.</p>
-                                    <a href="{{ url_for('download_summary') }}" class="btn btn-warning" id="downloadSummaryBtn">
-                                        <i class="bi bi-download"></i> Download Duplicates Summary
-                                    </a>
-                                    <div class="progress mt-2 d-none" id="downloadProgress">
-                                        <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%"></div>
-                                    </div>
+                            <div class="alert alert-warning" id="download-summary-block">
+                                <h5>Duplicate Summary Available</h5>
+                                <p>Some records were duplicates and were not uploaded. Download summary below.</p>
+                                <a href="{{ url_for('download_summary') }}" class="btn btn-warning" id="downloadSummaryBtn">
+                                    <i class="bi bi-download me-2"></i>Download Duplicates Summary
+                                </a>
+                                <div class="progress mt-3 d-none" id="downloadProgress">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%"></div>
                                 </div>
+                            </div>
                             {% endif %}
 
-                            <div class="d-grid gap-2">
-                                <a href="{{ url_for('manage_file') }}" class="btn btn-primary">Upload Another File</a>
+                            <div class="d-grid gap-2 mt-4">
+                                <a href="{{ url_for('manage_file') }}" class="btn btn-primary btn-lg">Upload Another File</a>
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>
@@ -182,6 +250,76 @@
     </div>
 
     <script>
+        // =====================================================
+        // Button state management
+        // =====================================================
+        const uploadForm = document.getElementById('uploadForm');
+        const processBtn = document.getElementById('processBtn');
+        const btnIcon = document.getElementById('btnIcon');
+        const btnText = document.getElementById('btnText');
+
+        const originalButtonHTML = `
+            <span id="btnIcon" class="me-2"><i class="bi bi-upload"></i></span>
+            <span id="btnText">Process File</span>
+        `;
+
+        // Reset button to original state
+        function resetProcessButton() {
+            if (processBtn) {
+                processBtn.disabled = false;
+                processBtn.classList.remove('btn-processing');
+                processBtn.innerHTML = originalButtonHTML;
+            }
+        }
+
+        // Restore on page load and when tab becomes visible again
+        window.addEventListener('load', resetProcessButton);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                resetProcessButton();
+            }
+        });
+
+        // =====================================================
+        // Form submit: validation + processing UI
+        // =====================================================
+        if (uploadForm && processBtn) {
+            uploadForm.addEventListener('submit', function(e) {
+                const fileType = document.getElementById('file_type').value;
+                const file = document.getElementById('file');
+
+                // Validation checks
+                if (!fileType) {
+                    e.preventDefault();
+                    showToast('Please select an upload type.', 3000);
+                    return;
+                }
+
+                if (!file.files.length) {
+                    e.preventDefault();
+                    showToast('Please select a file.', 3000);
+                    return;
+                }
+
+                if (fileType === 'images_zip' && !file.files[0].name.toLowerCase().endsWith('.zip')) {
+                    e.preventDefault();
+                    showToast('Please select a valid .zip file.', 3000);
+                    return;
+                }
+
+                // If we reach here → validation passed → show processing state
+                processBtn.disabled = true;
+                processBtn.classList.add('btn-processing');
+                btnIcon.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+                btnText.textContent = 'Processing...';
+
+                // Form will submit normally → page reloads → button resets on load
+            });
+        }
+
+        // =====================================================
+        // File type selector logic
+        // =====================================================
         document.getElementById('file_type').addEventListener('change', function() {
             const fileInput = document.getElementById('file');
             const fileHelp = document.getElementById('fileHelp');
@@ -189,138 +327,75 @@
             const categorySelect = document.getElementById('category');
             const timestampDiv = document.getElementById('div_timestamp');
             const timestampInput = document.getElementById('input_timestamp');
+            const actionType = document.getElementById('action_type');
 
-            if (this.value === 'pre_disbursement') {
-                fileInput.removeAttribute('multiple');
-                fileInput.setAttribute('accept', '.xlsx');
-                fileInput.removeAttribute('disabled');
-                fileHelp.textContent = 'Select 1 file for Pre Disbursement.';
-                categoryDiv.style.display = 'none';
-                categorySelect.setAttribute('disabled', 'disabled');
-                categorySelect.value = '';
+            const val = this.value;
 
-                timestampDiv.style.display = 'none';
-                timestampInput.setAttribute('disabled', 'disabled');
-                timestampInput.value = '';
-            } else if (this.value === 'post_disbursement') {
-                fileInput.setAttribute('accept', '.xlsx');
-                fileInput.removeAttribute('disabled');
+            fileInput.value = '';
+            fileInput.disabled = false;
+            categoryDiv.style.display = 'none';
+            categorySelect.disabled = true;
+            categorySelect.value = '';
+            timestampDiv.style.display = 'none';
+            timestampInput.disabled = true;
+            timestampInput.value = '';
+
+            if (val === 'pre_disbursement') {
+                fileInput.accept = '.xlsx';
+                fileHelp.textContent = 'Select one Excel file (.xlsx) for Pre Disbursement.';
+                actionType.value = 'validate';
+            } else if (val === 'post_disbursement') {
+                fileInput.accept = '.xlsx';
                 categoryDiv.style.display = 'block';
-                categorySelect.removeAttribute('disabled');
-                fileHelp.textContent = 'Select a category first.';
-
+                categorySelect.disabled = false;
                 timestampDiv.style.display = 'block';
-                timestampInput.removeAttribute('disabled');
+                timestampInput.disabled = false;
+                fileHelp.textContent = 'Select category and month first.';
+                actionType.value = 'validate';
+            } else if (val === 'images_zip') {
+                fileInput.accept = '.zip';
+                fileHelp.textContent = 'Select ZIP file containing application folders with images.';
+                actionType.value = 'process_zip';
             } else {
-                fileInput.removeAttribute('multiple');
-                fileInput.setAttribute('disabled', 'disabled');
-                fileHelp.textContent = 'Select a file type first.';
-                categoryDiv.style.display = 'none';
-                categorySelect.setAttribute('disabled', 'disabled');
-                categorySelect.value = '';
+                fileInput.disabled = true;
+                fileHelp.textContent = 'Select an upload type first.';
             }
         });
 
+        // Category change logic
         document.getElementById('category').addEventListener('change', function() {
             const fileInput = document.getElementById('file');
             const fileHelp = document.getElementById('fileHelp');
+            const v = this.value;
 
-            if (this.value === 'los' || this.value === 'mis') {
+            if (v === 'los' || v === 'mis') {
                 fileInput.removeAttribute('multiple');
-                fileHelp.textContent = `Select exactly 1 file for ${this.value.toUpperCase()}.`;
-            } else if (this.value === 'both') {
+                fileHelp.textContent = `Select exactly 1 file for ${v.toUpperCase()}.`;
+            } else if (v === 'both') {
                 fileInput.setAttribute('multiple', 'multiple');
-                fileHelp.textContent = 'Select exactly 2 files for both LOS and MIS (first file LOS, second file MIS).';
-            } else {
-                fileInput.removeAttribute('multiple');
-                fileInput.setAttribute('disabled', 'disabled');
-                fileHelp.textContent = 'Select a category first.';
+                fileHelp.textContent = 'Select exactly 2 files (LOS first, MIS second).';
             }
         });
 
-        document.getElementById('file').addEventListener('change', function() {
-            const fileType = document.getElementById('file_type').value;
-            const category = document.getElementById('category').value;
-            const fileInput = this;
-
-            if (fileType === 'post_disbursement') {
-                if (category === 'los' || category === 'mis') {
-                    if (fileInput.files.length !== 1) {
-                        alert(`You must upload exactly 1 file for ${category.toUpperCase()}.`);
-                        fileInput.value = '';
-                        return;
-                    }
-                } else if (category === 'both') {
-                    if (fileInput.files.length !== 2) {
-                        alert('You must upload exactly 2 files for both LOS and MIS.');
-                        fileInput.value = '';
-                        return;
-                    }
-                }
-            } else if (fileType === 'pre_disbursement' && fileInput.files.length > 1) {
-                alert('You can only upload 1 file for Pre Disbursement.');
-                fileInput.value = '';
-                return;
-            }
-
-            console.log('Selected files:', fileInput.files.length, Array.from(fileInput.files).map(f => f.name));
-        });
-
-        document.getElementById('uploadForm').addEventListener('submit', function(e) {
-            const fileType = document.getElementById('file_type').value;
-            const category = document.getElementById('category').value;
-            const fileInput = document.getElementById('file');
-
-            if (fileType === 'post_disbursement') {
-                if (!category) {
-                    e.preventDefault();
-                    alert('Please select a category.');
-                    return;
-                }
-                if (category === 'los' || category === 'mis') {
-                    if (fileInput.files.length !== 1) {
-                        e.preventDefault();
-                        alert(`You must upload exactly 1 file for ${category.toUpperCase()}.`);
-                        fileInput.value = '';
-                        return;
-                    }
-                } else if (category == 'both') {
-                    if (fileInput.files.length !== 2) {
-                        e.preventDefault();
-                        alert('You must upload exactly 2 files for both LOS and MIS.');
-                        fileInput.value = '';
-                        return;
-                    }
-                }
-            } else if (fileType === 'pre_disbursement' && fileInput.files.length > 1) {
-                e.preventDefault();
-                alert('You can only upload 1 file for Pre Disbursement.');
-                fileInput.value = '';
-                return;
-            } else if (!fileInput.files.length) {
-                e.preventDefault();
-                alert('Please select at least one file.');
-                return;
-            }
-        });
-
+        // Existing download summary animation
         {% if has_summary %}
         document.getElementById('downloadSummaryBtn').addEventListener('click', function() {
-            const downloadSummaryBlock = document.getElementById('download-summary-block');
-            const progressBar = document.getElementById('downloadProgress');
-            const progressBarInner = progressBar.querySelector('.progress-bar');
+            const block = document.getElementById('download-summary-block');
+            const progress = document.getElementById('downloadProgress');
+            const bar = progress.querySelector('.progress-bar');
 
-            let progress = 0;
-            progressBar.classList.remove('d-none');
+            let w = 0;
+            progress.classList.remove('d-none');
 
-            const interval = setInterval(() => {
-                progress += 5;
-                progressBarInner.style.width = `${Math.min(progress, 90)}%`;
-                if (progress >= 90) {
-                    clearInterval(interval);
-                    progressBar.classList.add('d-none');
-                    progress = 0;
-                    downloadSummaryBlock.classList.add('d-none');
+            const timer = setInterval(() => {
+                w += 6;
+                bar.style.width = `${Math.min(w, 92)}%`;
+                if (w >= 92) {
+                    clearInterval(timer);
+                    setTimeout(() => {
+                        progress.classList.add('d-none');
+                        block.style.display = 'none';
+                    }, 800);
                 }
             }, 100);
         });
