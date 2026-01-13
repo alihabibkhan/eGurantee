@@ -764,7 +764,7 @@ def process_upload():
             for sheet_name in sheet_names:
                 print(f"process_upload: Processing sheet '{sheet_name}'")
                 df = pd.read_excel(filepath, sheet_name=sheet_name,
-                                   dtype=str).fillna('')
+                                   dtype=str, thousands=",").fillna('')
                 print(f"process_upload: Loaded DataFrame for sheet '{sheet_name}' with {len(df)} rows")
                 df.columns = [col.strip().lower().replace('/', '_').replace(' ', '_') for col in df.columns]
                 print(f"process_upload: Normalized column names: {list(df.columns)}")
@@ -1046,7 +1046,7 @@ def process_upload():
                                 '{rec.get('student_relation_with_borrower', '')}', '{tenor_of_month}', '{rec.get('type_of_business', '')}',
                                 '{rec.get('annual_income', '')}', '{rec.get('markup_rate', '')}', '{rec.get('repayment_frequency', '')}',
                                 '{rec.get('loan_officer', '')}', '{appraised_date}', '{verfied_date_date}',
-                                '{rec.get('loan_per_exposure', '')}',  '{str(client_dob_formatted)}', '{str(co_borrower_dob_formatted)}',
+                                '{str(rec.get('loan_per_exposure', '').replace(",", ""))}',  '{str(client_dob_formatted)}', '{str(co_borrower_dob_formatted)}',
                                 '{rec.get('relationship_ownership', '')}', '{rec.get('other_bank_loans_os', '')}', '1',
                                 '{str(get_current_user_id())}', '{str(datetime.now())}'
                             )
