@@ -20,7 +20,8 @@ def manage_file():
         if action_type == 'validate':
             # Your existing validation logic (unchanged)
             # Example placeholder – replace with your actual implementation
-            return handle_validation(file_type, request.form.get('input_timestamp'))
+            input_timestamp = str(request.form.get('input_timestamp', datetime.now())) or str(session.get('input_timestamp', datetime.now()))
+            return handle_validation(file_type, input_timestamp)
 
         elif action_type == 'upload':
             # Your existing Excel upload logic (unchanged)
@@ -1321,3 +1322,4 @@ def format_date_for_sql(date_str: str, application_no: str = None) -> str:
     flash_msg = f"Application {application_no}: Unrecognized date format '{cleaned}'. Date will be saved as NULL."
     flash(flash_msg, "danger")
     return '1900-01-01'
+
