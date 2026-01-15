@@ -255,9 +255,29 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body" id="temp-modal-body"></div>
+
+                    <!-- New Images Gallery Section -->
+                    <div class="modal-body border-top" id="imagesSection" style="display: none;">
+                        <h5 class="mb-3">Application Images</h5>
+                        <div id="imageGallery" class="row g-3"></div>
+                        <div id="noImagesMessage" class="alert alert-info mt-3" style="display: none;">
+                            No images found for this application.
+                        </div>
+                        <div id="imagesLoading" class="text-center py-4" style="display: none;">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p class="mt-2">Loading images...</p>
+                        </div>
+                    </div>
+
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                         <button class="btn btn-primary btn-send-email" data-email="" data-pre-id="" data-pre-email-status=""><i class="bi bi-envelope text-white"></i></button>
+
+                         <!-- New View Images Button -->
+                        <button type="button" class="btn btn-primary" id="viewImagesBtn" style="display: none;">
+                            <i class="bi bi-images text-white"></i> View Images
+                        </button>
+
                         <button type="button" class="btn btn-primary" id="temp-save-btn">Save</button>
                     </div>
                 </div>
@@ -566,6 +586,13 @@
             $('.btn-send-email').attr('data-pre-id', record.pre_disb_temp_id);
             $('.btn-send-email').attr('data-email', record.email);
             $('.btn-send-email').attr('data-pre-email-status', record.email_status);
+
+
+            const section = document.getElementById('imagesSection');
+            const gallery = document.getElementById('imageGallery');
+
+            section.style.display = 'none';
+            gallery.innerHTML = '';
 
             if(record.status == '2'){
                 $('.btn-send-email').show();
@@ -1005,6 +1032,15 @@
             generateLoanStatusTable(record, requiredPaidOffPerLoanMetrics);
             generateLoanCeilingTable(record, loanCeilingLoanMetrics);
             generateLoanLimitTable(record, repeatIncrementPerLoanMetrics);
+
+            // Show/hide View Images button and load images
+            const viewImagesBtn = document.getElementById('viewImagesBtn');
+            if (record && record.Application_No) {
+                viewImagesBtn.style.display = 'inline-block';
+                viewImagesBtn.onclick = () => loadApplicationImages(record.Application_No);
+            } else {
+                viewImagesBtn.style.display = 'none';
+            }
         }
 
         // Helper function to format numbers or return Not Received
@@ -1610,6 +1646,50 @@
 
         // Initial render
         applyFilters();
+
+        // Add this new function to load images
+        function loadApplicationImages(applicationNo) {
+            const gallery = document.getElementById('imageGallery');
+            const loading = document.getElementById('imagesLoading');
+            const noImages = document.getElementById('noImagesMessage');
+            const section = document.getElementById('imagesSection');
+
+            gallery.innerHTML = '';
+            loading.style.display = 'block';
+            noImages.style.display = 'none';
+            section.style.display = 'block';
+
+            fetch(`/get_application_images?application_no=${encodeURIComponent(applicationNo)}`)
+                .then(response => response.json())
+                .then(data => {
+                    loading.style.display = 'none';
+
+                    if (data.success && data.images && data.images.length > 0) {
+                        data.images.forEach(img => {
+                            const card = `
+                                <div class="col-md-4 col-sm-6">
+                                    <div class="card shadow-sm h-100">
+                                        <img src="${img.url}" class="card-img-top"
+                                             alt="${img.filename || 'Application image'}"
+                                             style="cursor: pointer;">
+                                        <div class="card-body text-center p-2">
+                                            <small class="text-muted">${img.filename || 'Image'}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            gallery.insertAdjacentHTML('beforeend', card);
+                        });
+                    } else {
+                        noImages.style.display = 'block';
+                    }
+                })
+                .catch(err => {
+                    loading.style.display = 'none';
+                    gallery.innerHTML = '<div class="alert alert-danger">Failed to load images.</div>';
+                    console.error('Image load error:', err);
+                });
+        }
     </script>
     <script>
         $(document).ready(function(){

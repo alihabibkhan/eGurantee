@@ -2,8 +2,6 @@ from imports import *
 from application import application
 from application import allowed_file
 import uuid
-from zipfile import ZipFile
-from hashlib import md5
 
 @application.route('/manage-file', methods=['GET', 'POST'])
 def manage_file():

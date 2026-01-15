@@ -190,3 +190,69 @@ def approval_letter(app_no):
                                sign_base64=sign_base64)
     except Exception as e:
         abort(500, description=str(e))
+
+
+
+@application.route('/get_application_images')
+def get_application_images():
+    application_no = request.args.get('application_no')
+    if not application_no:
+        return jsonify({'success': False, 'error': 'Missing application_no'}), 400
+
+    # Using f-string as requested (but note: not ideal for security)
+    # In production, strongly prefer parameterized queries
+    images = fetch_records(f"""
+        SELECT 
+            pd_ai_id,
+            cnic,
+            customer_name,
+            created_date
+        FROM tbl_pre_disbursement_application_images
+        WHERE application_no = '{application_no}'
+        ORDER BY created_date DESC
+    """)
+
+    result = []
+    for img in images or []:
+        result.append({
+            'url': url_for('serve_pre_image', image_id=img['pd_ai_id']),
+            'filename': f"{img['customer_name'] or 'Customer'}_{img['cnic'] or 'Unknown'}_{img['pd_ai_id']}.jpg",
+            'uploaded': img['created_date'].strftime('%Y-%m-%d %H:%M') if img.get('created_date') else None,
+            'cnic': img.get('cnic'),
+            'customer_name': img.get('customer_name')
+        })
+
+    return jsonify({
+        'success': True,
+        'images': result
+    })
+
+
+@application.route('/pre_image/<int:image_id>')
+def serve_pre_image(image_id):
+    # Again using f-string as requested
+    rows = fetch_records(f"""
+        SELECT image_data
+        FROM tbl_pre_disbursement_application_images
+        WHERE pd_ai_id = {image_id}
+    """)
+
+    if not rows or not rows[0].get('image_data'):
+        return "Image not found", 404
+
+    image_data = rows[0]['image_data']
+
+    # Handle possible memoryview (common when bytea is fetched)
+    if isinstance(image_data, memoryview):
+        image_data = image_data.tobytes()
+
+    # Or if it's already bytes, use directly
+    if not isinstance(image_data, bytes):
+        return "Invalid image data format", 500
+
+    return send_file(
+        io.BytesIO(image_data),
+        mimetype='image/jpeg',          # Adjust if you know the actual format
+        as_attachment=False,
+        download_name=f"pre_image_{image_id}.jpg"
+    )
