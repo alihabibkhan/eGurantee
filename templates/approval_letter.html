@@ -133,7 +133,7 @@
         <p>This authorization of marking lien on the account is irrevocable until the entire liability owed by the above borrowers is satisfactorily paid off to HBL Microfinance Bank Ltd.</p>
         <p>I also declare that this lien marking instructions shall be communicated to HBL MfB branch via email which may be considered as valid as physically submitted.</p>
         <div class="signature-section">
-            <span>Customer/Guarantor's Name(s): <span>{{ result.Borrower_Name or 'N/A' }}</span></span>
+            <span>Customer/Guarantor's Name(s):
             <p>Authorized Signatures: {% if sign_base64 %}<img src="data:image/jpeg;base64,{{ sign_base64 }}" alt="signature" onerror="this.style.display='none';">{% endif %}</p>
         </div>
     </div>

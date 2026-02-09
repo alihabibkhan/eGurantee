@@ -500,42 +500,6 @@
         font-size: 0.9rem;
     }
 </style>
-<style>
-  /* Single Text Left-to-Right Marquee */
-  .alt-marquee {
-      background: #4B7043; /* Olive green */
-      color: white;
-      padding: 20px 0;
-      margin-bottom: 20px;
-      overflow: hidden;
-      white-space: nowrap;
-      font-size: 1.2rem;
-      width: 100%;
-  }
-
-  .marquee-content {
-      display: inline-block;
-      animation: scroll-left 15s linear infinite;
-      padding-right: 40rem; /* Space between repeated text */
-  }
-
-  @keyframes scroll-left {
-      0% { transform: translateX(100%); }
-      100% { transform: translateX(-100%); }
-  }
-
-  .alt-marquee:hover .marquee-content {
-      animation-play-state: paused;
-  }
-
-  /* Accessibility: Pause on reduced motion */
-  @media (prefers-reduced-motion: reduce) {
-      .marquee-content {
-          animation-play-state: paused !important;
-          transform: translateX(0); /* Show text statically */
-      }
-  }
-</style>
 
 <!-- Mobile Sidebar Menu Button -->
 <button class="sidebar-menu-button">
@@ -545,7 +509,7 @@
   <!-- Sidebar Header -->
   <header class="sidebar-header">
     <a href="{{url_for('index')}}" class="header-logo">
-      <img src="{{ url_for('static', filename='images/khushali-logo.png') }}"/>
+      <img src="{{ url_for('static', filename='images/kft_logo_new_design.png') }}"/>
     </a>
     <button class="sidebar-toggler">
       <span class="material-symbols-rounded">chevron_left</span>
@@ -741,6 +705,7 @@
             <li class="nav-item"><a class="nav-link dropdown-title">Settings</a></li>
             <li class="nav-item"><a href="{{url_for('manage_bank_details')}}" class="nav-link">Bank Setup</a></li>
             <li class="nav-item"><a href="{{url_for('manage_branches')}}" class="nav-link">Branch Setup</a></li>
+            <li class="nav-item"><a href="{{url_for('manage_announcements')}}" class="nav-link">Announcements Setup</a></li>
             <li class="nav-item"><a class="nav-link dropdown-title">Loan Administration</a></li>
             <li class="nav-item"><a href="{{url_for('manage_loan_metrics')}}" class="nav-link">Loan Matrix Parameters</a></li>
             <li class="nav-item"><a href="{{url_for('manage_budget')}}" class="nav-link">Loan Annual Budgets</a></li>
@@ -784,12 +749,66 @@
 </header>
 
 <!-- Single Text Left-to-Right Marquee -->
-<section class="alt-marquee">
-    <div class="marquee-content">
-        Celebrating 15 Years of Changing Lives (2010 – <span id="currentDateSpan"></span>)
-    </div>
-</section>
+{% if announcments_data %}
+    <style>
+        .dynamic-marquee {
+            background: #4B7043;
+            color: white;
+            padding: 14px 0;
+            margin: 0;
+            overflow: hidden;
+            white-space: nowrap;
+            font-size: 1.15rem;
+            font-weight: 500;
+            width: 100%;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        }
 
+        .marquee-wrapper {
+            display: inline-block;
+            padding-left: 100%;
+            animation: scroll-left 18s linear infinite;
+            padding-right: 60rem; /* extra space so it loops nicely */
+        }
+
+        @keyframes scroll-left {
+            0%   { transform: translateX(0); }
+            100% { transform: translateX(-100%); }
+        }
+
+        .dynamic-marquee:hover .marquee-wrapper {
+            animation-play-state: paused;
+        }
+
+        .marquee-item {
+            display: inline-block;
+            margin-right: 6rem;          /* space between repeated messages */
+            padding: 0 2rem;
+        }
+
+        /* Respect user preference for reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            .marquee-wrapper {
+                animation: none !important;
+                transform: translateX(0) !important;
+            }
+        }
+    </style>
+
+    <section class="dynamic-marquee alt-marquee">
+        <div class="marquee-wrapper">
+            {% for item in announcments_data %}
+                <span class="marquee-item" {% if item.style %}style="{{ item.style }}"{% endif %}>
+                    {{ item.content | safe }}
+                </span>
+            {% endfor %}
+        </div>
+    </section>
+
+{% else %}
+    <!-- Optional: silent fallback or small welcome message -->
+    <!-- <div style="height: 46px;"></div> -->
+{% endif %}
 
 <script>
     // Function to update date and time

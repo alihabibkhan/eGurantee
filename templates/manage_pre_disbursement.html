@@ -160,6 +160,44 @@
             color: #162E2A !important; /* Deep olive green for main heading */
         }
     </style>
+    <style>
+        /* Add to existing styles */
+        #imageGallery .card {
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+
+        #imageGallery .card:hover {
+            transform: scale(1.03);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        #imageGallery .card-img-top {
+            height: 200px;
+            object-fit: cover;
+        }
+
+        #previewImage {
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Lightbox effect for modal */
+        #imagePreviewModal .modal-content {
+            background-color: rgba(0, 0, 0, 0.1);
+            border: none;
+        }
+
+        #imagePreviewModal .modal-body {
+            padding: 0;
+            background-color: #000;
+        }
+
+        #imagePreviewModal img {
+            margin: 0 auto;
+            display: block;
+        }
+    </style>
 </head>
 <body>
     {% include 'navbar.html' %}
@@ -359,6 +397,29 @@
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Preview Modal -->
+    <div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-labelledby="imagePreviewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="imagePreviewModalLabel">Image Preview</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="previewImage" src="" class="img-fluid" alt="Preview" style="max-height: 70vh;">
+                </div>
+                <!--
+                <div class="modal-footer">
+                    <a id="downloadImage" href="#" class="btn btn-primary" download>
+                        <i class="bi bi-download"></i> Download
+                    </a>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+                -->
             </div>
         </div>
     </div>
@@ -1648,6 +1709,7 @@
         applyFilters();
 
         // Add this new function to load images
+        /*
         function loadApplicationImages(applicationNo) {
             const gallery = document.getElementById('imageGallery');
             const loading = document.getElementById('imagesLoading');
@@ -1690,6 +1752,93 @@
                     console.error('Image load error:', err);
                 });
         }
+        */
+        // Load application images with click functionality
+        function loadApplicationImages(applicationNo) {
+            const gallery = document.getElementById('imageGallery');
+            const loading = document.getElementById('imagesLoading');
+            const noImages = document.getElementById('noImagesMessage');
+            const section = document.getElementById('imagesSection');
+
+            gallery.innerHTML = '';
+            loading.style.display = 'block';
+            noImages.style.display = 'none';
+            section.style.display = 'block';
+
+            fetch(`/get_application_images?application_no=${encodeURIComponent(applicationNo)}`)
+                .then(response => response.json())
+                .then(data => {
+                    loading.style.display = 'none';
+
+                    if (data.success && data.images && data.images.length > 0) {
+                        data.images.forEach(img => {
+                            const col = document.createElement('div');
+                            col.className = 'col-md-4 col-sm-6 mb-3';
+
+                            col.innerHTML = `
+                                <div class="card shadow-sm h-100">
+                                    <img src="${img.url}"
+                                         class="card-img-top clickable-image"
+                                         alt="${img.filename || 'Application image'}"
+                                         data-src="${img.url}"
+                                         data-filename="${img.filename || 'Image'}">
+                                    <div class="card-body text-center p-2">
+                                        <small class="text-muted">${img.filename || 'Image'}</small>
+                                    </div>
+                                </div>
+                            `;
+                            gallery.appendChild(col);
+                        });
+
+                        // Add click event listeners to all images
+                        document.querySelectorAll('.clickable-image').forEach(img => {
+                            img.addEventListener('click', function() {
+                                showImagePreview(this.src, this.getAttribute('data-filename'));
+                            });
+                        });
+                    } else {
+                        noImages.style.display = 'block';
+                    }
+                })
+                .catch(err => {
+                    loading.style.display = 'none';
+                    gallery.innerHTML = '<div class="col-12"><div class="alert alert-danger">Failed to load images.</div></div>';
+                    console.error('Image load error:', err);
+                });
+        }
+
+        // Show image in preview modal
+        function showImagePreview(imageSrc, filename) {
+            const previewImage = document.getElementById('previewImage');
+            //const downloadLink = document.getElementById('downloadImage');
+            const modalTitle = document.getElementById('imagePreviewModalLabel');
+
+            // Set image source
+            previewImage.src = imageSrc;
+
+            // Set download attributes
+            //downloadLink.href = imageSrc;
+            //downloadLink.download = filename || 'image.jpg';
+
+            // Set modal title
+            modalTitle.textContent = filename || 'Image Preview';
+
+            // Show modal
+            const previewModal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
+            previewModal.show();
+        }
+
+        // Optional: Add keyboard navigation for images
+        document.addEventListener('DOMContentLoaded', function() {
+            const imagePreviewModal = document.getElementById('imagePreviewModal');
+
+            if (imagePreviewModal) {
+                imagePreviewModal.addEventListener('shown.bs.modal', function() {
+                    // Focus on image for better accessibility
+                    document.getElementById('previewImage').focus();
+                });
+            }
+        });
     </script>
     <script>
         $(document).ready(function(){

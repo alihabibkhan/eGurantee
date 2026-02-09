@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% include 'head.html' %}
+    <title>{{ 'Edit Announcement' if result.announcement else 'Add Announcement' }}</title>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([
+        {"url": "manage_announcements", "label": "Manage Announcements"},
+        {"url": "", "label": 'Edit Announcement' if result.announcement else 'Add Announcement'}
+    ]) }}
+
+    <div class="container mt-4">
+        {% include 'message_box.html' %}
+
+        <div class="card">
+            <div class="card-header">
+                <h2>{{ 'Edit Announcement' if result.announcement else 'Add Announcement' }}</h2>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="form-group mb-3">
+                        <label for="title">Title</label>
+                        <input type="text" name="title" class="form-control"
+                               value="{{ result.announcement.title if result.announcement else '' }}"
+                               required maxlength="200">
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="message">Message / Content (Marquee Text)</label>
+                        <textarea name="message" class="form-control" rows="4" required>{{ result.announcement.message if result.announcement else '' }}</textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 form-group mb-3">
+                            <label for="start_date">Start Date</label>
+                            <input type="date" name="start_date" class="form-control"
+                                   value="{{ result.announcement.start_date | date_format if result.announcement and result.announcement.start_date else '' }}">
+                        </div>
+                        <div class="col-md-6 form-group mb-3">
+                            <label for="end_date">End Date</label>
+                            <input type="date" name="end_date" class="form-control"
+                                   value="{{ result.announcement.end_date | date_format if result.announcement and result.announcement.end_date else '' }}">
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <div class="form-check">
+                            <input type="checkbox" name="is_active" class="form-check-input" id="is_active"
+                                   {% if not result.announcement or (result.announcement.is_active == 1 or result.announcement.is_active == true) %} checked {% endif %}>
+                            <label class="form-check-label" for="is_active">Active (Show in Marquee)</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="priority">Priority (Higher = Shown First)</label>
+                        <input type="number" name="priority" class="form-control" min="0" max="100" step="1"
+                               value="{{ result.announcement.priority if result.announcement else 0 }}">
+                        <small class="form-text text-muted">0 = lowest, 100 = highest priority</small>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 form-group mb-3">
+                            <label for="background_color">Background Color</label>
+                            <input type="color" name="background_color" class="form-control form-control-color"
+                                   value="{{ result.announcement.background_color if result.announcement and result.announcement.background_color else '#9b2ab8' }}"
+                                   title="Default: #9b2ab8 (Purple)">
+                        </div>
+                        <div class="col-md-6 form-group mb-3">
+                            <label for="text_color">Text Color</label>
+                            <input type="color" name="text_color" class="form-control form-control-color"
+                                   value="{{ result.announcement.text_color if result.announcement and result.announcement.text_color else '#ffffff' }}"
+                                   title="Default: #ffffff (White)">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 form-group mb-3">
+                            <label for="link_url">Link URL (Optional)</label>
+                            <input type="url" name="link_url" class="form-control"
+                                   value="{{ result.announcement.link_url if result.announcement else '' }}"
+                                   placeholder="https://example.com">
+                        </div>
+                        <div class="col-md-6 form-group mb-3">
+                            <label for="link_text">Link Text (Optional)</label>
+                            <input type="text" name="link_text" class="form-control" maxlength="100"
+                                   value="{{ result.announcement.link_text if result.announcement else '' }}"
+                                   placeholder="Read More">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary mt-3">
+                        {{ 'Update Announcement' if result.announcement else 'Create Announcement' }}
+                    </button>
+                    <a href="{{ url_for('manage_announcements') }}" class="btn btn-secondary mt-3 ms-2">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
