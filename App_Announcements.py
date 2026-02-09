@@ -102,7 +102,7 @@ def add_edit_announcement(ann_id=None):
                         {title_esc}, {message_esc}, {start_date_esc}, {end_date_esc},
                         {is_active}, {priority},
                         {bg_color_esc}, {text_color_esc}, {link_url_esc}, {link_text_esc},
-                        {current_user_id, 1}
+                        {current_user_id}, 1
                     )
                     RETURNING id
                 """
