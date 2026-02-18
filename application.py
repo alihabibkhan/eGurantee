@@ -89,6 +89,11 @@ def utility_processor():
     }
 
 
+@application.route('/privacy')
+def privacy():
+    return render_template('privacy.html')
+
+
 @application.route('/')
 @application.route('/Index')
 @application.route('/index')
@@ -271,4 +276,5 @@ from App_Announcements import *
 
 if __name__ == '__main__':
     application.run(debug=True, port=8080)
+
 
