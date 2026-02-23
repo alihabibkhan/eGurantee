@@ -4,6 +4,10 @@ from imports import *
 from flask_mail import Mail, Message
 
 application = Flask(__name__)
+
+
+logging.basicConfig(level=logging.DEBUG)
+
 application.config['SECRET_KEY'] = "Your_secret_string"
 application.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=12)
 application.config['SESSION_COOKIE_SECURE'] = True
@@ -87,11 +91,6 @@ def utility_processor():
     return {
         'announcments_data': announcments_data
     }
-
-
-@application.route('/privacy')
-def privacy():
-    return render_template('privacy.html')
 
 
 @application.route('/')
@@ -276,5 +275,4 @@ from App_Announcements import *
 
 if __name__ == '__main__':
     application.run(debug=True, port=8080)
-
 

@@ -23,6 +23,7 @@ from zipfile import ZipFile
 import io
 from io import BytesIO
 from hashlib import md5
+import logging
 
 from Config.db_postgress import *
 
