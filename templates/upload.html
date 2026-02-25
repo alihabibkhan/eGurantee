@@ -238,6 +238,33 @@
                             </div>
                             {% endif %}
 
+                            <!-- In upload result view section -->
+                            {% if session.get('anomalies_detected') %}
+                            <div class="alert alert-danger" id="download-anomalies-block">
+                                <h5><i class="bi bi-exclamation-triangle-fill me-2"></i>Anomalies Detected</h5>
+                                <p>Some records have anomalies that require your attention. Download the detailed report below.</p>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <a href="{{ url_for('download_anomalies_report') }}" class="btn btn-danger btn-lg w-100" id="downloadAnomaliesBtn">
+                                            <i class="bi bi-file-earmark-text me-2"></i>Download Anomalies Report (HTML)
+                                        </a>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <button class="btn btn-outline-danger btn-lg w-100" onclick="window.open('{{ url_for('download_anomalies_report') }}', '_blank')">
+                                            <i class="bi bi-eye me-2"></i>View in Browser
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="progress mt-3 d-none" id="anomaliesProgress">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-danger" style="width: 0%"></div>
+                                </div>
+                                <small class="text-muted mt-2 d-block">
+                                    <i class="bi bi-info-circle"></i>
+                                    You can view the report in browser or save as PDF using browser's print function (Ctrl+P)
+                                </small>
+                            </div>
+                            {% endif %}
+
                             <div class="d-grid gap-2 mt-4">
                                 <a href="{{ url_for('manage_file') }}" class="btn btn-primary btn-lg">Upload Another File</a>
                             </div>
@@ -398,6 +425,39 @@
                     }, 800);
                 }
             }, 100);
+        });
+        {% endif %}
+
+        // Add this to your existing script
+        {% if session.get('anomalies_detected') %}
+        document.getElementById('downloadAnomaliesBtn')?.addEventListener('click', function(e) {
+            const progress = document.getElementById('anomaliesProgress');
+            const bar = progress.querySelector('.progress-bar');
+            const btn = this;
+
+            // Show progress bar
+            progress.classList.remove('d-none');
+
+            // Animate progress
+            let w = 0;
+            const timer = setInterval(() => {
+                w += 5;
+                bar.style.width = `${Math.min(w, 90)}%`;
+                if (w >= 90) {
+                    clearInterval(timer);
+                }
+            }, 100);
+
+            // Disable button and show loading state
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Preparing Report...';
+            btn.disabled = true;
+
+            // Reset after download (approximate)
+            setTimeout(() => {
+                btn.innerHTML = '<i class="bi bi-file-earmark-text me-2"></i>Download Anomalies Report (HTML)';
+                btn.disabled = false;
+                progress.classList.add('d-none');
+            }, 3000);
         });
         {% endif %}
     </script>
