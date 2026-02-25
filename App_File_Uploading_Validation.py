@@ -2,7 +2,7 @@ from imports import *
 from application import application
 from application import allowed_file
 import uuid
-
+from pdf_helper import *
 
 @application.route('/manage-file', methods=['GET', 'POST'])
 def manage_file():
@@ -631,11 +631,403 @@ def handle_upload():
         session['summary_file'] = result['summary_path']
         application.logger.debug(f"handle_upload: Set session['summary_file']={result['summary_path']}")
 
+    # In handle_upload(), after getting result
+    if result.get('anomalies_report_path'):
+        session['anomalies_report'] = result['anomalies_report_path']
+        session['anomalies_detected'] = result.get('anomalies_detected', False)
+        application.logger.debug(f"handle_upload: Set session['anomalies_report']={result['anomalies_report_path']}")
+
     return render_template('upload.html',
                            view='upload_result',
                            duplicates=result['duplicates'],
                            new_records=result['new_records'],
                            has_summary=result['summary_path'] is not None)
+
+
+# def process_upload():
+#     application.logger.debug("process_upload: Entering function")
+#     file_type = session.get('file_type')
+#     category = session.get('category')
+#     filepaths = session['current_files']
+#     input_timestamp = session.get('input_timestamp') or '1900-01-01'
+#
+#     duplicates = {}
+#     new_records = {}
+#     summary_path = None
+#
+#     # Define headers and mappings
+#     pre_headers = [
+#         'annual_business_incomes', 'annual_disposable_income', 'annual_expenses', 'appraised_date',
+#         'application_no', 'applicationdate', 'bcc_approval_date', 'borrower_name', 'branch_area',
+#         'branch_name', 'business_expense_description', 'client_dob', 'co_borrower_dob',
+#         'collage_univeristy', 'collateral_type', 'contact_no', 'credit_history_(ecib)',
+#         'current_residencial', 'dbr', 'education_level', 'enrollment_status', 'enterprise_premises',
+#         'experiense_(start_date)', 'family_monthly_income', 'father_husband_name', 'gender',
+#         'loan_amount', 'loan_cycle', 'loan_officer', 'loan_per_exposure', 'loan_product_code',
+#         'loan_status', 'markup_rate', 'monthly_repayment_capacity', 'nature_of_business',
+#         'no_of_family_members', 'other_bank_loans_os', 'permanent_residencial', 'purpose_of_loan',
+#         'relationship_ownership', 'repayment_frequency', 'requested_loan_amount', 'residance_type',
+#         'student_co_borrower_gender', 'student_name', 'student_relation_with_borrower',
+#         'tenor_of_month', 'verfied_date_date'
+#     ]
+#     post_headers = [
+#         'mis_date', 'area', 'sector_code', 'branch_code', 'branch_name', 'cnic', 'gender',
+#         'address', 'mobile_no', 'loan_title', 'rt', 'loan_no', 'product_code', 'booked_on',
+#         'disbursed_amount', 'repayment_type', 'sector', 'purpose', 'loan_status', 'loan_closed_on',
+#         'act_clo', 'colloanno', 'coll_id', 'lrno', 'collat', 'coll_stat', 'collateral_value',
+#         'collateral_title', 'overdue_days', 'principal_outstanding', 'total_outstand_other',
+#         'markup_outstanding', 'lo', 'fc_los', 'dtf', 'dtt', 'customer_id', 'application_num',
+#         'clo_on', 'liab_id', 'pool_id', 'account_number'
+#     ]
+#     post_to_los_mapping = {
+#         'branch_code': 'branch_code', 'branch_name': 'branch_name', 'cnic': 'cnic', 'gender': 'gender',
+#         'address': 'address', 'mobile_no': 'mobile_number', 'loan_no': 'loan_number',
+#         'loan_title': 'loan_title', 'product_code': 'product_code', 'booked_on': 'loancreationdate',
+#         'disbursed_amount': 'disb_amt', 'principal_outstanding': 'os_p',
+#         'markup_outstanding': 'total_outstand_markup', 'repayment_type': 'loanrepaymenttype',
+#         'sector': 'sector', 'purpose': 'purpose', 'loan_status': 'loanstatus',
+#         'overdue_days': 'od_days', 'loan_closed_on': 'closed_on_date', 'collateral_title': 'collateraltitle'
+#     }
+#     post_to_mis_mapping = {
+#         'branch_code': 'bcode', 'branch_name': 'branch_name', 'cnic': 'customer_id', 'gender': 'gender',
+#         'address': 'address', 'mobile_no': 'mobile', 'loan_no': 'loanno', 'loan_title': 'loantitle',
+#         'product_code': 'product_code', 'booked_on': 'loancreationdate', 'disbursed_amount': 'disbursedamt',
+#         'principal_outstanding': 'total_outstand_principal', 'markup_outstanding': 'total_outstand_markup',
+#         'repayment_type': 'loanrepaymenttype', 'sector': 'sector', 'purpose': 'purpose',
+#         'loan_status': 'loanstatus', 'overdue_days': 'od_days', 'loan_closed_on': 'ln_clo_dt',
+#         'collateral_title': 'collateraltitle'
+#     }
+#     los_to_mis_mapping = {'collat': 'collateral_type'}
+#
+#     try:
+#         # Fetch existing records once
+#         existing_records = {}
+#         if file_type == 'pre_disbursement':
+#             records = fetch_records(
+#                 'SELECT "Application_No", "status", "CNIC", "Borrower_Name", "Gender", "Branch_Name", '
+#                 '"Student_Name", "Student_Co_Borrower_Gender", "Collage_Univeristy", '
+#                 'KFT_Approved_Loan_Limit, "approved_date" FROM tbl_pre_disbursement_temp')
+#             existing_records['pre'] = {str(row['Application_No']): row for row in records}
+#             existing_records['cnic'] = {str(row['CNIC']): row for row in records if row['CNIC']}
+#
+#             existing_applications = set(existing_records['pre'].keys())
+#             application.logger.debug(f"process_upload: Loaded {len(existing_applications)} existing application numbers")
+#         else:
+#             records = fetch_records('SELECT customer_id, branch_name, gender, loan_no, product_code, booked_on, '
+#                                     'repayment_type, principal_outstanding, disbursed_amount FROM tbl_post_disbursement '
+#                                     f'WHERE mis_date < \'{input_timestamp}\'')
+#             existing_records['post'] = {str(row['customer_id']): row for row in records if row['customer_id']}
+#
+#         all_dfs = []
+#         for file_idx, filepath in enumerate(filepaths):
+#             xl = pd.ExcelFile(filepath)
+#             sheet_names = [o for o in xl.sheet_names if o != 'GVMetadata']
+#             for sheet_name in sheet_names:
+#                 df = pd.read_excel(filepath, sheet_name=sheet_name, dtype=str).fillna('')
+#                 df.columns = [col.strip().lower().replace('/', '_').replace(' ', '_') for col in df.columns]
+#
+#                 if df.columns.duplicated().any():
+#                     duplicates = df.columns[df.columns.duplicated()].tolist()
+#                     application.logger.error(f"process_upload: Duplicate columns in sheet '{sheet_name}': {duplicates}")
+#                     raise ValueError(f"Duplicate column names found in sheet {sheet_name}: {duplicates}")
+#
+#                 expected_headers = pre_headers if file_type == 'pre_disbursement' else post_headers
+#                 table_name = 'tbl_pre_disbursement_temp' if file_type == 'pre_disbursement' else 'tbl_post_disbursement'
+#                 key_column = 'application_no' if file_type == 'pre_disbursement' else 'loan_no'
+#
+#                 if file_type == 'post_disbursement':
+#                     mapping = post_to_los_mapping if category == 'los' or (category == 'both' and file_idx == 0) else post_to_mis_mapping
+#                     inverse_mapping = {v: k for k, v in mapping.items()}
+#
+#                     # Check for duplicate columns before renaming
+#                     if df.columns.duplicated().any():
+#                         duplicates = df.columns[df.columns.duplicated()].tolist()
+#                         application.logger.error(
+#                             f"process_upload: Duplicate columns in sheet '{sheet_name}': {duplicates}")
+#                         raise ValueError(f"Duplicate column names found in sheet {sheet_name}: {duplicates}")
+#
+#                     # Only rename columns that exist in the DataFrame
+#                     rename_dict = {k: v for k, v in inverse_mapping.items() if k in df.columns}
+#                     df = df.rename(columns=rename_dict)
+#
+#                     if category == 'both' and file_idx == 0:
+#                         # Similarly for los_to_mis_mapping
+#                         los_rename_dict = {k: v for k, v in los_to_mis_mapping.items() if k in df.columns}
+#                         df = df.rename(columns=los_rename_dict)
+#
+#                 missing_headers = [h for h in expected_headers if h not in df.columns]
+#                 if missing_headers:
+#                     application.logger.warning(
+#                         f"process_upload: Missing headers in sheet '{sheet_name}': {missing_headers}")
+#                     flash(f"Sheet '{sheet_name}' is missing headers: {', '.join(missing_headers)}. Adding as blanks.",
+#                           'warning')
+#                     df = df.reindex(columns=df.columns.tolist() + missing_headers, fill_value='')
+#
+#                 if key_column not in df.columns:
+#                     application.logger.error(
+#                         f"process_upload: Key column '{key_column}' not found in sheet '{sheet_name}'")
+#                     raise ValueError(f"Key column '{key_column}' not found in sheet {sheet_name}")
+#
+#                 duplicates[sheet_name] = []
+#                 new_records[sheet_name] = df
+#                 all_dfs.append(df)
+#
+#         # Merge datasets for 'both'
+#         if file_type == 'post_disbursement' and category == 'both' and all_dfs:
+#             combined_df = pd.concat(all_dfs, ignore_index=True)
+#             new_records = {f'combined_{category}': combined_df}
+#         else:
+#             new_records = {k: v for k, v in new_records.items() if not v.empty}
+#
+#         if new_records:
+#             date_columns = ['applicationdate', 'bcc_approval_date',
+#                             'experiense_(start_date)'] if file_type == 'pre_disbursement' else ['mis_date', 'booked_on',
+#                                                                                                 'loan_closed_on',
+#                                                                                                 'clo_on', 'dtf', 'dtt']
+#             queries = {'pre': [], 'post': [], 'anomalies_pre': [], 'anomalies_post': []}
+#             current_user_id = str(get_current_user_id())
+#             current_time = str(datetime.now())
+#
+#             for df_key, df in new_records.items():
+#                 df[date_columns] = df[date_columns].apply(
+#                     lambda x: x.apply(parse_excel_date) if x.name in df.columns else x)
+#                 records = df.to_dict('records')
+#
+#                 for rec in records:
+#                     if file_type == 'pre_disbursement' and str(rec['application_no']) not in ['', 'NaN', 'None']:
+#
+#                         app_no = str(rec['application_no'])
+#
+#                         # 👇 ADD THIS DUPLICATE CHECK HERE
+#                         if app_no in existing_applications:
+#                             application.logger.debug(f"process_upload: Skipping duplicate application_no: {app_no}")
+#                             # Add to duplicates dict if you want to track them
+#                             if sheet_name not in duplicates:
+#                                 duplicates[sheet_name] = []
+#                             duplicates[sheet_name].append(rec)
+#                             continue  # Skip this record - don't insert
+#
+#                         cnic = str(rec.get('cnic', ''))
+#                         education_level = str(rec.get('education_level', 'N/A')).strip().replace("'", "''")
+#                         no_of_family_members = str(rec.get('no_of_family_members', '0'))
+#
+#                         if no_of_family_members.strip() == '':
+#                             no_of_family_members = '0'
+#
+#                         tenor_of_month = str(rec.get('tenor_of_month', '0'))
+#                         appraised_date = str(rec.get('appraised_date', '1900-01-01'))
+#                         client_dob = format_date_for_sql(str(rec.get('client_dob', '1900-01-01')),
+#                                                          rec['application_no'])
+#                         co_borrower_dob = format_date_for_sql(str(rec.get('co_borrower_dob', '1900-01-01')),
+#                                                               rec['application_no'])
+#                         verfied_date_date = str(rec.get('verfied_date_date', '1900-01-01'))
+#
+#                         # Anomaly detection
+#                         if cnic in existing_records.get('cnic', {}):
+#                             db_rec = existing_records['cnic'][cnic]
+#                             pre_disb_id = db_rec.get('pre_disb_temp_id')
+#                             anomalies = []
+#                             fields_to_check = [
+#                                 ('Borrower_Name', 'borrower_name'),
+#                                 ('Gender', 'gender'),
+#                                 ('Branch_Name', 'branch_name'),
+#                                 ('Student_Name', 'student_name'),
+#                                 ('Student_Co_Borrower_Gender', 'student_co_borrower_gender'),
+#                                 ('Collage_Univeristy', 'collage_univeristy')
+#                             ]
+#                             for db_field, rec_field in fields_to_check:
+#                                 db_val = str(db_rec.get(db_field, '')).strip().lower()
+#                                 rec_val = str(rec.get(rec_field, '')).strip().lower()
+#                                 if db_val != rec_val:
+#                                     anomalies.append(f"{db_field} mismatch: Sheet='{rec_val}', DB='{db_val}'")
+#                             if anomalies:
+#                                 details = "; ".join(anomalies)
+#                                 queries['anomalies_pre'].append(
+#                                     f"INSERT INTO tbl_pre_disb_anomalies (pre_disb_id, details, created_date) "
+#                                     f"VALUES ({pre_disb_id}, '{details}', '{current_time}')"
+#                                 )
+#
+#                         query = f"""
+#                             INSERT INTO tbl_pre_disbursement_temp (
+#                                 "Application_No", "Annual_Business_Incomes", "Annual_Disposable_Income",
+#                                 "Annual_Expenses", "ApplicationDate", "Bcc_Approval_Date", "Borrower_Name",
+#                                 "Branch_Area", "Branch_Name", "Business_Expense_Description",
+#                                 "Business_Experiense_Since", "Business_Premises", "CNIC", "Collage_Univeristy",
+#                                 "Collateral_Type", "Contact_No", "Credit_History_Ecib", "Current_Residencial",
+#                                 "Dbr", "Education_Level", "Enrollment_Status", "Enterprise_Premises",
+#                                 "Existing_Loan_Number", "Existing_Loan_Limit", "Existing_Loan_Status",
+#                                 "Existing_Outstanding_Loan_Schedules", "Experiense_Start_Date",
+#                                 "Family_Monthly_Income", "Father_Husband_Name", "Gender", "KF_Remarks",
+#                                 "Loan_Amount", "Loan_Cycle", "LoanProductCode", "Loan_Status",
+#                                 "Monthly_Repayment_Capacity", "Nature_Of_Business", "No_Of_Family_Members",
+#                                 "Permanent_Residencial", "Premises", "Purpose_Of_Loan", "Requested_Loan_Amount",
+#                                 "Residance_Type", "Student_Name", "Student_Co_Borrower_Gender",
+#                                 "Student_Relation_With_Borrower", "Tenor_Of_Month", "Type_of_Business",
+#                                 "annual_income", "markup_rate", "repayment_frequency", "loan_officer",
+#                                 "appraised_date", "verfied_date_date", "loan_per_exposure", "client_dob",
+#                                 "co_borrower_dob", "relationship_ownership", "other_bank_loans_os",
+#                                 "status", "uploaded_by", "uploaded_date"
+#                             ) VALUES (
+#                                 '{rec.get('application_no', '')}', '{clean_numeric_value(rec.get('annual_business_incomes', '0'))}', '{clean_numeric_value(rec.get('annual_disposable_income', '0'))}',
+#                                 '{rec.get('annual_expenses', '')}', '{rec.get('applicationdate', '')}', '{rec.get('bcc_approval_date', '')}',
+#                                 '{sanitize_file_columns(rec.get('borrower_name', ''))}', '{rec.get('branch_area', '')}', '{rec.get('branch_name', '')}',
+#                                 '{sanitize_file_columns(rec.get('business_expense_description', '').replace(',', ' and '))}', '{rec.get('business_experiense_(since)', '1900-01-01')}',
+#                                 '{sanitize_file_columns(rec.get('business_premises', ''))}', '{rec.get('cnic', '')}', '{sanitize_file_columns(rec.get('collage_univeristy', ''))}',
+#                                 '{sanitize_file_columns(rec.get('collateral_type', ''))}', '{rec.get('contact_no', '')}', '{rec.get('credit_history_(ecib)', '')}',
+#                                 '{sanitize_file_columns(rec.get('current_residencial', ''))}', '{rec.get('dbr', '')}', '{sanitize_file_columns(education_level)}',
+#                                 '{rec.get('enrollment_status', '')}', '{sanitize_file_columns(rec.get('enterprise_premises', ''))}', '{rec.get('existing_loan_number', '')}',
+#                                 '{rec.get('existing_loan_limit', '')}', '{rec.get('existing_loan_status', '')}',
+#                                 '{rec.get('existing_outstanding_loan_schedules', '')}', '{rec.get('experiense_(start_date)', '')}',
+#                                 '{rec.get('family_monthly_income', '')}', '{sanitize_file_columns(rec.get('father_husband_name', ''))}', '{sanitize_file_columns(rec.get('gender', ''))}',
+#                                 '{rec.get('kf_remarks', '')}', '{clean_numeric_value(rec.get('loan_amount', '0'))}', '{rec.get('loan_cycle', '')}',
+#                                 '{rec.get('loanproductcode', '')}', '{rec.get('loan_status', '')}', '{clean_numeric_value(rec.get('monthly_repayment_capacity', ''))}',
+#                                 '{sanitize_file_columns(rec.get('nature_of_business', ''))}', '{no_of_family_members}', '{sanitize_file_columns(rec.get('permanent_residencial', ''))}',
+#                                 '{sanitize_file_columns(rec.get('premises', ''))}', '{sanitize_file_columns(str(rec.get('purpose_of_loan', '')))}', '{clean_numeric_value(rec.get('requested_loan_amount', '0'))}',
+#                                 '{sanitize_file_columns(rec.get('residance_type', ''))}', '{sanitize_file_columns(rec.get('student_name', ''))}', '{sanitize_file_columns(rec.get('student_co_borrower_gender', ''))}',
+#                                 '{rec.get('student_relation_with_borrower', '')}', '{tenor_of_month}', '{rec.get('type_of_business', '')}',
+#                                 '{clean_numeric_value(rec.get('annual_income', ''))}', '{rec.get('markup_rate', '')}', '{rec.get('repayment_frequency', '')}',
+#                                 '{rec.get('loan_officer', '')}', '{appraised_date}', '{verfied_date_date}',
+#                                 '{clean_numeric_value(rec.get('loan_per_exposure', ''))}', '{client_dob}', '{co_borrower_dob}',
+#                                 '{rec.get('relationship_ownership', '')}', '{rec.get('other_bank_loans_os', '')}', '1',
+#                                 '{current_user_id}', '{current_time}'
+#                             )
+#                         """
+#                         queries['pre'].append(query)
+#                     else:
+#                         customer_id = str(rec.get('customer_id', ''))
+#                         pre_disb_id = None
+#                         loan_no = str(rec.get('loan_no', '')).replace("'", '')
+#                         loan_closed_on = str(rec.get('loan_closed_on', '1900-01-01'))
+#                         booked_on = str(rec.get('booked_on', '1900-01-01'))
+#                         clo_on = str(rec.get('clo_on', '1900-01-01'))
+#
+#                         if customer_id and customer_id in existing_records.get('pre', {}):
+#                             db_rec = existing_records['pre'].get(customer_id)
+#                             anomalies = []
+#                             try:
+#                                 pre_disb_id = db_rec.get('pre_disb_temp_id')
+#                                 kft_approved_limit = int(float(str(db_rec.get('KFT_Approved_Loan_Limit', '0'))))
+#                                 disbursed_amount = int(float(str(rec.get('disbursed_amount', '0'))))
+#                                 if kft_approved_limit != disbursed_amount:
+#                                     anomalies.append(f"KFT Approved Amount mismatch: Pre-disbursement = {kft_approved_limit}, Post-disbursement = {disbursed_amount}")
+#                             except ValueError:
+#                                 anomalies.append(
+#                                     f"Invalid amount format: KFT_Approved_Loan_Limit = {db_rec.get('KFT_Approved_Loan_Limit', '')}, disbursed_amount = {rec.get('disbursed_amount', '')}")
+#
+#                             try:
+#                                 booked_on_date = pd.to_datetime(str(rec.get('booked_on', '')), errors='coerce')
+#                                 approval_date = pd.to_datetime(str(db_rec.get('approved_date', '')), errors='coerce')
+#                                 if pd.notnull(booked_on_date) and pd.notnull(
+#                                         approval_date) and booked_on_date < approval_date:
+#                                     anomalies.append(
+#                                         f"Booked date before approval: booked_on = {booked_on_date}, approval_date = {approval_date}")
+#                             except ValueError:
+#                                 anomalies.append(
+#                                     f"Invalid date format: booked_on = {rec.get('booked_on', '')}, approval_date = {db_rec.get('approved_date', '')}")
+#
+#                             if anomalies:
+#                                 details = "; ".join(anomalies)
+#                                 queries['anomalies_post'].append(
+#                                     f"INSERT INTO tbl_post_disbursement_anomalies (pre_disb_id, application_no, details, created_date) "
+#                                     f"VALUES ({(pre_disb_id or 'NULL')}, '{customer_id}', '{details}', '{current_time}')"
+#                                 )
+#
+#                         if customer_id in existing_records.get('post', {}):
+#                             prev_rec = existing_records['post'][customer_id]
+#                             anomalies = []
+#                             fields_to_check = [
+#                                 ('branch_name', 'branch_name'),
+#                                 ('gender', 'gender'),
+#                                 ('loan_no', 'loan_no'),
+#                                 ('product_code', 'product_code'),
+#                                 ('booked_on', 'booked_on'),
+#                                 ('repayment_type', 'repayment_type')
+#                             ]
+#                             for db_field, rec_field in fields_to_check:
+#                                 prev_val = str(prev_rec.get(db_field, '')).strip().lower()
+#                                 curr_val = str(rec.get(rec_field, '')).strip().lower()
+#                                 if prev_val != curr_val:
+#                                     anomalies.append(
+#                                         f"{db_field} mismatch: Previous = {prev_val}, Current = {curr_val}")
+#                             try:
+#                                 curr_outstanding = int(float(str(rec.get('principal_outstanding', '0'))))
+#                                 prev_outstanding = int(float(str(prev_rec.get('principal_outstanding', '0'))))
+#                                 curr_disbursed = int(float(str(rec.get('disbursed_amount', '0'))))
+#                                 if curr_outstanding > prev_outstanding:
+#                                     anomalies.append(
+#                                         f"Outstanding amount increased: Previous = {prev_outstanding}, Current = {curr_outstanding}")
+#                                 if curr_outstanding > curr_disbursed:
+#                                     anomalies.append(
+#                                         f"Outstanding exceeds disbursed: Outstanding = {curr_outstanding}, Disbursed = {curr_disbursed}")
+#                             except ValueError:
+#                                 anomalies.append(
+#                                     f"Invalid amount format: principal_outstanding = {rec.get('principal_outstanding', '')}, disbursed_amount = {rec.get('disbursed_amount', '')}")
+#                             if anomalies:
+#                                 details = "; ".join(anomalies)
+#                                 queries['anomalies_post'].append(
+#                                     f"INSERT INTO tbl_post_disbursement_anomalies (pre_disb_id, application_no, details, created_date) "
+#                                     f"VALUES ({db_rec.get('pre_disb_temp_id', 'NULL') if 'pre' in existing_records else 'NULL'}, '{customer_id}', '{details}', '{current_time}')"
+#                                 )
+#
+#                         if loan_no:
+#                             query = f"""
+#                                 INSERT INTO tbl_post_disbursement (
+#                                     mis_date, area, sector_code, branch_code, branch_name, cnic, gender,
+#                                     address, mobile_no, loan_title, rt, loan_no, product_code, booked_on,
+#                                     disbursed_amount, repayment_type, sector, purpose, loan_status, loan_closed_on,
+#                                     act_clo, colloanno, coll_id, lrno, collat, coll_stat, collateral_value,
+#                                     collateral_title, overdue_days, principal_outstanding, total_outstand_other,
+#                                     markup_outstanding, lo, fc_los, dtf, dtt, customer_id, application_num,
+#                                     clo_on, liab_id, pool_id, account_number, created_by, created_date
+#                                 ) VALUES (
+#                                     '{input_timestamp}', '{rec.get('area', '')}', '{rec.get('sector_code', '')}',
+#                                     '{rec.get('branch_code', '')}', '{rec.get('branch_name', '')}', '{rec.get('cnic', '')}',
+#                                     '{rec.get('gender', '')}', '{sanitize_file_columns(str(rec.get('address', '')))}', '{rec.get('mobile_no', '')}',
+#                                     '{sanitize_file_columns(rec.get('loan_title', ''))}', '{rec.get('rt', '')}', '{loan_no}',
+#                                     '{rec.get('product_code', '')}', '{booked_on}',
+#                                     '{rec.get('disbursed_amount', '')}', '{rec.get('repayment_type', '')}',
+#                                     '{rec.get('sector', '')}', '{rec.get('purpose', '')}', '{rec.get('loan_status', '')}',
+#                                     '{loan_closed_on}', '{rec.get('act_clo', '')}',
+#                                     '{rec.get('colloanno', '')}', '{rec.get('coll_id', '')}', '{rec.get('lrno', '')}',
+#                                     '{rec.get('collat', '')}', '{rec.get('coll_stat', '')}', '{rec.get('collateral_value', '')}',
+#                                     '{rec.get('collateral_title', '')}', '{rec.get('overdue_days', '')}',
+#                                     '{rec.get('principal_outstanding', '')}', '{rec.get('total_outstand_other', '')}',
+#                                     '{rec.get('markup_outstanding', '')}', '{rec.get('lo', '')}', '{rec.get('fc_los', '')}',
+#                                     '{rec.get('dtf', '')}', '{rec.get('dtt', '')}', '{rec.get('customer_id', '')}',
+#                                     '{rec.get('application_num', '')}', '{clo_on}',
+#                                     '{rec.get('liab_id', '')}', '{rec.get('pool_id', '')}', '{rec.get('account_number', '')}',
+#                                     '{current_user_id}', '{current_time}'
+#                                 )
+#                             """
+#                             queries['post'].append(query)
+#
+#             # Execute all queries in batches
+#             for query_type, query_list in queries.items():
+#                 if query_list:
+#                     batch_query = ";".join(query_list)
+#                     execute_command(batch_query, is_print=False)
+#                     application.logger.debug(
+#                         f"process_upload: Executed batch {query_type} query for {len(query_list)} records")
+#
+#         if file_type == 'pre_disbursement' and any(len(duplicates[sheet]) > 0 for sheet in duplicates):
+#             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+#             summary_filename = f"Summary_of_duplicates_discrepancies_{timestamp}.xlsx"
+#             summary_path = os.path.join(current_app.config['UPLOAD_FOLDER'], summary_filename)
+#             with pd.ExcelWriter(summary_path) as writer:
+#                 for sheet_name, duplicate_rows in duplicates.items():
+#                     if len(duplicate_rows) > 0:
+#                         # Convert list of dicts to DataFrame
+#                         duplicate_df = pd.DataFrame(duplicate_rows)
+#                         duplicate_df.to_excel(writer, sheet_name=f"Duplicate_{sheet_name}", index=False)
+#
+#         return True, {
+#             'duplicates': {k: len(v) for k, v in duplicates.items()},
+#             'new_records': {k: len(v) for k, v in new_records.items()},
+#             'summary_path': summary_path
+#         }
+#     except Exception as e:
+#         application.logger.error(f"process_upload: Error processing files: {str(e)}")
+#         return False, f"Error processing file: {str(e)}"
 
 
 def process_upload():
@@ -648,6 +1040,7 @@ def process_upload():
     duplicates = {}
     new_records = {}
     summary_path = None
+    anomaly_applications = set()  # Track application numbers with anomalies
 
     # Define headers and mappings
     pre_headers = [
@@ -696,16 +1089,18 @@ def process_upload():
     try:
         # Fetch existing records once
         existing_records = {}
+        existing_applications = set()
+
         if file_type == 'pre_disbursement':
             records = fetch_records(
-                'SELECT "Application_No", "status", "CNIC", "Borrower_Name", "Gender", "Branch_Name", '
+                'SELECT "pre_disb_temp_id", "Application_No", "status", "CNIC", "Borrower_Name", "Gender", "Branch_Name", '
                 '"Student_Name", "Student_Co_Borrower_Gender", "Collage_Univeristy", '
                 'KFT_Approved_Loan_Limit, "approved_date" FROM tbl_pre_disbursement_temp')
             existing_records['pre'] = {str(row['Application_No']): row for row in records}
             existing_records['cnic'] = {str(row['CNIC']): row for row in records if row['CNIC']}
-
             existing_applications = set(existing_records['pre'].keys())
-            application.logger.debug(f"process_upload: Loaded {len(existing_applications)} existing application numbers")
+            application.logger.debug(
+                f"process_upload: Loaded {len(existing_applications)} existing application numbers")
         else:
             records = fetch_records('SELECT customer_id, branch_name, gender, loan_no, product_code, booked_on, '
                                     'repayment_type, principal_outstanding, disbursed_amount FROM tbl_post_disbursement '
@@ -721,31 +1116,30 @@ def process_upload():
                 df.columns = [col.strip().lower().replace('/', '_').replace(' ', '_') for col in df.columns]
 
                 if df.columns.duplicated().any():
-                    duplicates = df.columns[df.columns.duplicated()].tolist()
-                    application.logger.error(f"process_upload: Duplicate columns in sheet '{sheet_name}': {duplicates}")
-                    raise ValueError(f"Duplicate column names found in sheet {sheet_name}: {duplicates}")
+                    duplicates_list = df.columns[df.columns.duplicated()].tolist()
+                    application.logger.error(
+                        f"process_upload: Duplicate columns in sheet '{sheet_name}': {duplicates_list}")
+                    raise ValueError(f"Duplicate column names found in sheet {sheet_name}: {duplicates_list}")
 
                 expected_headers = pre_headers if file_type == 'pre_disbursement' else post_headers
                 table_name = 'tbl_pre_disbursement_temp' if file_type == 'pre_disbursement' else 'tbl_post_disbursement'
                 key_column = 'application_no' if file_type == 'pre_disbursement' else 'loan_no'
 
                 if file_type == 'post_disbursement':
-                    mapping = post_to_los_mapping if category == 'los' or (category == 'both' and file_idx == 0) else post_to_mis_mapping
+                    mapping = post_to_los_mapping if category == 'los' or (
+                                category == 'both' and file_idx == 0) else post_to_mis_mapping
                     inverse_mapping = {v: k for k, v in mapping.items()}
 
-                    # Check for duplicate columns before renaming
                     if df.columns.duplicated().any():
-                        duplicates = df.columns[df.columns.duplicated()].tolist()
+                        duplicates_list = df.columns[df.columns.duplicated()].tolist()
                         application.logger.error(
-                            f"process_upload: Duplicate columns in sheet '{sheet_name}': {duplicates}")
-                        raise ValueError(f"Duplicate column names found in sheet {sheet_name}: {duplicates}")
+                            f"process_upload: Duplicate columns in sheet '{sheet_name}': {duplicates_list}")
+                        raise ValueError(f"Duplicate column names found in sheet {sheet_name}: {duplicates_list}")
 
-                    # Only rename columns that exist in the DataFrame
                     rename_dict = {k: v for k, v in inverse_mapping.items() if k in df.columns}
                     df = df.rename(columns=rename_dict)
 
                     if category == 'both' and file_idx == 0:
-                        # Similarly for los_to_mis_mapping
                         los_rename_dict = {k: v for k, v in los_to_mis_mapping.items() if k in df.columns}
                         df = df.rename(columns=los_rename_dict)
 
@@ -792,14 +1186,13 @@ def process_upload():
 
                         app_no = str(rec['application_no'])
 
-                        # 👇 ADD THIS DUPLICATE CHECK HERE
+                        # Duplicate check
                         if app_no in existing_applications:
                             application.logger.debug(f"process_upload: Skipping duplicate application_no: {app_no}")
-                            # Add to duplicates dict if you want to track them
                             if sheet_name not in duplicates:
                                 duplicates[sheet_name] = []
                             duplicates[sheet_name].append(rec)
-                            continue  # Skip this record - don't insert
+                            continue
 
                         cnic = str(rec.get('cnic', ''))
                         education_level = str(rec.get('education_level', 'N/A')).strip().replace("'", "''")
@@ -816,10 +1209,12 @@ def process_upload():
                                                               rec['application_no'])
                         verfied_date_date = str(rec.get('verfied_date_date', '1900-01-01'))
 
-                        # Anomaly detection
+                        # Anomaly detection for pre-disbursement
                         if cnic in existing_records.get('cnic', {}):
                             db_rec = existing_records['cnic'][cnic]
                             pre_disb_id = db_rec.get('pre_disb_temp_id')
+                            dub_app_no = db_rec.get('Application_No')
+
                             anomalies = []
                             fields_to_check = [
                                 ('Borrower_Name', 'borrower_name'),
@@ -832,14 +1227,24 @@ def process_upload():
                             for db_field, rec_field in fields_to_check:
                                 db_val = str(db_rec.get(db_field, '')).strip().lower()
                                 rec_val = str(rec.get(rec_field, '')).strip().lower()
+
+                                message = f"New application no is: {str(app_no)} \n"
+
                                 if db_val != rec_val:
-                                    anomalies.append(f"{db_field} mismatch: Sheet='{rec_val}', DB='{db_val}'")
+                                    message += f"{db_field} mismatch: Current= {rec_val}, Previous={db_val} \n"
+                                    anomalies.append(message)
+
                             if anomalies:
                                 details = "; ".join(anomalies)
                                 queries['anomalies_pre'].append(
-                                    f"INSERT INTO tbl_pre_disb_anomalies (pre_disb_id, details, created_date) "
-                                    f"VALUES ({pre_disb_id}, '{details}', '{current_time}')"
+                                    f"""
+                                        INSERT INTO tbl_pre_disb_anomalies (pre_disb_id, details, created_date)
+                                        VALUES ({pre_disb_id}, {escape_sql_string(details)}, '{current_time}')
+                                    """
+
                                 )
+                                # Add to anomaly applications set
+                                anomaly_applications.add(str(dub_app_no))
 
                         query = f"""
                             INSERT INTO tbl_pre_disbursement_temp (
@@ -887,7 +1292,8 @@ def process_upload():
                             )
                         """
                         queries['pre'].append(query)
-                    else:
+
+                    else:  # Post disbursement
                         customer_id = str(rec.get('customer_id', ''))
                         pre_disb_id = None
                         loan_no = str(rec.get('loan_no', '')).replace("'", '')
@@ -895,6 +1301,7 @@ def process_upload():
                         booked_on = str(rec.get('booked_on', '1900-01-01'))
                         clo_on = str(rec.get('clo_on', '1900-01-01'))
 
+                        # Anomaly detection - comparing with pre-disbursement data
                         if customer_id and customer_id in existing_records.get('pre', {}):
                             db_rec = existing_records['pre'].get(customer_id)
                             anomalies = []
@@ -903,7 +1310,8 @@ def process_upload():
                                 kft_approved_limit = int(float(str(db_rec.get('KFT_Approved_Loan_Limit', '0'))))
                                 disbursed_amount = int(float(str(rec.get('disbursed_amount', '0'))))
                                 if kft_approved_limit != disbursed_amount:
-                                    anomalies.append(f"KFT Approved Amount mismatch: Pre-disbursement = {kft_approved_limit}, Post-disbursement = {disbursed_amount}")
+                                    anomalies.append(
+                                        f"KFT Approved Amount mismatch: Pre-disbursement = {kft_approved_limit}, Post-disbursement = {disbursed_amount}")
                             except ValueError:
                                 anomalies.append(
                                     f"Invalid amount format: KFT_Approved_Loan_Limit = {db_rec.get('KFT_Approved_Loan_Limit', '')}, disbursed_amount = {rec.get('disbursed_amount', '')}")
@@ -923,9 +1331,12 @@ def process_upload():
                                 details = "; ".join(anomalies)
                                 queries['anomalies_post'].append(
                                     f"INSERT INTO tbl_post_disbursement_anomalies (pre_disb_id, application_no, details, created_date) "
-                                    f"VALUES ({(pre_disb_id or 'NULL')}, '{customer_id}', '{details}', '{current_time}')"
+                                    f"VALUES ({(pre_disb_id or 'NULL')}, '{customer_id}', {escape_sql_string(details)}, '{current_time}')"
                                 )
+                                # Add to anomaly applications set
+                                anomaly_applications.add(str(customer_id))
 
+                        # Anomaly detection - comparing with existing post-disbursement records
                         if customer_id in existing_records.get('post', {}):
                             prev_rec = existing_records['post'][customer_id]
                             anomalies = []
@@ -943,6 +1354,7 @@ def process_upload():
                                 if prev_val != curr_val:
                                     anomalies.append(
                                         f"{db_field} mismatch: Previous = {prev_val}, Current = {curr_val}")
+
                             try:
                                 curr_outstanding = int(float(str(rec.get('principal_outstanding', '0'))))
                                 prev_outstanding = int(float(str(prev_rec.get('principal_outstanding', '0'))))
@@ -956,12 +1368,15 @@ def process_upload():
                             except ValueError:
                                 anomalies.append(
                                     f"Invalid amount format: principal_outstanding = {rec.get('principal_outstanding', '')}, disbursed_amount = {rec.get('disbursed_amount', '')}")
+
                             if anomalies:
                                 details = "; ".join(anomalies)
                                 queries['anomalies_post'].append(
                                     f"INSERT INTO tbl_post_disbursement_anomalies (pre_disb_id, application_no, details, created_date) "
                                     f"VALUES ({db_rec.get('pre_disb_temp_id', 'NULL') if 'pre' in existing_records else 'NULL'}, '{customer_id}', '{details}', '{current_time}')"
                                 )
+                                # Add to anomaly applications set
+                                anomaly_applications.add(str(customer_id))
 
                         if loan_no:
                             query = f"""
@@ -1003,6 +1418,7 @@ def process_upload():
                     application.logger.debug(
                         f"process_upload: Executed batch {query_type} query for {len(query_list)} records")
 
+        # Generate duplicate summary Excel if needed
         if file_type == 'pre_disbursement' and any(len(duplicates[sheet]) > 0 for sheet in duplicates):
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             summary_filename = f"Summary_of_duplicates_discrepancies_{timestamp}.xlsx"
@@ -1010,15 +1426,28 @@ def process_upload():
             with pd.ExcelWriter(summary_path) as writer:
                 for sheet_name, duplicate_rows in duplicates.items():
                     if len(duplicate_rows) > 0:
-                        # Convert list of dicts to DataFrame
                         duplicate_df = pd.DataFrame(duplicate_rows)
                         duplicate_df.to_excel(writer, sheet_name=f"Duplicate_{sheet_name}", index=False)
+
+        # Generate anomalies PDF if any anomalies were detected
+        anomalies_report_path = None
+        if anomaly_applications:
+            try:
+                anomalies_report_path = generate_anomalies_html(list(anomaly_applications))
+                if anomalies_report_path:
+                    application.logger.info(
+                        f"process_upload: Generated anomalies report for {len(anomaly_applications)} applications")
+            except Exception as e:
+                application.logger.error(f"process_upload: Failed to generate anomalies PDF: {str(e)}")
 
         return True, {
             'duplicates': {k: len(v) for k, v in duplicates.items()},
             'new_records': {k: len(v) for k, v in new_records.items()},
-            'summary_path': summary_path
+            'summary_path': summary_path,
+            'anomalies_report_path': anomalies_report_path,
+            'anomalies_detected': len(anomaly_applications) > 0
         }
+
     except Exception as e:
         application.logger.error(f"process_upload: Error processing files: {str(e)}")
         return False, f"Error processing file: {str(e)}"
@@ -1083,6 +1512,52 @@ def download_summary():
         return redirect(url_for('manage_file'))
 
 
+@application.route('/download_anomalies_report')
+def download_anomalies_report():
+    application.logger.debug("download_anomalies_report: Entering function")
+    try:
+        if 'anomalies_report' not in session or not session['anomalies_report']:
+            application.logger.warning("download_anomalies_report: No anomalies report in session")
+            flash('No anomalies report available for download', 'danger')
+            return redirect(url_for('manage_file'))
+
+        file_path = session['anomalies_report']
+        if not os.path.exists(file_path):
+            application.logger.warning("download_anomalies_report: Report file does not exist")
+            flash('Anomalies report no longer exists', 'danger')
+            return redirect(url_for('manage_file'))
+
+        if not file_path.startswith(application.config['UPLOAD_FOLDER']):
+            application.logger.error("download_anomalies_report: File path not in UPLOAD_FOLDER")
+            abort(403, description="Access denied")
+
+        timestamp = datetime.now().strftime("%Y-%m-%d")
+        download_name = f"Anomalies_Report_{timestamp}.html"
+
+        @after_this_request
+        def cleanup(response):
+            try:
+                if os.path.exists(file_path):
+                    safe_remove(file_path)
+                    session.pop('anomalies_report', None)
+                    application.logger.debug("download_anomalies_report: Cleaned up report file and session")
+            except Exception as e:
+                application.logger.error(f"download_anomalies_report: Error cleaning up report file: {str(e)}")
+            return response
+
+        return send_file(
+            file_path,
+            as_attachment=True,
+            download_name=download_name,
+            mimetype='text/html',
+            conditional=True
+        )
+    except Exception as e:
+        application.logger.error(f"download_anomalies_report: Error downloading report: {str(e)}")
+        flash('Could not prepare the download. Please try again.', 'danger')
+        return redirect(url_for('manage_file'))
+
+
 def sanitize_file_columns(address: str) -> str:
     if not address or not isinstance(address, str):
         return ''
@@ -1131,3 +1606,7 @@ def clean_numeric_value(value):
     except ValueError:
         application.logger.warning(f"clean_numeric_value: Invalid number format '{value}'")
         return '0'  # Return '0' as fallback
+
+
+def pg_escape(s):
+    return str(s).replace("'", "''") if s is not None else "NULL"
