@@ -172,7 +172,7 @@ def manage_file():
 #     return results
 
 
-def process_zip_application_images(zip_file):
+def process_zip_application_images(zip_file, user_id=None):
     """
     Process uploaded ZIP file containing application images:
     - Extracts images from supported formats
@@ -187,6 +187,11 @@ def process_zip_application_images(zip_file):
         'skipped': 0,
         'applications': []
     }
+
+    if user_id is None:
+        user_id = get_current_user_id()
+    else:
+        user_id = '0'
 
     application.logger.debug("process_zip_application_images: Starting ZIP processing")
 
@@ -303,8 +308,8 @@ def process_zip_application_images(zip_file):
                 'cnic': cnic_esc,
                 'customer_name': name_esc,
                 'image_data_hex': image_bytes.hex(),
-                'created_by': str(get_current_user_id()),
-                'modified_by': str(get_current_user_id()),
+                'created_by': str(user_id),
+                'modified_by': str(user_id),
             })
 
             app_image_counts[application_no] = app_image_counts.get(application_no, 0) + 1
