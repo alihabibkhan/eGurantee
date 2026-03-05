@@ -1,4 +1,3 @@
-from imports import *
 from application import application
 
 
@@ -11,4 +10,5 @@ def cron_example_task():
 
 # Run in app context (useful if task needs config, DB, etc.)
 with application.app_context():
+
     cron_example_task()
