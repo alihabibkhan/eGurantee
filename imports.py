@@ -24,6 +24,8 @@ import io
 from io import BytesIO
 from hashlib import md5
 import logging
+import platform
+import sys
 
 from Config.db_postgress import *
 
