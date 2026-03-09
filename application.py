@@ -248,6 +248,11 @@ def awaiting_service():
                          distributions=distributions)
 
 
+
+@application.route('/privacy-policy')
+def privacy_policy():
+    return render_template('privacy_policy.html')
+
 from App_Auth import *
 from App_Users import *
 from App_Budget import *
