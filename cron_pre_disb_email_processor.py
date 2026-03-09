@@ -474,7 +474,7 @@ def main():
 
         print(subject_part)
 
-        search_criteria = f'(SINCE "{date_str}" FROM "{sender_email}" {subject_part})'
+        search_criteria = f'(SINCE "{date_str}" FROM "{sender_email}" {subject_part} UNSEEN)'
         print(search_criteria)
 
         status, messages = mail.search(None, search_criteria)
