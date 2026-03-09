@@ -160,9 +160,6 @@ def main():
     start_time = datetime.now()   # better to use timezone-aware
 
     try:
-        job_id = log_job_start()
-        logger.info(f"Job started - run ID: {job_id}")
-
         emails_found = 0
         zips_processed = 0
         total_processed = 0
@@ -228,17 +225,10 @@ def main():
             logger.info("No matching emails found today")
             mail.logout()
             # Still log success (zero emails is normal)
-            duration = int((datetime.now() - start_time).total_seconds())
-            log_job_end(
-                job_id=job_id,
-                status='succeeded',
-                duration_sec=duration,
-                emails_found=0,
-                zips_processed=0,
-                images_processed=0,
-                images_skipped=0
-            )
             return
+
+        job_id = log_job_start()
+        logger.info(f"Job started - run ID: {job_id}")
 
         logger.info(f"Found {len(mail_ids)} matching email(s)")
         emails_found = len(mail_ids)
@@ -293,17 +283,18 @@ def main():
         end_time = datetime.now()
         duration = int((end_time - start_time).total_seconds()) if start_time else None
 
-        log_job_end(
-            job_id=job_id,
-            status='failed',
-            duration_sec=duration,
-            emails_found=emails_found,
-            zips_processed=zips_processed,
-            images_processed=total_processed,
-            images_skipped=total_skipped,
-            error_msg=str(e),
-            error_trace=traceback.format_exc(limit=8)  # last 8 lines of traceback
-        )
+        if job_id is not None:
+            log_job_end(
+                job_id=job_id,
+                status='failed',
+                duration_sec=duration,
+                emails_found=emails_found,
+                zips_processed=zips_processed,
+                images_processed=total_processed,
+                images_skipped=total_skipped,
+                error_msg=str(e),
+                error_trace=traceback.format_exc(limit=8)  # last 8 lines of traceback
+            )
 
     finally:
         # Any cleanup (e.g. close mail connection if still open)

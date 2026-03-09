@@ -417,8 +417,6 @@ def main():
     anomalies_path = None
 
     try:
-        job_id = log_job_start()
-        logger.info(f"Pre-disbursement email processor started - run ID: {job_id}")
 
         emails_found = 0
         files_processed = 0
@@ -486,57 +484,62 @@ def main():
 
         if not mail_ids:
             logger.info("No matching emails found today")
-        else:
-            logger.info(f"Found {emails_found} matching email(s)")
+            mail.logout()
+            return
 
-            # Create temporary directory for downloaded files
-            temp_dir = tempfile.mkdtemp(prefix="pre_disb_cron_")
+        job_id = log_job_start()
+        logger.info(f"Pre-disbursement email processor started - run ID: {job_id}")
 
-            for num in mail_ids:
-                _, msg_data = mail.fetch(num, '(RFC822)')
-                raw_email = msg_data[0][1]
-                msg = email.message_from_bytes(raw_email)
+        logger.info(f"Found {emails_found} matching email(s)")
 
-                subject = decode_subject(msg['Subject'] or '')
-                logger.info(f"Processing email: {subject}")
+        # Create temporary directory for downloaded files
+        temp_dir = tempfile.mkdtemp(prefix="pre_disb_cron_")
 
-                excel_attachments = get_excel_attachments(msg)
-                if not excel_attachments:
-                    logger.warning("No Excel attachments found")
-                    continue
+        for num in mail_ids:
+            _, msg_data = mail.fetch(num, '(RFC822)')
+            raw_email = msg_data[0][1]
+            msg = email.message_from_bytes(raw_email)
 
-                # Save attachments to temporary files
-                filepaths = []
-                for filename, raw_bytes in excel_attachments:
-                    temp_path = os.path.join(temp_dir, filename)
-                    with open(temp_path, 'wb') as f:
-                        f.write(raw_bytes.getvalue())
-                    filepaths.append(temp_path)
-                    files_processed += 1
+            subject = decode_subject(msg['Subject'] or '')
+            logger.info(f"Processing email: {subject}")
 
-                # Process using the new dedicated function
-                try:
-                    result = process_pre_disbursement_files(
-                        filepaths=filepaths,
-                        input_timestamp=today.strftime('%Y-%m-%d'),
-                        uploaded_by_user_id="system-cron",   # or get_current_user_id() if applicable
-                        generate_reports=True
-                    )
+            excel_attachments = get_excel_attachments(msg)
+            if not excel_attachments:
+                logger.warning("No Excel attachments found")
+                continue
 
-                    # Extract metrics for logging
-                    new_records_count += result.get('new_records_count', 0)
-                    duplicates_count += result.get('duplicate_count', 0)
-                    anomalies_count += result.get('anomalies_count', 0)
-                    summary_path = result.get('summary_excel_path')
-                    anomalies_path = result.get('anomalies_report_path')
+            # Save attachments to temporary files
+            filepaths = []
+            for filename, raw_bytes in excel_attachments:
+                temp_path = os.path.join(temp_dir, filename)
+                with open(temp_path, 'wb') as f:
+                    f.write(raw_bytes.getvalue())
+                filepaths.append(temp_path)
+                files_processed += 1
 
-                    logger.info(f"Processed {len(filepaths)} files → new: {new_records_count}, dups: {duplicates_count}, anomalies: {anomalies_count}")
+            # Process using the new dedicated function
+            try:
+                result = process_pre_disbursement_files(
+                    filepaths=filepaths,
+                    input_timestamp=today.strftime('%Y-%m-%d'),
+                    uploaded_by_user_id="system-cron",   # or get_current_user_id() if applicable
+                    generate_reports=True
+                )
 
-                except Exception as proc_err:
-                    logger.error(f"Processing failed for attachments in email {subject}: {proc_err}", exc_info=True)
+                # Extract metrics for logging
+                new_records_count += result.get('new_records_count', 0)
+                duplicates_count += result.get('duplicate_count', 0)
+                anomalies_count += result.get('anomalies_count', 0)
+                summary_path = result.get('summary_excel_path')
+                anomalies_path = result.get('anomalies_report_path')
 
-                # Mark email as seen
-                mail.store(num, '+FLAGS', '\\Seen')
+                logger.info(f"Processed {len(filepaths)} files → new: {new_records_count}, dups: {duplicates_count}, anomalies: {anomalies_count}")
+
+            except Exception as proc_err:
+                logger.error(f"Processing failed for attachments in email {subject}: {proc_err}", exc_info=True)
+
+            # Mark email as seen
+            mail.store(num, '+FLAGS', '\\Seen')
 
         mail.logout()
 
@@ -566,20 +569,21 @@ def main():
         error_msg = str(e).encode('ascii', errors='replace').decode('ascii')
         error_trace = traceback.format_exc(limit=8)
 
-        log_job_end(
-            job_id=job_id,
-            status='failed',
-            duration_sec=duration,
-            emails_found=emails_found,
-            files_processed=files_processed,
-            new_records_count=new_records_count,
-            duplicates_count=duplicates_count,
-            anomalies_count=anomalies_count,
-            summary_path=summary_path,
-            anomalies_path=anomalies_path,
-            error_msg=error_msg,
-            error_trace=error_trace
-        )
+        if job_id is not None:
+            log_job_end(
+                job_id=job_id,
+                status='failed',
+                duration_sec=duration,
+                emails_found=emails_found,
+                files_processed=files_processed,
+                new_records_count=new_records_count,
+                duplicates_count=duplicates_count,
+                anomalies_count=anomalies_count,
+                summary_path=summary_path,
+                anomalies_path=anomalies_path,
+                error_msg=error_msg,
+                error_trace=error_trace
+            )
 
     finally:
         # Cleanup temporary files
