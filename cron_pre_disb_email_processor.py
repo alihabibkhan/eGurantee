@@ -261,6 +261,11 @@ def process_pre_disbursement_files(
                                                   rec['application_no'])
             verfied_date_date = str(rec.get('verfied_date_date', '1900-01-01'))
 
+            loan_per_exposure = str(rec.get('loan_per_exposure', '0')).strip()
+
+            if loan_per_exposure in ['', 'None']:
+                loan_per_exposure = '0'
+
             # ── Duplicate check ──
             if app_no in existing_app_numbers:
                 duplicates[sheet_name].append(rec)
@@ -350,7 +355,7 @@ def process_pre_disbursement_files(
                     '{rec.get('student_relation_with_borrower', '')}', '{tenor_of_month}', '{rec.get('type_of_business', '')}',
                     '{clean_numeric_value(rec.get('annual_income', ''))}', '{rec.get('markup_rate', '')}', '{rec.get('repayment_frequency', '')}',
                     '{rec.get('loan_officer', '')}', '{appraised_date}', '{verfied_date_date}',
-                    '{clean_numeric_value(rec.get('loan_per_exposure', ''))}', '{client_dob}', '{co_borrower_dob}',
+                    '{clean_numeric_value(loan_per_exposure)}', '{client_dob}', '{co_borrower_dob}',
                     '{rec.get('relationship_ownership', '')}', '{rec.get('other_bank_loans_os', '')}', '1',
                     '{str('0')}', '{current_time}'
                 )
@@ -469,7 +474,7 @@ def main():
 
         print(subject_part)
 
-        search_criteria = f'(SINCE "{date_str}" FROM "{sender_email}" {subject_part} UNSEEN)'
+        search_criteria = f'(SINCE "{date_str}" FROM "{sender_email}" {subject_part})'
         print(search_criteria)
 
         status, messages = mail.search(None, search_criteria)

@@ -172,7 +172,7 @@ def main():
         password = os.getenv('EMAIL_PASS', 'eqnp oytt klbi ojit')
         imap_server = os.getenv('IMAP_SERVER', 'imap.gmail.com')
         sender_email = os.getenv('EMAIL_SENDER', 'zali9261@gmail.com')
-        IMAGE_SUBJECT = os.getenv('IMAGE_SUBJECT', 'FW: Loan - Attachment Images (ZIP)')
+        IMAGE_SUBJECT = os.getenv('IMAGE_SUBJECT', 'FW: Loan – Attachment Images (ZIP)')
 
         if not user or not password:
             logger.error("Missing EMAIL_USER or EMAIL_PASS env vars")
@@ -186,12 +186,37 @@ def main():
         today = datetime.now().date()
         date_str = today.strftime("%d-%b-%Y")
 
-        IMAGE_SUBJECT = IMAGE_SUBJECT.replace('\u2013', '-')  # en dash → hyphen
-        IMAGE_SUBJECT = IMAGE_SUBJECT.replace('\u2014', '-')  # em dash → hyphen
-        IMAGE_SUBJECT = IMAGE_SUBJECT.replace('–', '-')  # literal en dash
-        IMAGE_SUBJECT = IMAGE_SUBJECT.replace('—', '-')
-        
-        search_criteria = f'(SINCE "{date_str}" FROM "{sender_email}" SUBJECT "{IMAGE_SUBJECT}" UNSEEN)'
+        subjects = [IMAGE_SUBJECT.strip()
+                    .replace('\u2013', '-')  # en dash
+                    .replace('\u2014', '-')  # em dash
+                    .replace('–', '-')  # literal en dash
+                    .replace('—', '-') for s in IMAGE_SUBJECT.split('||') if s.strip()]
+
+        if not subjects:
+            subjects = ['FW: Loan – Attachment Images (ZIP)']
+
+        # Build OR chain
+        subject_clauses = ' '.join(f'SUBJECT "{s}"' for s in subjects)
+
+        if len(subjects) == 1:
+            subject_part = subject_clauses
+        else:
+            # Nested ORs — IMAP requires this structure for >2 items
+            subject_part = subject_clauses
+            for _ in range(len(subjects) - 2):
+                subject_part = f'(OR {subject_part})'
+
+            subject_part = f'(OR {subject_part})'
+
+        print(subject_part)
+
+        # IMAGE_SUBJECT = IMAGE_SUBJECT.replace('\u2013', '-')  # en dash → hyphen
+        # IMAGE_SUBJECT = IMAGE_SUBJECT.replace('\u2014', '-')  # em dash → hyphen
+        # IMAGE_SUBJECT = IMAGE_SUBJECT.replace('–', '-')  # literal en dash
+        # IMAGE_SUBJECT = IMAGE_SUBJECT.replace('—', '-')
+
+        search_criteria = f'(SINCE "{date_str}" FROM "{sender_email}" {subject_part} UNSEEN)'
+        # search_criteria = f'(SINCE "{date_str}" FROM "{sender_email}" SUBJECT "{IMAGE_SUBJECT}" UNSEEN)'
 
         status, messages = mail.search(None, search_criteria)
         if status != 'OK':

@@ -1213,6 +1213,12 @@ def process_upload():
                         co_borrower_dob = format_date_for_sql(str(rec.get('co_borrower_dob', '1900-01-01')),
                                                               rec['application_no'])
                         verfied_date_date = str(rec.get('verfied_date_date', '1900-01-01'))
+                        loan_per_exposure = str(rec.get('loan_per_exposure', '0')).strip()
+
+                        if loan_per_exposure in ['', 'None']:
+                            loan_per_exposure = '0'
+
+                        # print('loan_per_exposure:- ', loan_per_exposure, ' type of loan_per_exposure ', type(loan_per_exposure))
 
                         # Anomaly detection for pre-disbursement
                         if cnic in existing_records.get('cnic', {}):
@@ -1291,7 +1297,7 @@ def process_upload():
                                 '{rec.get('student_relation_with_borrower', '')}', '{tenor_of_month}', '{rec.get('type_of_business', '')}',
                                 '{clean_numeric_value(rec.get('annual_income', ''))}', '{rec.get('markup_rate', '')}', '{rec.get('repayment_frequency', '')}',
                                 '{rec.get('loan_officer', '')}', '{appraised_date}', '{verfied_date_date}',
-                                '{clean_numeric_value(rec.get('loan_per_exposure', ''))}', '{client_dob}', '{co_borrower_dob}',
+                                '{clean_numeric_value(loan_per_exposure)}', '{client_dob}', '{co_borrower_dob}',
                                 '{rec.get('relationship_ownership', '')}', '{rec.get('other_bank_loans_os', '')}', '1',
                                 '{current_user_id}', '{current_time}'
                             )
