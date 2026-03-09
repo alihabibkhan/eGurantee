@@ -186,7 +186,7 @@ def main():
         today = datetime.now().date()
         date_str = today.strftime("%d-%b-%Y")
 
-        subjects = [IMAGE_SUBJECT.strip()
+        subjects = [s.strip()
                     .replace('\u2013', '-')  # en dash
                     .replace('\u2014', '-')  # em dash
                     .replace('–', '-')  # literal en dash
