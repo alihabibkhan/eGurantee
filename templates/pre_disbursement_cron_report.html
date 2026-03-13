@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pre-Disbursement Cron Report</title>
+    <title>Loan-Analysis Auto Upload Monitor</title>
     {% include 'head.html' %}
     <style>
         .table-responsive { margin-bottom: 1.5rem; }
@@ -18,12 +18,12 @@
 <body>
     {% include 'navbar.html' %}
     {% import 'breadcrumbs.html' as brd %}
-    {{ brd.render_Breadcrumbs([{"url":"", "label":"Reports"}, {"url":"", "label":"Pre-Disbursement Cron"}] ) }}
+    {{ brd.render_Breadcrumbs([{"url":"", "label":"Loan-Analysis Auto Upload Monitor"}] ) }}
 
     <div class="container py-4">
         {% include 'message_box.html' %}
 
-        <h1 class="mb-4">Pre-Disbursement Email Processor Report</h1>
+        <h1 class="mb-4">Loan-Analysis Auto Upload Monitor</h1>
 
         <!-- Filter Form -->
         <div class="card filter-form mb-4">
@@ -125,10 +125,10 @@
                     <td>${row.duplicates_count ?? 0}</td>
                     <td>${row.anomalies_count ?? 0}</td>
                     <td>
-                        ${row.summary_path ? `<a href="${row.summary_path}" target="_blank">View</a>` : '—'}
+                        ${row.summary_path ? `<a href="${row.summary_path}" target="_blank">Download</a>` : '—'}
                     </td>
                     <td>
-                        ${row.anomalies_path ? `<a href="${row.anomalies_path}" target="_blank">View</a>` : '—'}
+                        ${row.anomalies_path ? `<a href="${row.anomalies_path}" target="_blank">Download</a>` : '—'}
                     </td>
                     <td class="text-danger text-truncate" style="max-width: 200px;" title="${row.error_message || ''}">
                         ${row.error_message ? row.error_message.substring(0, 80) + '...' : '—'}

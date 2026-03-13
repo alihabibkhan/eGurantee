@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image/ZIP Upload Cron Report</title>
+    <title>Images Auto Upload Monitor</title>
     {% include 'head.html' %}
     <style>
         .table-responsive { margin-bottom: 1.5rem; }
@@ -24,12 +24,12 @@
 <body>
     {% include 'navbar.html' %}
     {% import 'breadcrumbs.html' as brd %}
-    {{ brd.render_Breadcrumbs([{"url":"", "label":"Reports"}, {"url":"", "label":"Image/ZIP Upload Cron"}] ) }}
+    {{ brd.render_Breadcrumbs([{"url":"", "label":"Images Auto Upload Monitor"}] ) }}
 
     <div class="container py-4">
         {% include 'message_box.html' %}
 
-        <h1 class="mb-4">Image/ZIP Email Upload Cron Report</h1>
+        <h1 class="mb-4">Images Auto Upload Monitor</h1>
 
         <!-- Filter Form -->
         <div class="card filter-form mb-4">
