@@ -1,5 +1,6 @@
 from imports import *
 from application import application
+from datetime import timedelta
 
 
 @application.route('/fund-projection-report')
@@ -387,3 +388,112 @@ def get_loan_projection_report_data():
     except Exception as e:
         print("Error:", str(e))
         return jsonify({'success': False, 'error': str(e)})
+
+
+@application.route('/reports/pre-disbursement-cron')
+def pre_disbursement_cron_report():
+    if not (is_login() and (is_admin() or is_executive_approver())):
+        flash("Access denied.", "danger")
+        return redirect(url_for('login'))
+
+    now = datetime.now()
+    default_start = (now - timedelta(days=30)).strftime('%Y-%m-%d')
+    default_end = now.strftime('%Y-%m-%d')
+
+    return render_template('pre_disbursement_cron_report.html', default_start=default_start, default_end=default_end, now=now)
+
+
+@application.route('/reports/image-zip-cron')
+def image_zip_cron_report():
+    try:
+        if not (is_login() and (is_admin() or is_executive_approver())):
+            flash("Access denied.", "danger")
+            return redirect(url_for('login'))
+
+        now = datetime.now()
+        default_start = (now - timedelta(days=30)).strftime('%Y-%m-%d')
+        default_end = now.strftime('%Y-%m-%d')
+
+        return render_template('image_zip_cron_report.html', default_start=default_start, default_end=default_end,
+                               now=now)
+    except Exception as e:
+        print("/reports/image-zip-cron Error:", str(e))
+
+    return redirect(url_for('login'))
+
+# ── API Endpoints for AJAX ────────────────────────────────────────
+
+@application.route('/api/reports/pre-disbursement-runs', methods=['GET'])
+def api_pre_disbursement_runs():
+    if not (is_login() and (is_admin() or is_executive_approver())):
+        return jsonify({"error": "Unauthorized"}), 403
+
+    start_date = request.args.get('start')
+    end_date   = request.args.get('end')
+
+    # Optional: default to last 30 days if no filter
+    if not start_date:
+        start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+    if not end_date:
+        end_date = datetime.now().strftime('%Y-%m-%d')
+
+    try:
+        # Your DB query function – returns list of dicts
+        runs = get_pre_disb_processor_runs(start_date, end_date)
+        return jsonify({"success": True, "data": runs})
+    except Exception as e:
+        application.logger.error(f"API error (pre-disb): {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@application.route('/api/reports/image-zip-runs', methods=['GET'])
+def api_image_zip_runs():
+    if not (is_login() and (is_admin() or is_executive_approver())):
+        return jsonify({"error": "Unauthorized"}), 403
+
+    start_date = request.args.get('start')
+    end_date   = request.args.get('end')
+
+    if not start_date:
+        start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+    if not end_date:
+        end_date = datetime.now().strftime('%Y-%m-%d')
+
+    try:
+        runs = get_image_zip_processor_runs(start_date, end_date)
+        return jsonify({"success": True, "data": runs})
+    except Exception as e:
+        application.logger.error(f"API error (image-zip): {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+
+def get_pre_disb_processor_runs(start_date, end_date):
+    query = f"""
+        SELECT 
+            id, started_at, finished_at, status, duration_seconds,
+            emails_found, files_processed, new_records_count,
+            duplicates_count, anomalies_count,
+            summary_path, anomalies_path, error_message,
+            created_at
+        FROM monitoring.pre_disb_email_processor_runs
+        WHERE started_at >= '{start_date}' AND started_at <= '{end_date + " 23:59:59"}'
+        ORDER BY started_at DESC
+    """
+    # Use your DB helper (psycopg2 / pymysql / etc.)
+    records = fetch_records(query)
+    return records  # list of dicts
+
+
+def get_image_zip_processor_runs(start_date, end_date):
+    query = f"""
+        SELECT 
+            id, started_at, finished_at, status, duration_seconds,
+            emails_found, zips_processed, images_processed,
+            images_skipped, error_message
+        FROM monitoring.cron_job_runs   -- or your image zip table
+        WHERE started_at >= '{str(start_date)}' AND started_at <= '{str(end_date) + " 23:59:59"}'
+        ORDER BY started_at DESC
+    """
+    records = fetch_records(query)
+    return records
