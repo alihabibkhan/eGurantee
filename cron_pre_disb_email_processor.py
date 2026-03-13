@@ -384,14 +384,45 @@ def process_pre_disbursement_files(
             summary_excel_path = os.path.join(
                 current_app.config["UPLOAD_FOLDER"], filename
             )
-            with pd.ExcelWriter(summary_excel_path) as writer:
-                for sheet, rows in duplicates.items():
-                    if rows:
-                        pd.DataFrame(rows).to_excel(writer, sheet_name=sheet[:31], index=False)
+
+            # DEBUG: Check if upload folder exists
+            upload_folder = current_app.config["UPLOAD_FOLDER"]
+            logger.info(f"UPLOAD_FOLDER = {upload_folder}")
+            logger.info(f"Upload folder exists: {os.path.exists(upload_folder)}")
+            logger.info(f"Upload folder writable: {os.access(upload_folder, os.W_OK)}")
+            logger.info(f"Attempting to save file to: {summary_excel_path}")
+
+            # with pd.ExcelWriter(summary_excel_path) as writer:
+            #     for sheet, rows in duplicates.items():
+            #         if rows:
+            #             pd.DataFrame(rows).to_excel(writer, sheet_name=sheet[:31], index=False)
+
+            try:
+                with pd.ExcelWriter(summary_excel_path) as writer:
+                    for sheet, rows in duplicates.items():
+                        if rows:
+                            df_to_save = pd.DataFrame(rows)
+                            logger.info(f"Saving sheet {sheet} with {len(rows)} rows")
+                            df_to_save.to_excel(writer, sheet_name=sheet[:31], index=False)
+
+                # Verify file was created
+                if os.path.exists(summary_excel_path):
+                    logger.info(f"✅ File successfully created: {summary_excel_path}")
+                    logger.info(f"File size: {os.path.getsize(summary_excel_path)} bytes")
+                else:
+                    logger.error(f"❌ File was NOT created after ExcelWriter closed!")
+
+            except Exception as e:
+                logger.error(f"❌ Error creating Excel file: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                summary_excel_path = None  # Set to None so we don't return a bad path
 
         # Anomalies report (your existing function)
         if anomaly_applications:
             anomalies_report_path = generate_anomalies_html(list(anomaly_applications))
+    else:
+        logger.info("No duplicates found - no file will be created")
 
     # ── Result for caller / logging ──
     result = {
