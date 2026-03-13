@@ -93,6 +93,25 @@ def utility_processor():
     }
 
 
+# Add this route to serve files from uploads directory
+@application.route('/uploads/<path:filename>')
+def serve_upload(filename):
+    """Serve files from the uploads directory"""
+    try:
+        # Get the upload folder path from config
+        upload_folder = application.config.get('UPLOAD_FOLDER', '/opt/render/project/src/uploads')
+
+        # Security: prevent directory traversal attacks
+        if '..' in filename or filename.startswith('/'):
+            abort(404)
+
+        # Send the file
+        return send_from_directory(upload_folder, filename)
+    except Exception as e:
+        print(f"Error serving file {filename}: {str(e)}")
+        abort(404)
+
+
 @application.route('/')
 @application.route('/Index')
 @application.route('/index')
