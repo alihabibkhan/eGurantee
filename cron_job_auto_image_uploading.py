@@ -1,6 +1,7 @@
 from imports import *
 from application import application
 from App_File_Uploading_Validation import process_zip_application_images
+from Model_Email import send_email, get_cron_success_email_body
 
 # Setup logging (Render shows stdout/stderr in logs)
 logging.basicConfig(level=logging.INFO)
@@ -169,7 +170,7 @@ def main():
         password = os.getenv('EMAIL_PASS', 'eqnp oytt klbi ojit')
         imap_server = os.getenv('IMAP_SERVER', 'imap.gmail.com')
         sender_email = os.getenv('EMAIL_SENDER', 'zali9261@gmail.com')
-        IMAGE_SUBJECT = os.getenv('IMAGE_SUBJECT', 'FW: Loan – Attachment Images (ZIP)')
+        IMAGE_SUBJECT = os.getenv('IMAGE_SUBJECT', 'Loan – Attachment Images (ZIP)')
 
         if not user or not password:
             logger.error("Missing EMAIL_USER or EMAIL_PASS env vars")
@@ -267,15 +268,51 @@ def main():
         end_time = datetime.now()
         duration = int((end_time - start_time).total_seconds())
 
+        status = 'succeeded'
+
         log_job_end(
             job_id=job_id,
-            status='succeeded',
+            status=status,
             duration_sec=duration,
             emails_found=emails_found,
             zips_processed=zips_processed,
             images_processed=total_processed,
             images_skipped=total_skipped
         )
+
+        if status == 'succeeded':
+            # Prepare summary data (example – adapt from your log_job_end params)
+            summary_data = {
+                'started_at': start_time.strftime('%Y-%m-%d %H:%M:%S PKT'),
+                'finished_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S PKT'),
+                'duration_seconds': duration,
+                'emails_found': emails_found,
+                'files_processed': zips_processed,
+                'new_records_count': total_processed,
+                'duplicates_count': total_skipped,
+                'anomalies_count': '',
+            }
+
+            html_body = get_cron_success_email_body(
+                job_name="Images Email Processor",
+                summary_data=summary_data
+            )
+
+            success = send_email(
+                subject="Pre-Disbursement Cron Job - Completed Successfully",
+                email_list=[user],
+                message="The Pre-Disbursement cron job completed successfully. See HTML version for details.",
+                html_message=html_body,
+                add_cc_list=True,  # will use cc_list from env or default
+                cc_list=["zali9261@gmail.com"]        # or pass explicitly if you prefer
+            )
+
+            if success:
+                logger.info("Success notification email sent")
+            else:
+                logger.warning("Failed to send success notification email")
+
+
 
     except Exception as e:
         logger.error(f"IMAP / processing error: {e}", exc_info=True)

@@ -4,6 +4,7 @@ from pdf_helper import *
 from App_File_Uploading_Validation import parse_excel_date, sanitize_file_columns, clean_numeric_value, format_date_for_sql
 import tempfile
 import shutil
+from Model_Email import send_email, get_cron_success_email_body
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -473,10 +474,6 @@ def main():
         date_str = today.strftime("%d-%b-%Y")
 
         subject_search = os.getenv('PRE_DISB_SUBJECT', 'Daily Pre-Loan Disbursement Summary||Attachments Excel File')
-        # subject_search = subject_search.replace('\u2013', '-')  # en dash → hyphen
-        # subject_search = subject_search.replace('\u2014', '-')  # em dash → hyphen
-        # subject_search = subject_search.replace('–', '-')  # literal en dash
-        # subject_search = subject_search.replace('—', '-')
 
         # Split into list and clean each one
         subjects = [s.strip()
@@ -577,9 +574,11 @@ def main():
         # Final logging
         duration = int((datetime.now() - start_time).total_seconds())
 
+        status = 'succeeded'
+
         log_job_end(
             job_id=job_id,
-            status='succeeded',
+            status= status,
             duration_sec=duration,
             emails_found=emails_found,
             files_processed=files_processed,
@@ -589,6 +588,38 @@ def main():
             summary_path=summary_path,
             anomalies_path=anomalies_path
         )
+
+        if status == 'succeeded':
+            # Prepare summary data (example – adapt from your log_job_end params)
+            summary_data = {
+                'started_at': start_time.strftime('%Y-%m-%d %H:%M:%S PKT'),
+                'finished_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S PKT'),
+                'duration_seconds': duration,
+                'emails_found': emails_found,
+                'files_processed': files_processed,
+                'new_records_count': new_records_count,
+                'duplicates_count': duplicates_count,
+                'anomalies_count': anomalies_count,
+            }
+
+            html_body = get_cron_success_email_body(
+                job_name="Pre-Disbursement Email Processor",
+                summary_data=summary_data
+            )
+
+            success = send_email(
+                subject="Pre-Disbursement Cron Job - Completed Successfully",
+                email_list=[user],
+                message="The Pre-Disbursement cron job completed successfully. See HTML version for details.",
+                html_message=html_body,
+                add_cc_list=True,  # will use cc_list from env or default
+                cc_list=["zali9261@gmail.com"]        # or pass explicitly if you prefer
+            )
+
+            if success:
+                logger.info("Success notification email sent")
+            else:
+                logger.warning("Failed to send success notification email")
 
         logger.info("Pre-disbursement email processor completed successfully")
 
