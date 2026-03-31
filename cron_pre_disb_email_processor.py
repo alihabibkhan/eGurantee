@@ -386,6 +386,10 @@ def process_pre_disbursement_files(
                 current_app.config["UPLOAD_FOLDER"], filename
             )
 
+            summary_excel_path2 = os.path.join(
+                'static/tmp/', filename
+            )
+
             # DEBUG: Check if upload folder exists
             upload_folder = current_app.config["UPLOAD_FOLDER"]
             logger.info(f"UPLOAD_FOLDER = {upload_folder}")
@@ -406,10 +410,24 @@ def process_pre_disbursement_files(
                             logger.info(f"Saving sheet {sheet} with {len(rows)} rows")
                             df_to_save.to_excel(writer, sheet_name=sheet[:31], index=False)
 
+                with pd.ExcelWriter(summary_excel_path2) as writer:
+                    for sheet, rows in duplicates.items():
+                        if rows:
+                            df_to_save = pd.DataFrame(rows)
+                            logger.info(f"Saving sheet {sheet} with {len(rows)} rows")
+                            df_to_save.to_excel(writer, sheet_name=sheet[:31], index=False)
+
                 # Verify file was created
                 if os.path.exists(summary_excel_path):
                     logger.info(f"✅ File successfully created: {summary_excel_path}")
                     logger.info(f"File size: {os.path.getsize(summary_excel_path)} bytes")
+                else:
+                    logger.error(f"❌ File was NOT created after ExcelWriter closed!")
+
+                # Verify file was created
+                if os.path.exists(summary_excel_path2):
+                    logger.info(f"✅ File successfully created: {summary_excel_path2}")
+                    logger.info(f"File size: {os.path.getsize(summary_excel_path2)} bytes")
                 else:
                     logger.error(f"❌ File was NOT created after ExcelWriter closed!")
 
@@ -418,6 +436,7 @@ def process_pre_disbursement_files(
                 import traceback
                 traceback.print_exc()
                 summary_excel_path = None  # Set to None so we don't return a bad path
+                summary_excel_path2 = None  # Set to None so we don't return a bad path
 
         # Anomalies report (your existing function)
         if anomaly_applications:
@@ -440,6 +459,24 @@ def process_pre_disbursement_files(
     return result
 
 
+# Build SUBJECT search part (same as before)
+def build_or_chain(items, field):
+    """Build proper IMAP OR chain for multiple items"""
+    if not items:
+        return ""
+    if len(items) == 1:
+        return f'{field} "{items[0]}"'
+
+    # Build nested ORs: (OR (OR item1 item2) item3) ...
+    clauses = [f'{field} "{item}"' for item in items]
+    result = clauses[0]
+
+    for clause in clauses[1:]:
+        result = f'(OR {result} {clause})'
+
+    return result
+
+
 def main():
     job_id = None
     start_time = datetime.now()
@@ -457,10 +494,10 @@ def main():
         anomalies_count = 0
 
         # Environment variables
-        user = os.getenv('EMAIL_USER', 'alihabib202299@gmail.com')
-        password = os.getenv('EMAIL_PASS', 'eqnp oytt klbi ojit')
-        imap_server = os.getenv('IMAP_SERVER', 'imap.gmail.com')
-        sender_email = os.getenv('EMAIL_SENDER', 'zali9261@gmail.com')
+        user = os.getenv('EMAIL_USER')
+        password = os.getenv('EMAIL_PASS')
+        imap_server = os.getenv('IMAP_SERVER')
+        sender_email = os.getenv('EMAIL_SENDER')
 
         if not all([user, password, sender_email]):
             raise ValueError("Missing required env vars: EMAIL_USER, EMAIL_PASS, EMAIL_SENDER")
@@ -482,25 +519,39 @@ def main():
             .replace('–', '-')  # literal en dash
             .replace('—', '-') for s in subject_search.split('||') if s.strip()]
 
+        # === Handle Multiple Senders ===
+        senders = [s.strip() for s in sender_email.split('||') if s.strip()]
+
+        if not sender_email:
+            logger.error("No sender email configured in EMAIL_SENDER")
+            return
+
         if not subjects:
             subjects = ['Daily Pre-Loan Disbursement Summary']  # fallback
 
-        # Build OR chain
-        subject_clauses = ' '.join(f'SUBJECT "{s}"' for s in subjects)
+        # # Build OR chain
+        # subject_clauses = ' '.join(f'SUBJECT "{s}"' for s in subjects)
+        #
+        # if len(subjects) == 1:
+        #     subject_part = subject_clauses
+        # else:
+        #     # Nested ORs — IMAP requires this structure for >2 items
+        #     subject_part = subject_clauses
+        #     for _ in range(len(subjects) - 2):
+        #         subject_part = f'(OR {subject_part})'
+        #
+        #     subject_part = f'(OR {subject_part})'
+        #
+        # print(subject_part)
 
-        if len(subjects) == 1:
-            subject_part = subject_clauses
-        else:
-            # Nested ORs — IMAP requires this structure for >2 items
-            subject_part = subject_clauses
-            for _ in range(len(subjects) - 2):
-                subject_part = f'(OR {subject_part})'
+        subject_part = build_or_chain(subjects, 'SUBJECT')
+        sender_part = build_or_chain(senders, 'FROM')
 
-            subject_part = f'(OR {subject_part})'
+        print('subject_part:- ', subject_part)
+        print('sender_part:- ', sender_part)
 
-        print(subject_part)
-
-        search_criteria = f'(SINCE "{date_str}" FROM "{sender_email}" {subject_part} UNSEEN)'
+        search_criteria = f'(SINCE "{date_str}" {sender_part} {subject_part} UNSEEN)'
+        # search_criteria = f'(SINCE "{date_str}" FROM "{sender_email}" {subject_part} UNSEEN)'
         print(search_criteria)
 
         status, messages = mail.search(None, search_criteria)

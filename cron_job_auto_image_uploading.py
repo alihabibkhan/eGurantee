@@ -156,6 +156,24 @@ def get_zip_attachments(msg):
 #         logger.error(f"IMAP error: {e}", exc_info=True)
 
 
+# Build SUBJECT search part (same as before)
+def build_or_chain(items, field):
+    """Build proper IMAP OR chain for multiple items"""
+    if not items:
+        return ""
+    if len(items) == 1:
+        return f'{field} "{items[0]}"'
+
+    # Build nested ORs: (OR (OR item1 item2) item3) ...
+    clauses = [f'{field} "{item}"' for item in items]
+    result = clauses[0]
+
+    for clause in clauses[1:]:
+        result = f'(OR {result} {clause})'
+
+    return result
+
+
 def main():
     job_id = None
     start_time = datetime.now()   # better to use timezone-aware
@@ -166,10 +184,10 @@ def main():
         total_processed = 0
         total_skipped = 0
 
-        user = os.getenv('EMAIL_USER', 'alihabib202299@gmail.com')
-        password = os.getenv('EMAIL_PASS', 'eqnp oytt klbi ojit')
-        imap_server = os.getenv('IMAP_SERVER', 'imap.gmail.com')
-        sender_email = os.getenv('EMAIL_SENDER', 'zali9261@gmail.com')
+        user = os.getenv('EMAIL_USER')
+        password = os.getenv('EMAIL_PASS')
+        imap_server = os.getenv('IMAP_SERVER')
+        sender_email = os.getenv('EMAIL_SENDER')
         IMAGE_SUBJECT = os.getenv('IMAGE_SUBJECT', 'Loan – Attachment Images (ZIP)')
 
         if not user or not password:
@@ -190,31 +208,46 @@ def main():
                     .replace('–', '-')  # literal en dash
                     .replace('—', '-') for s in IMAGE_SUBJECT.split('||') if s.strip()]
 
+        # === Handle Multiple Senders ===
+        senders = [s.strip() for s in sender_email.split('||') if s.strip()]
+
+        if not senders:
+            logger.error("No sender email configured in EMAIL_SENDER")
+            return
+
         if not subjects:
             subjects = ['FW: Loan – Attachment Images (ZIP)']
 
         # Build OR chain
-        subject_clauses = ' '.join(f'SUBJECT "{s}"' for s in subjects)
-
-        if len(subjects) == 1:
-            subject_part = subject_clauses
-        else:
-            # Nested ORs — IMAP requires this structure for >2 items
-            subject_part = subject_clauses
-            for _ in range(len(subjects) - 2):
-                subject_part = f'(OR {subject_part})'
-
-            subject_part = f'(OR {subject_part})'
-
-        print(subject_part)
+        # subject_clauses = ' '.join(f'SUBJECT "{s}"' for s in subjects)
+        #
+        # if len(subjects) == 1:
+        #     subject_part = subject_clauses
+        # else:
+        #     # Nested ORs — IMAP requires this structure for >2 items
+        #     subject_part = subject_clauses
+        #     for _ in range(len(subjects) - 2):
+        #         subject_part = f'(OR {subject_part})'
+        #
+        #     subject_part = f'(OR {subject_part})'
+        #
+        # print(subject_part)
 
         # IMAGE_SUBJECT = IMAGE_SUBJECT.replace('\u2013', '-')  # en dash → hyphen
         # IMAGE_SUBJECT = IMAGE_SUBJECT.replace('\u2014', '-')  # em dash → hyphen
         # IMAGE_SUBJECT = IMAGE_SUBJECT.replace('–', '-')  # literal en dash
         # IMAGE_SUBJECT = IMAGE_SUBJECT.replace('—', '-')
 
-        search_criteria = f'(SINCE "{date_str}" FROM "{sender_email}" {subject_part} UNSEEN)'
+        subject_part = build_or_chain(subjects, 'SUBJECT')
+        sender_part = build_or_chain(senders, 'FROM')
+
+        print('subject_part:- ', subject_part)
+        print('sender_part:- ', sender_part)
+
+        search_criteria = f'(SINCE "{date_str}" {sender_part} {subject_part} UNSEEN)'
+        # search_criteria = f'(SINCE "{date_str}" FROM "{sender_email}" {subject_part} UNSEEN)'
         # search_criteria = f'(SINCE "{date_str}" FROM "{sender_email}" SUBJECT "{IMAGE_SUBJECT}" UNSEEN)'
+        print('search_criteria:- ', search_criteria)
 
         status, messages = mail.search(None, search_criteria)
         if status != 'OK':
@@ -299,9 +332,9 @@ def main():
             )
 
             success = send_email(
-                subject="Pre-Disbursement Cron Job - Completed Successfully",
+                subject="Image Cron Job - Completed Successfully",
                 email_list=[user],
-                message="The Pre-Disbursement cron job completed successfully. See HTML version for details.",
+                message="The Image cron job completed successfully. See HTML version for details.",
                 html_message=html_body,
                 add_cc_list=True,  # will use cc_list from env or default
                 cc_list=["zali9261@gmail.com"]        # or pass explicitly if you prefer
