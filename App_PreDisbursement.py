@@ -132,6 +132,128 @@ def update_pre_disbursement_temp():
             execute_command(insert_query)
             print(f"Inserted rejected app record for post_disb_id: {pre_disb_temp_id}")
 
+
+            from Model_Email import send_email
+            query = f"""
+                select pdt."Application_No", pdt."Borrower_Name", pdt."Requested_Loan_Amount", pdt."LoanProductCode", u1.email as reviewed_by_email, u2.email as rejected_by_email,
+                b.email, b.branch, b.branch_name
+                from tbl_pre_disbursement_temp pdt
+                INNER JOIN tbl_branches b ON pdt."Branch_Name" LIKE CONCAT('%', b.branch_code, '%') AND b.live_branch = '1'
+                LEFT JOIN tbl_users u1 ON u1.user_id = pdt.reviewed_by
+                LEFT JOIN tbl_users u2 ON u2.user_id = pdt.rejected_by
+                where pdt.pre_disb_temp_id = '{str(pre_disb_temp_id)}' and pdt.status = '3'
+            """
+            result = fetch_records(query)
+
+            if len(result) > 0:
+                result = result[0]
+                reference_no = result.get('Application_No', None)
+                Borrower_Name = result.get('Borrower_Name', None)
+                Requested_Loan_Amount = result.get('Requested_Loan_Amount', None)
+                LoanProductCode = result.get('LoanProductCode', None)
+                reviewed_by_email = result.get('reviewed_by_email', None)
+                rejected_by_email = result.get('rejected_by_email', None)
+                branch_email = result.get('email', None)
+                branch = result.get('branch', None)
+                branch_name = result.get('branch_name', None)
+
+                # ==================== HTML EMAIL TEMPLATE ====================
+                html_body = f"""
+                    <!DOCTYPE html>
+                    <html lang="en">
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>Query Raised - Loan Application</title>
+                        <style>
+                            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                            .container {{ max-width: 650px; margin: 0 auto; padding: 20px; }}
+                            .header {{ background-color: #d32f2f; color: white; padding: 15px; text-align: center; }}
+                            .content {{ padding: 20px; border: 1px solid #ddd; }}
+                            .footer {{ text-align: center; font-size: 12px; color: #777; margin-top: 20px; }}
+                            table {{ width: 100%; border-collapse: collapse; margin: 15px 0; }}
+                            th, td {{ padding: 10px; text-align: left; border-bottom: 1px solid #eee; }}
+                            th {{ background-color: #f5f5f5; }}
+                        </style>
+                    </head>
+                    <body>
+                        <div class="container">
+                            <div class="header">
+                                <h2>Query Raised – Loan Application Review</h2>
+                            </div>
+
+                            <div class="content">
+                                <p>Dear Manager <strong>{branch_name} BRANCH</strong>,</p>
+
+                                <p>This is with reference to the subject case forwarded for our review. During the assessment, a few clarifications are required from the branch before we may proceed further with the approval process.</p>
+
+                                <table>
+                                    <tr>
+                                        <th>Application Reference No</th>
+                                        <td>{reference_no}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Applicant Name</th>
+                                        <td>{Borrower_Name}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Requested Amount</th>
+                                        <td>PKR {Requested_Loan_Amount}/-</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Product</th>
+                                        <td>{LoanProductCode}</td>
+                                    </tr>
+                                </table>
+
+                                <h3>Queries / Clarifications Required:</h3>
+                                <p style="background-color: #fff3e0; padding: 15px; border-left: 4px solid #ff9800;">
+                                    {notes if notes else 'No specific notes provided.'}
+                                </p>
+
+                                <p>We request you to share the above information and supporting documents at the earliest so that we may proceed with the final evaluation of the case.</p>
+
+                                <p>Thank you for your cooperation and continued support.</p>
+                            </div>
+
+                            <div class="footer">
+                                <p>Kind regards,<br>
+                                <strong>Khushali Foundation</strong><br>
+                                </p>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                """
+
+                # ==================== SEND EMAIL ====================
+                subject = f"Query Raised – Loan Application Review (Ref: {reference_no}, borrower name: {Borrower_Name})"
+
+                # Prepare recipient list
+                email_list = [branch_email] if branch_email else []
+
+                # Prepare CC list
+                cc_list = []
+                if reviewed_by_email:
+                    cc_list.append(reviewed_by_email)
+                if rejected_by_email and rejected_by_email != reviewed_by_email:
+                    cc_list.append(rejected_by_email)
+
+                # Send email using your existing method
+                email_sent = send_email(
+                    subject=subject,
+                    email_list=email_list,
+                    message="",  # Plain text version (optional)
+                    html_message=html_body,  # HTML version
+                    add_cc_list=True,
+                    cc_list=cc_list
+                )
+
+                if email_sent:
+                    print(f"Rejection query email sent successfully to {branch_email}")
+                else:
+                    print("Failed to send rejection query email")
+
         # Return success response
         print("Update completed successfully")
         return jsonify({'success': True, 'status': str(status)}), 200
