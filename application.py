@@ -270,7 +270,7 @@ def awaiting_service():
 
 @application.route('/privacy-policy')
 def privacy_policy():
-    return render_template('privacy_policy.html')
+    return render_template('privacy.html')
 
 from App_Auth import *
 from App_Users import *
