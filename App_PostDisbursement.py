@@ -137,6 +137,7 @@ def get_on_going_loan_details():
             booked_on, markup_outstanding, principal_outstanding, loan_closed_on, overdue_days,
             loan_status, purpose
             ORDER BY mis_date
+            DESC LIMIT 3;
         """
         result = fetch_records(query)
         print(result)
