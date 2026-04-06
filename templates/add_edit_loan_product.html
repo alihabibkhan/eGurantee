@@ -28,7 +28,7 @@
                     </div>
                     <div class="form-group mb-3">
                         <label for="max_exp_per_prud_reg">Maximum Exposure Per Prudential Regulations</label>
-                        <input type="number" min="0" name="max_exp_per_prud_reg" class="form-control" value="{{ result.loan_product.max_exp_per_prud_reg if result.max_exp_per_prud_reg else '' }}" required>
+                        <input type="number" min="0" name="max_exp_per_prud_reg" class="form-control" value="{{ result.loan_product.max_exp_per_prud_reg if result.loan_product else '' }}" required>
                     </div>
                     <div class="form-group mb-3">
                         <label for="gender">Gender</label>
