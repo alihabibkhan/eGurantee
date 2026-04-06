@@ -128,11 +128,15 @@ def get_on_going_loan_details():
 
         # Query to fetch on-going loan details
         query = f"""
-            SELECT loan_no, cnic, loan_closed_on, mis_date, disbursed_amount, product_code,
+            SELECT DISTINCT loan_no, cnic, loan_closed_on, mis_date, disbursed_amount, product_code,
             booked_on, markup_outstanding, principal_outstanding, loan_closed_on, overdue_days,
             loan_status, purpose
             FROM tbl_post_disbursement
-            WHERE CNIC = '{cnic}' ORDER BY mis_date DESC LIMIT 3
+            WHERE CNIC = '{cnic}'
+            group by mis_date, loan_no, cnic, loan_closed_on, disbursed_amount, product_code,
+            booked_on, markup_outstanding, principal_outstanding, loan_closed_on, overdue_days,
+            loan_status, purpose
+            ORDER BY mis_date
         """
         result = fetch_records(query)
         print(result)

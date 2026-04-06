@@ -4,7 +4,7 @@ from imports import *
 def get_all_loan_metrics():
     # JOIN tbl_branches b ON lm.branch_id = b.branch_id
     query = f"""
-        SELECT lm.loan_metric_id, lp.name as product_name, lp.gender, o.name as occupation_name,
+        SELECT lm.loan_metric_id, lp.name as product_name, lp.gender, lp.max_exp_per_prud_reg, o.name as occupation_name,
                er.label as experience_label, lm.global_loan_ceiling,
                lm.repeat_increment, lm.required_paid_off, lm.interest_rate, lm.is_active, lm.status, uc.name as created_by, um.name as modified_by, lm.created_date, lm.modified_date
         FROM tbl_loan_metrics lm

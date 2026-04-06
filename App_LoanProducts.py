@@ -42,6 +42,7 @@ def add_edit_loan_product(product_id=None):
             product_code = request.form.get('product_code')
             gender = request.form.get('gender', 'Male')
             description = request.form.get('description')
+            max_exp_per_prud_reg = request.form.get('max_exp_per_prud_reg')
 
             current_user_id = str(get_current_user_id())
             current_timestamp = str(datetime.now())
@@ -50,7 +51,8 @@ def add_edit_loan_product(product_id=None):
                 update_query = f"""
                     UPDATE tbl_loan_products 
                     SET name = '{name}', product_code = '{product_code}', gender = '{gender}', description = '{description}', 
-                        status = '{str(1)}', modified_by = '{current_user_id}', modified_date = '{current_timestamp}'
+                        status = '{str(1)}', modified_by = '{current_user_id}', modified_date = '{current_timestamp}',
+                        max_exp_per_prud_reg = {str(max_exp_per_prud_reg)}
                     WHERE product_id = '{product_id}'
                 """
                 execute_command(update_query)
@@ -58,10 +60,10 @@ def add_edit_loan_product(product_id=None):
             else:
                 insert_query = f"""
                     INSERT INTO tbl_loan_products (
-                        name, product_code, gender, description, status, created_by, created_date, modified_by, modified_date
+                        name, product_code, gender, description, status, created_by, created_date, modified_by, modified_date, max_exp_per_prud_reg
                     ) VALUES (
                         '{name}', '{product_code}', '{gender}', '{description}', '{str(1)}', '{current_user_id}', '{current_timestamp}', 
-                        '{current_user_id}', '{current_timestamp}'
+                        '{current_user_id}', '{current_timestamp}', {str(max_exp_per_prud_reg)}
                     )
                 """
                 execute_command(insert_query)
