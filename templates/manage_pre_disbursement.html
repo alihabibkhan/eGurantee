@@ -672,6 +672,7 @@
             let loanCeilingLoanMetrics = 0;
             let requiredPaidOffPerLoanMetrics = 0;
             let repeatIncrementPerLoanMetrics = 0;
+            let maxExpPerPrudReg = 0;
 
             if(proposedLoanMetric)
             {
@@ -680,6 +681,8 @@
 
                 loanCeilingLoanMetrics = proposedLoanMetric.global_loan_ceiling || 0;
                 console.log('loanCeilingLoanMetrics:- ', loanCeilingLoanMetrics);
+                maxExpPerPrudReg = proposedLoanMetric.max_exp_per_prud_reg || 0;
+                console.log('maxExpPerPrudReg:- ', maxExpPerPrudReg);
 
                 requiredPaidOffPerLoanMetrics =  proposedLoanMetric.required_paid_off || 0;
                 console.log('requiredPaidOffPerLoanMetrics:- ', requiredPaidOffPerLoanMetrics);
@@ -897,6 +900,10 @@
                         <tr><th>Family Monthly Income:</th><td>${formatNumber(record.Family_Monthly_Income) || 'Not Received'}</td></tr>
                         <tr><th>No of Family Members:</th><td>${record.No_Of_Family_Members || 'Not Received'}</td></tr>
                         <tr><th>Residence Type:</th><td>${record.Residance_Type || 'Not Received'}</td></tr>
+                        <tr>
+                            <th>Loan Cycle:</th>
+                            <td>${record && record.Loan_Cycle ? record.Loan_Cycle : 'Not Received'}</td>
+                        </tr>
                     </table>
                 </div>
             `;
@@ -917,7 +924,7 @@
             calculatorMathsPaidOff.innerHTML = `
                 <div class="col-md-12">
                     <h5 class="bg-info text-white p-2 mb-2 rounded" style="font-weight: bold; border-left: 4px solid #2bcdc3;">
-                        KFT Required Paid off % for Repeat Loan
+                        Requirement to Pay Off Existing Loan
                     </h5>
                     <table class="table table-sm" id="tableCalculatorMathsPaidOff">
                     </table>
@@ -931,7 +938,7 @@
             calculatorMathsLoanCeiling.innerHTML = `
                 <div class="col-md-12">
                     <h5 class="bg-info text-white p-2 mb-2 rounded" style="font-weight: bold; border-left: 4px solid #2bcdc3;">
-                        KFT Required Loan Exposure
+                        Aggregated Loan Exposure per eCIB
                     </h5>
                     <table class="table table-sm" id="tableCalculatorMathsLoanCeiling">
                     </table>
@@ -1091,7 +1098,7 @@
 
             console.log('requiredPaidOffPerLoanMetrics:- ', requiredPaidOffPerLoanMetrics)
             generateLoanStatusTable(record, requiredPaidOffPerLoanMetrics);
-            generateLoanCeilingTable(record, loanCeilingLoanMetrics);
+            generateLoanCeilingTable(record, loanCeilingLoanMetrics, maxExpPerPrudReg);
             generateLoanLimitTable(record, repeatIncrementPerLoanMetrics);
 
             // Show/hide View Images button and load images
@@ -1126,12 +1133,33 @@
             return `${(value).toFixed(2)}%`;
         }
 
+        /*
         function generateLoanStatusTable(record, requiredPaidOffPerLoanMetrics) {
             // Parse requiredPaidOffPerLoanMetrics, default to 0.00 if invalid
             const requiredPaidOffPerLoanMetricsDecimal = !isNaN(requiredPaidOffPerLoanMetrics)
                 ? parseFloat(requiredPaidOffPerLoanMetrics) / 100
                 : 0.00;
             console.log('Parsing requiredPaidOffPerLoanMetricsDecimal', formatNumber(requiredPaidOffPerLoanMetricsDecimal));
+
+            // Get Loan Cycle
+            const loanCycle = record && record.Loan_Cycle
+                ? parseInt(record.Loan_Cycle)
+                : 1;
+
+            // If loan cycle is 1, show "not applicable" message
+            if (loanCycle <= 1) {
+                const html = `
+                    <tr>
+                        <th>Required Paid off:</th>
+                        <td class="fw-semibold text-muted text-decoration-underline">This block is not applicable as loan cycle is 1</td>
+                        <td></td>
+                    </tr>
+                `;
+
+                document.getElementById("tableCalculatorMathsPaidOff").innerHTML = html;
+                console.log('Loan cycle is 1 - Paid off block not applicable');
+                return; // Exit early
+            }
 
             // Parse existingLoanLimit, default to 0.00 if missing or invalid
             const existingLoanLimit = record && record.Existing_Loan_Limit && !isNaN(record.Existing_Loan_Limit)
@@ -1218,6 +1246,164 @@
             document.getElementById("tableCalculatorMathsPaidOff").innerHTML = html;
             console.log('Updating tableCalculatorMathsPaidOff', 'HTML updated');
         }
+        */
+
+        async function generateLoanStatusTable(record, requiredPaidOffPerLoanMetrics) {
+            // Get Loan Cycle
+            const loanCycle = record && record.Loan_Cycle
+                ? parseInt(record.Loan_Cycle)
+                : 1;
+
+            console.log('Loan Cycle:', loanCycle);
+
+            // If loan cycle is 1 → Show "Not Applicable"
+            if (loanCycle <= 1) {
+                const html = `
+                    <tr>
+                        <th colspan="3" style="text-align: center; color: #666;">
+                            This block is not applicable as loan cycle is 1
+                        </th>
+                    </tr>
+                `;
+
+                document.getElementById("tableCalculatorMathsPaidOff").innerHTML = html;
+                console.log('Loan cycle is 1 - Paid off block not applicable');
+                return;
+            }
+
+            // === Loan Cycle > 1 → Fetch ongoing loan details ===
+            try {
+                console.log(`Fetching ongoing loan details for CNIC: ${record.cnic}`);
+
+                const response = await fetch(`/get_on_going_loan_details?cnic=${encodeURIComponent(record.CNIC)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const ongoingLoans = await response.json();
+                const ongoingLoansData = ongoingLoans.records;
+
+                console.log('ongoingLoansData:- ', ongoingLoansData)
+
+                // Determine which record to use:
+                // - If cycle is 2 → Use index 0 (most recent)
+                // - If cycle > 2 → Use index 1 (second most recent)
+                const loanIndex = (loanCycle === 2) ? 0 : 1;
+                console.log('loanIndex:- ', loanIndex)
+
+                const loanData = ongoingLoansData && Array.isArray(ongoingLoansData) && ongoingLoansData.length > loanIndex
+                    ? ongoingLoansData[loanIndex]
+                    : null;
+
+                console.log('loanData:- ', loanData)
+
+                if (!loanData) {
+                    console.warn(`No loan data found at index ${loanIndex} for cycle ${loanCycle}`);
+                    // Fallback: show message
+                    const html = `
+                        <tr>
+                            <th colspan="3" style="text-align: center; color: #d9534f;">
+                                Unable to fetch previous loan details for cycle ${loanCycle}
+                            </th>
+                        </tr>
+                    `;
+                    document.getElementById("tableCalculatorMathsPaidOff").innerHTML = html;
+                    return;
+                }
+
+                console.log(`Using loan data at index ${loanIndex} for cycle ${loanCycle}:`, loanData);
+
+                // === Now use loanData instead of original record for calculations ===
+                const existingLoanLimit = loanData.disbursed_amount && !isNaN(loanData.disbursed_amount)
+                    ? parseFloat(loanData.disbursed_amount)
+                    : 0.00;
+
+                const outstandingLoan = loanData.markup_outstanding && !isNaN(loanData.markup_outstanding)
+                    ? parseFloat(loanData.markup_outstanding)
+                    : 0.00;
+
+                const existingLoanStatus = loanData.loan_status || 'Not Received';
+
+                console.log('Existing Loan Limit:', formatNumber(existingLoanLimit));
+                console.log('Outstanding Loan:', formatNumber(outstandingLoan));
+
+                // Calculations
+                const requiredPaidOffPerLoanMetricsDecimal = !isNaN(requiredPaidOffPerLoanMetrics)
+                    ? parseFloat(requiredPaidOffPerLoanMetrics) / 100
+                    : 0.00;
+
+                const loanOutstandingPercent = existingLoanLimit !== 0
+                    ? (outstandingLoan / existingLoanLimit) * 100
+                    : 0;
+
+                const paidOff = existingLoanLimit - outstandingLoan;
+                const paidOffPercent = existingLoanLimit !== 0
+                    ? (paidOff / existingLoanLimit) * 100
+                    : 0;
+
+                const requiredPaidOff = existingLoanLimit * requiredPaidOffPerLoanMetricsDecimal;
+                const paidOffVsRequired = paidOff - requiredPaidOff;
+                const paidOffVsRequiredPercent = existingLoanLimit !== 0
+                    ? (paidOffVsRequired / existingLoanLimit) * 100
+                    : 0;
+
+                // Generate HTML Table
+                const html = `
+                    <tr>
+                        <th>Most Recent/Current Loan Status:</th>
+                        <td>${existingLoanStatus}</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <th>Most Recent/Current Loan Limit:</th>
+                        <td>${formatNumber(existingLoanLimit)}</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <th>Loan Outstanding:</th>
+                        <td class='existing-loan-limit-field'>${formatNumber(outstandingLoan)}</td>
+                        <td></td>
+                    </tr>
+
+                    <tr>
+                        <th>Actual Paid Off (%):</th>
+                        <td class='paid-off-field'>${formatNumber(paidOff)}</td>
+                        <td class='paid-off-field-percent'>${formatPercentage(paidOffPercent)}</td>
+                    </tr>
+                    <tr>
+                        <th>KFT Requirement to Pay off:</th>
+                        <td class='required-paid-off-field'>${formatNumber(requiredPaidOff)}</td>
+                        <td class='required-paid-off-field-percent'>${formatNumber(requiredPaidOffPerLoanMetrics)}%</td>
+                    </tr>
+                    <tr>
+                        <th>Meet Requirement:</th>
+                        <td class='paid-off-vs-required-field'>${formatNumber(paidOffVsRequired)}</td>
+                        <td class='paid-off-vs-required-field-percent ${paidOffVsRequired < 0 ? "text-danger" : "text-success"}'>${paidOffVsRequired < 0 ? 'Fail (Exception Approval)' : 'Pass'}</td>
+                    </tr>
+                `;
+
+                document.getElementById("tableCalculatorMathsPaidOff").innerHTML = html;
+                console.log(`Table updated successfully using loan index ${loanIndex}`);
+
+            } catch (error) {
+                console.error('Error fetching ongoing loan details:', error);
+
+                const errorHtml = `
+                    <tr>
+                        <th colspan="3" style="text-align: center; color: #d9534f;">
+                            Error loading previous loan details. Please try again.
+                        </th>
+                    </tr>
+                `;
+                document.getElementById("tableCalculatorMathsPaidOff").innerHTML = errorHtml;
+            }
+        }
 
         function generateTurnaroundTable(record) {
             function calculateDaysBetween(date1, date2) {
@@ -1293,58 +1479,41 @@
             `;
         }
 
-        function generateLoanCeilingTable(record, loanCeilingLoanMetrics) {
+        function generateLoanCeilingTable(record, loanCeilingLoanMetrics, maxExpPerPrudReg) {
             // Ensure safeRecord is an object
             const safeRecord = (record && typeof record === 'object') ? record : {};
             console.log('Creating safeRecord', safeRecord);
 
             // Parse loanExposureECIB, default to 0.00 if missing or invalid
-            const loanExposureECIB = safeRecord.loan_per_exposure && !isNaN(safeRecord.loan_per_exposure)
-                ? parseFloat(safeRecord.loan_per_exposure)
+            const loanExposureECIB = maxExpPerPrudReg && !isNaN(maxExpPerPrudReg)
+                ? parseFloat(maxExpPerPrudReg)
                 : 0.00;
             console.log('Parsing loanExposureECIB', formatNumber(loanExposureECIB));
 
             // Parse outstandingLoan, default to 0.00 if missing or invalid
-            const outstandingLoan = safeRecord.Existing_Outstanding_Loan_Schedules && !isNaN(safeRecord.Existing_Outstanding_Loan_Schedules)
-                ? parseFloat(safeRecord.Existing_Outstanding_Loan_Schedules)
+            const cushionForNewLoanPerEcib = safeRecord.loan_per_exposure && !isNaN(safeRecord.loan_per_exposure)
+                ? parseFloat(safeRecord.loan_per_exposure)
                 : 0.00;
-            console.log('Parsing outstandingLoan', formatNumber(outstandingLoan));
-
-            // Parse loanCeilingMatrix, default to 0.00 if missing or invalid
-            const loanCeilingMatrix = loanCeilingLoanMetrics && !isNaN(loanCeilingLoanMetrics)
-                ? parseFloat(loanCeilingLoanMetrics)
-                : 0.00;
-            console.log('Parsing loanCeilingMatrix', formatNumber(loanCeilingMatrix));
-
-            // Calculate consideredLoanExposure
-            const consideredLoanExposure = loanExposureECIB - outstandingLoan;
-            console.log('Calculating consideredLoanExposure', formatNumber(consideredLoanExposure));
+            console.log('Parsing cushionForNewLoanPerEcib', formatNumber(cushionForNewLoanPerEcib));
 
             // Calculate cushionForNewLoan
-            const cushionForNewLoan = loanCeilingMatrix - consideredLoanExposure;
-            console.log('Calculating cushionForNewLoan', formatNumber(cushionForNewLoan));
+            const aggregatedLoanOutstandingPerEcib = loanExposureECIB - cushionForNewLoanPerEcib;
+            console.log('Calculating aggregatedLoanOutstandingPerEcib', formatNumber(aggregatedLoanOutstandingPerEcib));
 
             // Generate HTML table
             const html = `
                 <tr>
-                    <th>Existing Loan Exposure Per ECIB:</th>
+                    <th>Maximum Exposure per Prudential Regulations:</th>
                     <td>${formatNumber(loanExposureECIB)}</td>
                 </tr>
                 <tr>
-                    <th>Less Existing Loan Outstanding:</th>
-                    <td>${formatNumber(outstandingLoan)}</td>
+                    <th>Cushion For New Loan Per eCIB:</th>
+                    <td>${formatNumber(cushionForNewLoanPerEcib)}</td>
                 </tr>
+
                 <tr>
-                    <th>Considered Loan Exposure:</th>
-                    <td>${formatNumber(consideredLoanExposure)}</td>
-                </tr>
-                <tr>
-                    <th>Loan Ceiling Per Loan Matrix:</th>
-                    <td>${formatNumber(loanCeilingMatrix)}</td>
-                </tr>
-                <tr>
-                    <th>Cushion For New Loan:</th>
-                    <td>${formatNumber(cushionForNewLoan)}</td>
+                    <th>Aggregated Loan Outstanding Per eCIB:</th>
+                    <td>${formatNumber(aggregatedLoanOutstandingPerEcib)}</td>
                 </tr>
             `;
 
@@ -1353,94 +1522,159 @@
             console.log('Updating tableCalculatorMathsLoanCeiling', 'HTML updated');
         }
 
-        function generateLoanLimitTable(record, repeatIncrementPerLoanMetrics) {
-            // Parse repeatIncrementPerLoanMetrics, default to 0.00 if invalid
-            const repeatIncrementPerLoanMetricsParsed = !isNaN(repeatIncrementPerLoanMetrics)
-                ? parseFloat(repeatIncrementPerLoanMetrics)
-                : 0.00;
-            console.log('Parsing repeatIncrementPerLoanMetrics', formatNumber(repeatIncrementPerLoanMetricsParsed));
+        async function generateLoanLimitTable(record, repeatIncrementPerLoanMetrics) {
 
-            // Calculate repeatIncrementPerLoanMetricsDecimal
-            const repeatIncrementPerLoanMetricsDecimal = repeatIncrementPerLoanMetricsParsed / 100;
-            console.log('Parsing repeatIncrementPerLoanMetricsDecimal', formatNumber(repeatIncrementPerLoanMetricsDecimal));
+            try{
+                 const response = await fetch(`/get_on_going_loan_details?cnic=${encodeURIComponent(record.CNIC)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
 
-            // Ensure safeRecord is an object
-            const safeRecord = (record && typeof record === 'object') ? record : {};
-            console.log('Creating safeRecord', safeRecord);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
 
-            // Parse loanAmount, default to 0.00 if missing or invalid
-            const loanAmount = safeRecord.Loan_Amount && !isNaN(safeRecord.Loan_Amount)
-                ? parseFloat(safeRecord.Loan_Amount)
-                : 0.00;
-            console.log('Parsing loanAmount', formatNumber(loanAmount));
+                const ongoingLoans = await response.json();
+                let ongoingLoansData = ongoingLoans.records;
 
-            // Parse existingLoanLimit, default to 0.00 if missing or invalid
-            const existingLoanLimit = safeRecord.Existing_Loan_Limit && !isNaN(safeRecord.Existing_Loan_Limit)
-                ? parseFloat(safeRecord.Existing_Loan_Limit)
-                : 0.00;
-            console.log('Parsing existingLoanLimit', formatNumber(existingLoanLimit));
+                console.log('ongoingLoansData:- ', ongoingLoansData);
 
-            // Calculate bccApprovedPercent
-            const bccApprovedPercent = existingLoanLimit !== 0.00
-                ? (loanAmount / existingLoanLimit) * 100
-                : 0.00;
-            console.log('Calculating bccApprovedPercent', formatPercentage(bccApprovedPercent));
+                const loanData = ongoingLoansData && Array.isArray(ongoingLoansData) && ongoingLoansData.length > 0
+                    ? ongoingLoansData
+                    : null;
 
-            // Calculate incrementLoanAmount
-            const incrementLoanAmount = loanAmount - existingLoanLimit;
-            console.log('Calculating incrementLoanAmount', formatNumber(incrementLoanAmount));
+                console.log('loanData:- ', loanData)
 
-            // Calculate incrementLoanPercent
-            const incrementLoanPercent = existingLoanLimit !== 0.00
-                ? (incrementLoanAmount / existingLoanLimit) * 100
-                : 0.00;
-            console.log('Calculating incrementLoanPercent', formatPercentage(incrementLoanPercent));
 
-            // Calculate requiredRepeatLoanLimit
-            const requiredRepeatLoanLimit = existingLoanLimit * repeatIncrementPerLoanMetricsDecimal;
-            console.log('Calculating requiredRepeatLoanLimit', formatNumber(requiredRepeatLoanLimit));
+                if (!loanData) {
+                    /*
+                    //console.warn(`No loan data found at index ${loanIndex} for cycle ${loanCycle}`);
+                    // Fallback: show message
+                    const html = `
+                        <tr>
+                            <th colspan="3" style="text-align: center; color: #d9534f;">
+                                Unable to fetch previous loan details for cycle, as there was no record found.
+                            </th>
+                        </tr>
+                    `;
+                    document.getElementById("tableCalculatorMathsLoanLimit").innerHTML = html;
+                    return;
+                    */
+                    ongoingLoansData = []
+                }
+                else{
+                    ongoingLoansData = ongoingLoansData[ongoingLoansData.length - 1];
+                }
 
-            // Set requiredRepeatLoanPercent
-            const requiredRepeatLoanPercent = repeatIncrementPerLoanMetricsParsed;
-            console.log('Setting requiredRepeatLoanPercent', formatNumber(requiredRepeatLoanPercent));
 
-            // Calculate requiredVsRepeatLoan
-            const requiredVsRepeatLoan = requiredRepeatLoanLimit - loanAmount;
-            console.log('Calculating requiredVsRepeatLoan', formatNumber(requiredVsRepeatLoan));
 
-            // Calculate requiredVsRepeatLoanPercent
-            const requiredVsRepeatLoanPercent = existingLoanLimit !== 0.00
-                ? (requiredVsRepeatLoan / existingLoanLimit) * 100
-                : 0.00;
-            console.log('Calculating requiredVsRepeatLoanPercent', formatPercentage(requiredVsRepeatLoanPercent));
+                // Ensure safeRecord is an object
+                const safeRecord = (record && typeof record === 'object') ? record : {};
+                console.log('Creating safeRecord', safeRecord);
 
-            // Generate HTML table
-            const html = `
-                <tr>
-                    <th>BCC Approved Loan Amount:</th>
-                    <td>${formatNumber(loanAmount)}</td>
-                    <td>${formatPercentage(bccApprovedPercent)}</td>
-                </tr>
-                <tr>
-                    <th>Increment of Repeat Loan from Existing Limit (%):</th>
-                    <td>${formatNumber(incrementLoanAmount)}</td>
-                    <td>${formatPercentage(incrementLoanPercent)}</td>
-                </tr>
-                <tr>
-                    <th>Required Repeat Loan Limit Per Loan Matrix (%):</th>
-                    <td>${formatNumber(requiredRepeatLoanLimit)}</td>
-                    <td>${formatPercentage(requiredRepeatLoanPercent)}</td>
-                </tr>
-                <tr>
-                    <th>Required vs Repeat Loan Limit (%):</th>
-                    <td>${formatNumber(requiredVsRepeatLoan)}</td>
-                    <td>${formatPercentage(requiredVsRepeatLoanPercent)}</td>
-                </tr>
-            `;
+                // Parse repeatIncrementPerLoanMetrics, default to 0.00 if invalid
+                const repeatIncrementPerLoanMetricsParsed = !isNaN(repeatIncrementPerLoanMetrics)
+                    ? parseFloat(repeatIncrementPerLoanMetrics)
+                    : 0.00;
+                console.log('Parsing repeatIncrementPerLoanMetrics', formatNumber(repeatIncrementPerLoanMetricsParsed));
 
-            // Update DOM
-            document.getElementById("tableCalculatorMathsLoanLimit").innerHTML = html;
-            console.log('Updating tableCalculatorMathsLoanLimit', 'HTML updated');
+                // Parse loanDisbursementAmountPrevious, default to 0.00 if invalid
+                const loanDisbursementAmountPrevious = !isNaN(ongoingLoansData.disbursed_amount)
+                    ? parseFloat(ongoingLoansData.disbursed_amount)
+                    : 0.00;
+                console.log('Parsing loanDisbursementAmountPrevious', formatNumber(loanDisbursementAmountPrevious));
+
+                // Parse approvedLoanBank, default to 0.00 if invalid
+                const approvedLoanBank = !isNaN(safeRecord.Loan_Amount)
+                    ? parseFloat(safeRecord.Loan_Amount)
+                    : 0.00;
+                console.log('Parsing approvedLoanBank', formatNumber(approvedLoanBank));
+
+                // Calculate approvedLoanBankPercent
+                const approvedLoanBankPercent = approvedLoanBank !== 0.00
+                    ? (approvedLoanBank / loanDisbursementAmountPrevious) * 100
+                    : 0.00;
+                console.log('Calculating approvedLoanBankPercent', formatPercentage(approvedLoanBankPercent));
+
+                // Parse incrementFromExistingLoanBank, default to 0.00 if invalid
+                const incrementFromExistingLoanBank = approvedLoanBank !== 0.00
+                    ? (approvedLoanBank - loanDisbursementAmountPrevious)
+                    : 0.00;
+                console.log('Parsing incrementFromExistingLoanBank', formatNumber(incrementFromExistingLoanBank));
+
+                // Calculate approvedLoanBankPercent
+                const incrementFromExistingLoanBankPercent = incrementFromExistingLoanBank !== 0.00
+                    ? (incrementFromExistingLoanBank / loanDisbursementAmountPrevious) * 100
+                    : 0.00;
+                console.log('Calculating incrementFromExistingLoanBankPercent', formatPercentage(incrementFromExistingLoanBankPercent));
+
+                // Set requiredRepeatLoanPercent
+                const requiredRepeatLoanPercent = repeatIncrementPerLoanMetricsParsed;
+                console.log('Setting requiredRepeatLoanPercent', formatNumber(requiredRepeatLoanPercent));
+
+                // Calculate kftRequirementForIncrement
+                const kftRequirementForIncrement = loanDisbursementAmountPrevious !== 0.00
+                    ? ((loanDisbursementAmountPrevious * requiredRepeatLoanPercent) / 100)
+                    : 0.00;
+                console.log('Calculating kftRequirementForIncrement', formatNumber(kftRequirementForIncrement));
+
+                // Calculate meetRequirement
+                const meetRequirement = kftRequirementForIncrement !== 0.00
+                    ? (kftRequirementForIncrement - approvedLoanBank)
+                    : 0.00;
+
+                // Generate HTML table
+                const html = `
+                    <tr>
+                        <th>Loan Disbursement Amount (Previous):</th>
+                        <td>${formatNumber(loanDisbursementAmountPrevious)}</td>
+                        <td></td>
+                    </tr>
+
+                    <tr>
+                        <th>Approved Loan (Bank):</th>
+                        <td>${formatNumber(approvedLoanBank)}</td>
+                        <td>${formatPercentage(approvedLoanBankPercent)}</td>
+                    </tr>
+
+                    <tr>
+                        <th>Increment From Existing Loan (Bank):</th>
+                        <td>${formatNumber(incrementFromExistingLoanBank)}</td>
+                        <td>${formatPercentage(incrementFromExistingLoanBankPercent)}</td>
+                    </tr>
+
+                    <tr>
+                        <th>KFT Requirement For Increment:</th>
+                        <td>${formatNumber(kftRequirementForIncrement)}</td>
+                        <td>${formatPercentage(requiredRepeatLoanPercent)}</td>
+                    </tr>
+
+                    <tr>
+                        <th>Meet Requirement:</th>
+                        <td>${formatNumber(meetRequirement)}</td>
+                        <td class='paid-off-vs-required-field-percent ${meetRequirement < 0 ? "text-danger" : "text-success"}'>${meetRequirement < 0 ? 'Fail (Exception Approval)' : 'Pass'}</td>
+                    </tr>
+                `;
+
+                // Update DOM
+                document.getElementById("tableCalculatorMathsLoanLimit").innerHTML = html;
+                console.log('Updating tableCalculatorMathsLoanLimit', 'HTML updated');
+
+
+            } catch (error) {
+                console.error('Error fetching ongoing loan details:', error);
+
+                const errorHtml = `
+                    <tr>
+                        <th colspan="3" style="text-align: center; color: #d9534f;">
+                            Error loading previous loan details. Please try again.
+                        </th>
+                    </tr>
+                `;
+                document.getElementById("tableCalculatorMathsLoanLimit").innerHTML = errorHtml;
+            }
         }
 
         function findMatchingLoanMetric(
