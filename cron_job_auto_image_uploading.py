@@ -176,7 +176,11 @@ def build_or_chain(items, field):
 
 def main():
     job_id = None
-    start_time = datetime.now()   # better to use timezone-aware
+    start_time = datetime.now()  # better to use timezone-aware
+
+    # Retry configuration
+    MAX_RETRIES = 3
+    RETRY_DELAY_SECONDS = 30  # Wait 30 seconds between retries
 
     try:
         emails_found = 0
@@ -186,9 +190,13 @@ def main():
 
         user = os.getenv('EMAIL_USER')
         password = os.getenv('EMAIL_PASS')
-        imap_server = os.getenv('IMAP_SERVER')
+        imap_server = os.getenv('IMAP_SERVER', 'imap.gmail.com')
         sender_email = os.getenv('EMAIL_SENDER')
-        IMAGE_SUBJECT = os.getenv('IMAGE_SUBJECT', 'Loan – Attachment Images (ZIP)')
+        IMAGE_SUBJECT = os.getenv('IMAGE_SUBJECT')
+
+        # Optional: Make retry configurable via env vars
+        # MAX_RETRIES = int(os.getenv('IMAGE_CRON_MAX_RETRIES', '3'))
+        # RETRY_DELAY_SECONDS = int(os.getenv('IMAGE_CRON_RETRY_DELAY', '30'))
 
         if not user or not password:
             logger.error("Missing EMAIL_USER or EMAIL_PASS env vars")
@@ -201,6 +209,9 @@ def main():
 
         today = datetime.now().date()
         date_str = today.strftime("%d-%b-%Y")
+
+        # april_10 = datetime(today.year, 5, 1).date()
+        # april_10_str = april_10.strftime("%d-%b-%Y")
 
         subjects = [s.strip()
                     .replace('\u2013', '-')  # en dash
@@ -218,26 +229,6 @@ def main():
         if not subjects:
             subjects = ['FW: Loan – Attachment Images (ZIP)']
 
-        # Build OR chain
-        # subject_clauses = ' '.join(f'SUBJECT "{s}"' for s in subjects)
-        #
-        # if len(subjects) == 1:
-        #     subject_part = subject_clauses
-        # else:
-        #     # Nested ORs — IMAP requires this structure for >2 items
-        #     subject_part = subject_clauses
-        #     for _ in range(len(subjects) - 2):
-        #         subject_part = f'(OR {subject_part})'
-        #
-        #     subject_part = f'(OR {subject_part})'
-        #
-        # print(subject_part)
-
-        # IMAGE_SUBJECT = IMAGE_SUBJECT.replace('\u2013', '-')  # en dash → hyphen
-        # IMAGE_SUBJECT = IMAGE_SUBJECT.replace('\u2014', '-')  # em dash → hyphen
-        # IMAGE_SUBJECT = IMAGE_SUBJECT.replace('–', '-')  # literal en dash
-        # IMAGE_SUBJECT = IMAGE_SUBJECT.replace('—', '-')
-
         subject_part = build_or_chain(subjects, 'SUBJECT')
         sender_part = build_or_chain(senders, 'FROM')
 
@@ -245,19 +236,76 @@ def main():
         print('sender_part:- ', sender_part)
 
         search_criteria = f'(SINCE "{date_str}" {sender_part} {subject_part} UNSEEN)'
-        # search_criteria = f'(SINCE "{date_str}" FROM "{sender_email}" {subject_part} UNSEEN)'
-        # search_criteria = f'(SINCE "{date_str}" FROM "{sender_email}" SUBJECT "{IMAGE_SUBJECT}" UNSEEN)'
         print('search_criteria:- ', search_criteria)
 
-        status, messages = mail.search(None, search_criteria)
-        if status != 'OK':
-            logger.error("Search failed")
-            return
+        # === RETRY LOGIC FOR EMAIL FETCHING ===
+        mail_ids = []
+        for attempt in range(1, MAX_RETRIES + 1):
+            try:
+                logger.info(f"Email search attempt {attempt}/{MAX_RETRIES}")
+                status, messages = mail.search(None, search_criteria)
 
-        mail_ids = messages[0].split()
+                if status != 'OK':
+                    logger.warning(f"IMAP search failed on attempt {attempt}: {status}")
+                    if attempt < MAX_RETRIES:
+                        logger.info(f"Waiting {RETRY_DELAY_SECONDS} seconds before retry...")
+                        time.sleep(RETRY_DELAY_SECONDS)
+                        # Reconnect and reselect mailbox before retry
+                        try:
+                            mail.select('INBOX')
+                        except:
+                            # If connection is dead, reconnect
+                            mail = imaplib.IMAP4_SSL(imap_server)
+                            mail.login(user, password)
+                            mail.select('INBOX')
+                        continue
+                    else:
+                        logger.error(f"IMAP search failed after {MAX_RETRIES} attempts")
+                        return
+
+                mail_ids = messages[0].split()
+                emails_found = len(mail_ids)
+
+                if emails_found > 0:
+                    logger.info(f"Found {emails_found} email(s) on attempt {attempt}")
+                    break  # Success - exit retry loop
+                else:
+                    logger.warning(f"No emails found on attempt {attempt}")
+                    if attempt < MAX_RETRIES:
+                        logger.info(f"Waiting {RETRY_DELAY_SECONDS} seconds before retry...")
+                        time.sleep(RETRY_DELAY_SECONDS)
+                        # Refresh the mailbox and search again
+                        try:
+                            mail.select('INBOX')
+                        except:
+                            # If connection is dead, reconnect
+                            mail = imaplib.IMAP4_SSL(imap_server)
+                            mail.login(user, password)
+                            mail.select('INBOX')
+                    else:
+                        logger.info(f"No emails found after {MAX_RETRIES} attempts. Exiting.")
+                        # Still log success (zero emails is normal)
+                        return
+
+            except Exception as attempt_error:
+                logger.error(f"Error on attempt {attempt}: {attempt_error}")
+                if attempt < MAX_RETRIES:
+                    logger.info(f"Waiting {RETRY_DELAY_SECONDS} seconds before retry...")
+                    time.sleep(RETRY_DELAY_SECONDS)
+                    # Reconnect and reselect mailbox
+                    try:
+                        mail.select('INBOX')
+                    except:
+                        # If connection is dead, reconnect
+                        mail = imaplib.IMAP4_SSL(imap_server)
+                        mail.login(user, password)
+                        mail.select('INBOX')
+                else:
+                    # Re-raise the exception if all retries failed
+                    raise
+
         if not mail_ids:
-            logger.info("No matching emails found today")
-            mail.logout()
+            logger.info("No matching emails found after all retry attempts")
             # Still log success (zero emails is normal)
             return
 
@@ -337,15 +385,13 @@ def main():
                 message="The Image cron job completed successfully. See HTML version for details.",
                 html_message=html_body,
                 add_cc_list=True,  # will use cc_list from env or default
-                cc_list=["zali9261@gmail.com"]        # or pass explicitly if you prefer
+                cc_list=["zali9261@gmail.com"]  # or pass explicitly if you prefer
             )
 
             if success:
                 logger.info("Success notification email sent")
             else:
                 logger.warning("Failed to send success notification email")
-
-
 
     except Exception as e:
         logger.error(f"IMAP / processing error: {e}", exc_info=True)
