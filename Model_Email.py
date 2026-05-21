@@ -29,6 +29,47 @@ def send_email(subject, email_list, message, html_message=None, attachment=None,
         return False
 
 
+def send_email_with_attachments(subject, email_list, message, html_message=None, attachments=None, add_cc_list=False,
+                                cc_list=[]):
+    """
+    Send email with multiple attachments
+
+    Args:
+        attachments: List of dicts with keys 'filename', 'content', 'content_type'
+    """
+    try:
+        if len(cc_list):
+            cc_list = cc_list
+        else:
+            cc_list = str(os.getenv('MAIL_CC')).split(',')
+
+        if add_cc_list:
+            msg = Message(subject, recipients=email_list, cc=cc_list)
+        else:
+            msg = Message(subject, recipients=email_list)
+
+        if html_message:
+            msg.html = html_message
+        else:
+            msg.body = message
+
+        # Add multiple attachments
+        if attachments:
+            for attachment in attachments:
+                msg.attach(
+                    attachment.get('filename', 'attachment'),
+                    attachment.get('content_type', 'application/octet-stream'),
+                    attachment.get('content')
+                )
+
+        mail.send(msg)
+        return True
+    except Exception as e:
+        print(f"Email sending error: {str(e)}")
+        #logger.error(f"Email sending error: {str(e)}")
+        return False
+
+
 def get_cron_success_email_body(job_name, summary_data):
     """
     Returns a clean, modern HTML email body for cron job success notification

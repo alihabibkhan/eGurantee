@@ -82,9 +82,16 @@ def update_pre_disbursement_temp():
         # Define status-to-field mapping
         status_fields = {
             '2': ('approved_by', 'approved_date'),
+            '3': ('rejected_by', 'rejected_date'),
+
             '5': ('reviewed_by', 'reviewed_date'),
             '6': ('reviewed_by', 'reviewed_date'),
-            '3': ('rejected_by', 'rejected_date')
+
+            '7': ('reviewed_by', 'Recommended for Agreement (With Exception)'),
+            '8': ('reviewed_by', 'Recommended for Disagreement (With Exception)'),
+
+            '9': ('approved_by', 'Agreed (With Exception)'),
+            '10': ('rejected_by', 'Disagreed (With Exception)')
         }
 
         # Validate status
@@ -106,7 +113,7 @@ def update_pre_disbursement_temp():
         print(f"Executed update query for pre_disb_temp_id: {pre_disb_temp_id}")
 
         # Handle rejected status (status = '3')
-        if status == '3':
+        if status in ['3', '10']:
             insert_query = f"""
                 INSERT INTO tbl_pre_disb_rejected_app (
                     post_disb_id,
@@ -141,7 +148,7 @@ def update_pre_disbursement_temp():
                 INNER JOIN tbl_branches b ON pdt."Branch_Name" LIKE CONCAT('%', b.branch_code, '%') AND b.live_branch = '1'
                 LEFT JOIN tbl_users u1 ON u1.user_id = pdt.reviewed_by
                 LEFT JOIN tbl_users u2 ON u2.user_id = pdt.rejected_by
-                where pdt.pre_disb_temp_id = '{str(pre_disb_temp_id)}' and pdt.status = '3'
+                where pdt.pre_disb_temp_id = '{str(pre_disb_temp_id)}' and pdt.status IN ('3', '10')
             """
             result = fetch_records(query)
 

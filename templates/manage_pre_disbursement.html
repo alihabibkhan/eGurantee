@@ -216,29 +216,44 @@
             </div>
             <div class="card-body">
                 <div class="row g-3 align-items-center">
-                    <div class="col-md-4">
+                    <!-- New Search Filter -->
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="search-filter" class="form-label">Search Application</label>
+                            <input type="text" class="form-control form-control-sm" id="search-filter"
+                                   placeholder="Application No..." onkeyup="applyFilters()">
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
                         <div class="form-group">
                             <label for="status-filter" class="form-label">Status</label>
-                            <select class="form-select form-select-sm" id="status-filter">
+                            <select class="form-select form-select-sm" id="status-filter" onchange="applyFilters()">
                                 <option value="all">All</option>
+                                <!-- Your existing options remain the same -->
                                 {% if result.is_reviewer or result.is_executive_approver or result.is_admin %}
                                     <option value="1" selected>Under Review</option>
                                 {% endif %}
                                 {% if result.is_approver or result.is_executive_approver or result.is_admin %}
                                     <option value="2">Agreed</option>
                                     <option value="3">Disagreed</option>
+                                    <option value="9">Agreed (With Exception)</option>
+                                    <option value="10">Disagreed (With Exception)</option>
                                 {% endif %}
                                 {% if result.is_reviewer or result.is_approver or result.is_executive_approver or result.is_admin %}
                                     <option value="5">Recommended for Agreement</option>
                                     <option value="6">Recommended for Disagreement</option>
+                                    <option value="7">Recommended for Agreement (With Exception)</option>
+                                    <option value="8">Recommended for Disagreement (With Exception)</option>
                                 {% endif %}
                             </select>
                         </div>
                     </div>
-                    <div class="col-md-4">
+
+                    <div class="col-md-3">
                         <div class="form-group">
                             <label for="loan-amount-filter" class="form-label">Loan Amount</label>
-                            <select class="form-select form-select-sm" id="loan-amount-filter">
+                            <select class="form-select form-select-sm" id="loan-amount-filter" onchange="applyFilters()">
                                 <option value="all">All</option>
                                 <option value="below-50k">Below 50,000</option>
                                 <option value="50k-100k">50,000 - 100,000</option>
@@ -246,8 +261,11 @@
                             </select>
                         </div>
                     </div>
-                    <div class="col-md-4 d-flex align-items-end">
-                        <button type="button" class="btn btn-primary btn-sm w-75" onclick="applyFilters()" style="margin-top: 30px;">Apply Filters</button>
+
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="button" class="btn btn-primary btn-sm w-100" onclick="applyFilters()" style="margin-top: 30px;">
+                            Apply Filters
+                        </button>
                     </div>
                 </div>
             </div>
@@ -444,7 +462,11 @@
             '2': 'Agreed',
             '3': 'Disagreed',
             '5': 'Recommended For Agreement',
-            '6': 'Recommended For Disagreement'
+            '6': 'Recommended For Disagreement',
+            '7': 'Recommended For Agreement (With Exception)',
+            '8': 'Recommended For Disagreement (With Exception)',
+            '9': 'Agreed (With Exception)',
+            '10': 'Disagreed (With Exception)'
         };
 
         // All possible fields for display
@@ -492,19 +514,30 @@
           return formatted.replace(', ', '/').replace(' ', '/');
         }
 
-        // Apply filters
+        // === NEW: Global search filter ===
         function applyFilters() {
+            const searchTerm = document.getElementById('search-filter').value.toLowerCase().trim();
             const statusFilter = document.getElementById('status-filter').value;
             const loanAmountFilter = document.getElementById('loan-amount-filter').value;
 
             filteredData = tempData.filter(record => {
+                let searchMatch = true;
                 let statusMatch = true;
                 let amountMatch = true;
 
+                // Search filter
+                if (searchTerm) {
+                    const appNo = (record.Application_No || '').toString().toLowerCase();
+                    const borrower = (record['Borrower_Name'] || '').toString().toLowerCase();
+                    searchMatch = appNo.includes(searchTerm) || borrower.includes(searchTerm);
+                }
+
+                // Status filter
                 if (statusFilter !== 'all') {
                     statusMatch = record.status === statusFilter;
                 }
 
+                // Loan amount filter
                 const loanAmount = parseFloat(record.Loan_Amount) || 0;
                 if (loanAmountFilter === 'below-50k') {
                     amountMatch = loanAmount < 50000;
@@ -514,7 +547,7 @@
                     amountMatch = loanAmount > 100000;
                 }
 
-                return statusMatch && amountMatch;
+                return searchMatch && statusMatch && amountMatch;
             });
 
             tempCurrentPage = 1;
@@ -523,6 +556,7 @@
         }
 
         // Render table
+        // === Updated renderTable with View button spinner ===
         function renderTable(data, tableBodyId, currentPage) {
             const tbody = document.getElementById(tableBodyId);
             tbody.innerHTML = '';
@@ -531,13 +565,14 @@
             const pageData = data.slice(start, end);
 
             if (pageData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No records found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">No records found</td></tr>';
                 return;
             }
 
             pageData.forEach((record, index) => {
                 const row = document.createElement('tr');
                 const statusText = statusMap[record.status] || 'Not Received';
+
                 let letterButton = '';
                 {% if result.is_user_have_sign %}
                     if (record.status === '2') {
@@ -552,6 +587,7 @@
                         {% endif %}
                     }
                 {% endif %}
+
                 row.innerHTML = `
                     <td>${record.branch || 'Not Received'}</td>
                     <td>${record.role || 'Not Received'}</td>
@@ -563,11 +599,33 @@
                     <td title='${record.approved_date}'>${formatDate(String(record.approved_date))}</td>
                     <td>${statusText}</td>
                     <td>
-                        <button class="btn btn-sm btn-primary" onclick="viewRecord(${start + index})">View</button>
+                        <button class="btn btn-sm btn-primary view-btn"
+                                data-index="${start + index}">
+                            <span class="view-text">View</span>
+                            <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                        </button>
                         ${letterButton}
                     </td>
                 `;
                 tbody.appendChild(row);
+            });
+
+            // Attach click handlers
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const index = parseInt(this.getAttribute('data-index'));
+                    const viewText = this.querySelector('.view-text');
+                    const spinner = this.querySelector('.spinner-border');
+
+                    viewText.classList.add('d-none');
+                    spinner.classList.remove('d-none');
+
+                    // Call viewRecord
+                    viewRecord(index).finally(() => {
+                        viewText.classList.remove('d-none');
+                        spinner.classList.add('d-none');
+                    });
+                });
             });
         }
 
@@ -638,10 +696,171 @@
             renderPagination(filteredData, 'temp-pagination', tempCurrentPage);
         }
 
+        // Check if there are exceptions in loan calculations
+        async function checkForExceptions(record, requiredPaidOffPerLoanMetrics, repeatIncrementPerLoanMetrics) {
+            let hasException = false;
+            let exceptionReason = '';
+            let ongoingLoansData = [];
+
+            try{
+                 const response = await fetch(`/get_on_going_loan_details?cnic=${encodeURIComponent(record.CNIC)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const ongoingLoans = await response.json();
+                ongoingLoansData = ongoingLoans.records;
+
+                console.log('ongoingLoansData:- ', ongoingLoansData);
+
+                const loanData = ongoingLoansData && Array.isArray(ongoingLoansData) && ongoingLoansData.length > 0
+                    ? ongoingLoansData
+                    : null;
+
+                console.log('loanData:- ', loanData)
+
+
+                if (!loanData) {
+                    ongoingLoansData = []
+                }
+                else{
+                    ongoingLoansData = ongoingLoansData[ongoingLoansData.length - 1];
+                }
+            } catch (error) {
+                console.error('Error fetching ongoing loan details:', error);
+            }
+
+            // Check Paid Off requirement (Requirement to Pay Off Existing Loan)
+            const loanCycle = record && record.Loan_Cycle ? parseInt(record.Loan_Cycle) : 1;
+            if (loanCycle > 1) {
+                // Calculate paid off vs required
+                const existingLoanLimit = record.Existing_Loan_Limit ? parseFloat(record.Existing_Loan_Limit) : 0;
+                const outstandingLoan = record.Existing_Outstanding_Loan_Schedules ? parseFloat(record.Existing_Outstanding_Loan_Schedules) : 0;
+                const requiredPaidOffPerLoanMetricsDecimal = requiredPaidOffPerLoanMetrics ? parseFloat(requiredPaidOffPerLoanMetrics) / 100 : 0;
+                const requiredPaidOff = existingLoanLimit * requiredPaidOffPerLoanMetricsDecimal;
+                const paidOff = existingLoanLimit - outstandingLoan;
+                const paidOffVsRequired = paidOff - requiredPaidOff;
+
+                console.log('checkForExceptions => paidOffVsRequired => ', paidOffVsRequired);
+
+                if (paidOffVsRequired < 0) {
+                    hasException = true;
+                    exceptionReason = 'Pay Off Requirement Not Met';
+                }
+            }
+
+            // Check Loan Limit requirement (Loan Limit Per KFT Matrix)
+            const repeatIncrementPercent = repeatIncrementPerLoanMetrics ? parseFloat(repeatIncrementPerLoanMetrics) : 0;
+            const loanDisbursementAmountPrevious = !isNaN(ongoingLoansData.disbursed_amount) ? parseFloat(ongoingLoansData.disbursed_amount) : 0.00;
+            const approvedLoanBank = record.Loan_Amount ? parseFloat(record.Existing_Loan_Limit) : 0;
+
+            const incrementFromExistingLoanBank = approvedLoanBank !== 0.00 ? (approvedLoanBank - loanDisbursementAmountPrevious) : 0.00;
+
+            const previousLoanLimit = record.Existing_Loan_Limit ? parseFloat(record.Existing_Loan_Limit) : 0;
+            const kftRequirement = loanDisbursementAmountPrevious > 0 ? (loanDisbursementAmountPrevious * repeatIncrementPercent) / 100 : 0;
+            const meetRequirement = kftRequirement - approvedLoanBank;
+
+            console.log('checkForExceptions => meetRequirement => ', meetRequirement);
+
+            if (meetRequirement < 0) {
+                hasException = true;
+                exceptionReason = exceptionReason ? exceptionReason + ' & Loan Limit Exceeded' : 'Loan Limit Exceeded';
+            }
+
+            return { hasException, exceptionReason };
+        }
+
+        // Helper function to generate status options based on exceptions and user role
+        function generateStatusOptions(currentStatus, hasException) {
+            const statusValue = String(currentStatus);
+            let options = '';
+
+            // Get user roles from Flask context (these will be available)
+            const isReviewer = {{ result.is_reviewer|tojson }};
+            const isApprover = {{ result.is_approver|tojson }};
+            const isExecutiveApprover = {{ result.is_executive_approver|tojson }};
+            const isAdmin = {{ result.is_admin|tojson }};
+
+            if (hasException) {
+                // If exceptions exist, prioritize showing exception options
+
+                // For Approvers & Executive Approvers & Admin
+                if (isApprover || isExecutiveApprover || isAdmin) {
+                    options += `<option value="9" ${statusValue === '9' ? 'selected' : ''}>Agreed (With Exception)</option>`;
+                    options += `<option value="10" ${statusValue === '10' ? 'selected' : ''}>Disagreed (With Exception)</option>`;
+                }
+
+                // For Reviewers, Approvers, Executive Approvers, Admin
+                if (isReviewer || isApprover || isExecutiveApprover || isAdmin) {
+                    options += `<option value="7" ${statusValue === '7' ? 'selected' : ''}>Recommended for Agreement (With Exception)</option>`;
+                    options += `<option value="8" ${statusValue === '8' ? 'selected' : ''}>Recommended for Disagreement (With Exception)</option>`;
+                }
+
+                // Under Review option (available to reviewers)
+                if (isReviewer || isExecutiveApprover || isAdmin) {
+                    options += `<option value="1" ${statusValue === '1' ? 'selected' : ''}>Under Review</option>`;
+                }
+
+                // Also add normal options as fallback (in case user wants to override)
+                if (isApprover || isExecutiveApprover || isAdmin) {
+                    options += `<option value="2" ${statusValue === '2' ? 'selected' : ''}>Agreed</option>`;
+                    options += `<option value="3" ${statusValue === '3' ? 'selected' : ''}>Disagreed</option>`;
+                }
+                if (isReviewer || isApprover || isExecutiveApprover || isAdmin) {
+                    options += `<option value="5" ${statusValue === '5' ? 'selected' : ''}>Recommended for Agreement</option>`;
+                    options += `<option value="6" ${statusValue === '6' ? 'selected' : ''}>Recommended for Disagreement</option>`;
+                }
+
+            } else {
+                // No exceptions - show normal options first, exception options also available if needed
+
+                // Under Review (always available to reviewers)
+                if (isReviewer || isExecutiveApprover || isAdmin) {
+                    options += `<option value="1" ${statusValue === '1' ? 'selected' : ''}>Under Review</option>`;
+                }
+
+                // For Approvers & Executive Approvers & Admin
+                if (isApprover || isExecutiveApprover || isAdmin) {
+                    options += `<option value="2" ${statusValue === '2' ? 'selected' : ''}>Agreed</option>`;
+                    options += `<option value="3" ${statusValue === '3' ? 'selected' : ''}>Disagreed</option>`;
+                }
+
+                // For Reviewers, Approvers, Executive Approvers, Admin
+                if (isReviewer || isApprover || isExecutiveApprover || isAdmin) {
+                    options += `<option value="5" ${statusValue === '5' ? 'selected' : ''}>Recommended for Agreement</option>`;
+                    options += `<option value="6" ${statusValue === '6' ? 'selected' : ''}>Recommended for Disagreement</option>`;
+                }
+            }
+
+            return options;
+        }
+
+        // Make this a global function
+        async function onFieldChange(record, natureSelect, expSelect) {
+            const natureOfBusiness = natureSelect.value;
+            const experience = expSelect.value;
+
+            console.log('onFieldChange -> natureOfBusiness:- ', natureOfBusiness);
+            console.log('onFieldChange -> experience:- ', experience);
+
+            await checkAgainstLoanMetrics(record, natureOfBusiness, experience);
+        }
+
         // View record in modal
-        function viewRecord(index) {
+        async function viewRecord(index) {
             const record = filteredData[index];
             console.log(record)
+
+
+            // Inside viewRecord function, replace the status select HTML with:
+            const currentStatus = String(record.status);
+            let statusOptions = '';
 
             $('.btn-send-email').hide();
             $('.btn-send-email').attr('data-pre-id', record.pre_disb_temp_id);
@@ -655,7 +874,7 @@
             section.style.display = 'none';
             gallery.innerHTML = '';
 
-            if(record.status == '2'){
+            if(record.status == '2' || record.status == '9'){
                 $('.btn-send-email').show();
             }
 
@@ -856,7 +1075,7 @@
                     <table class="table table-sm">
                         <tr><th>Loan Product:</th><td>${record.LoanProductCode || 'Not Received'}</td><td></td></tr>
                         <tr><th>Nature of Business:</th><td>${record.Nature_Of_Business || 'Not Received'}</td><td>
-                            <select class="form-select form-select-sm" id="nature-of-business">
+                            <select class="form-select form-select-sm nature-of-business" id="nature-of-business">
                                 <option value="">Select</option>
                                 {% for item in result.occupation_list %}
                                     <option value="{{item['name']}}">{{item['name']}}</option>
@@ -868,7 +1087,7 @@
                         <tr><th>Purpose of the Loan:</th><td>${record.Purpose_Of_Loan || 'Not Received'}</td><td></td></tr>
                         <tr><th>Enterprise Premises:</th><td>${record.Enterprise_Premises || 'Not Received'}</td><td></td></tr>
                         <tr><th>Experience Start Date:</th><td>${formatDate(record.Experiense_Start_Date) || 'Not Received'}</td><td>
-                            <select class="form-select form-select-sm" id="experience">
+                            <select class="form-select form-select-sm experience" id="experience">
                                 <option value="">Select</option>
                                 {% for item in result.experience_ranges_list %}
                                     <option value="{{item['label']}}">{{item['label']}}</option>
@@ -960,6 +1179,14 @@
             `;
             modalBody.appendChild(calculatorMathsLoanLimit);
 
+
+            // Check for exceptions using the checkForExceptions function
+            const exceptionCheck = await checkForExceptions(record, requiredPaidOffPerLoanMetrics, repeatIncrementPerLoanMetrics);
+            const hasException = exceptionCheck.hasException;
+            const exceptionReason = exceptionCheck.exceptionReason;
+
+            console.log('Exception detected:', hasException, 'Reason:', exceptionReason);
+
             // Table for KFT Approved Terms
             const kftAcceptedLoanTerms = document.createElement('div');
             kftAcceptedLoanTerms.className = 'row mt-3';
@@ -997,21 +1224,14 @@
                             <th>Rejected By (Rejected Date):</th>
                             <td>${record.rejected_by || ''}${formatDate(record.rejected_date) ? ` (${formatDate(record.rejected_date)})` : ''}</td>
                         </tr>
-                        <tr><th>Status:</th><td>
+                        <tr><th>Status:</th>
+                        <td>
                             <select class="form-select form-select-sm" id="temp-status">
-                                {% if result.is_reviewer or result.is_executive_approver or result.is_admin %}
-                                    <option value="1" ${String(record.status) === '1' ? 'selected' : ''}>Under Review</option>
-                                {% endif %}
-                                {% if result.is_approver or result.is_executive_approver or result.is_admin %}
-                                    <option value="2" ${String(record.status) === '2' ? 'selected' : ''}>Agreed</option>
-                                    <option value="3" ${String(record.status) === '3' ? 'selected' : ''}>Disagreed</option>
-                                {% endif %}
-                                {% if result.is_reviewer or result.is_approver or result.is_executive_approver or result.is_admin %}
-                                    <option value="5" ${String(record.status) === '5' ? 'selected' : ''}>Recommended for Agreement</option>
-                                    <option value="6" ${String(record.status) === '6' ? 'selected' : ''}>Recommended for Disagreement</option>
-                                {% endif %}
+                                ${generateStatusOptions(record.status, hasException)}
                             </select>
-                        </td></tr>
+                            ${hasException ? '<span class="badge bg-danger text-white ms-2" title="' + exceptionReason + '">⚠️ Exception Detected!</span>' : ''}
+                        </td>
+                        </tr>
                         <tr>
                             <th>Exceptions/Notes:</th>
                             <td>
@@ -1074,19 +1294,17 @@
             const saveBtn = document.getElementById('temp-save-btn');
             saveBtn.onclick = () => saveTempRecord(record.pre_disb_temp_id, saveBtn);
 
-            // Single event handler for changes
-            function onFieldChange() {
-              const natureOfBusiness = document.getElementById('nature-of-business').value;
-              const experience = document.getElementById('experience').value;
+            // Instead, attach event listeners programmatically:
+            const natureSelect = document.querySelector('.nature-of-business');
+            const expSelect = document.querySelector('.experience');
 
-              console.log('natureOfBusiness, experience')
-              console.log(natureOfBusiness, experience)
-              checkAgainstLoanMetrics(record, natureOfBusiness, experience);
+            if (natureSelect) {
+                natureSelect.addEventListener('change', () => onFieldChange(record, natureSelect, expSelect));
             }
 
-            // Attach handler to dropdowns and loan amount
-            document.getElementById('nature-of-business').addEventListener('change', onFieldChange);
-            document.getElementById('experience').addEventListener('change', onFieldChange);
+            if (expSelect) {
+                expSelect.addEventListener('change', () => onFieldChange(record, natureSelect, expSelect));
+            }
 
             // Reset button
             document.getElementById('reset-button').addEventListener('click', () => {
@@ -1097,9 +1315,9 @@
             modal.show();
 
             console.log('requiredPaidOffPerLoanMetrics:- ', requiredPaidOffPerLoanMetrics)
-            generateLoanStatusTable(record, requiredPaidOffPerLoanMetrics);
+            await generateLoanStatusTable(record, requiredPaidOffPerLoanMetrics);
             generateLoanCeilingTable(record, loanCeilingLoanMetrics, maxExpPerPrudReg);
-            generateLoanLimitTable(record, repeatIncrementPerLoanMetrics);
+            await generateLoanLimitTable(record, repeatIncrementPerLoanMetrics);
 
             // Show/hide View Images button and load images
             const viewImagesBtn = document.getElementById('viewImagesBtn');
@@ -1113,14 +1331,14 @@
 
         // Helper function to format numbers or return Not Received
         function formatNumber(value) {
-          console.log('formatNumber value:- ', value)
+          //console.log('formatNumber value:- ', value)
           if (value === undefined || value === null || isNaN(value)) return 'Not Received';
           let strValue = value.toString();
           if (strValue.includes(".")) {
               let [intPart, decimalPart] = strValue.split(".");
               intPart = intPart.replace(',','');
               let formattedInt = Number(intPart.replace(/,/g, "")).toLocaleString("en-US");
-              console.log('formattedInt:- ', formattedInt)
+              //console.log('formattedInt:- ', formattedInt)
               decimalPart = decimalPart.length > 2 ? decimalPart.substring(0, 2) : decimalPart;
               return `${formattedInt}.${decimalPart}`;
           }
@@ -1135,6 +1353,7 @@
 
         /*
         function generateLoanStatusTable(record, requiredPaidOffPerLoanMetrics) {
+
             // Parse requiredPaidOffPerLoanMetrics, default to 0.00 if invalid
             const requiredPaidOffPerLoanMetricsDecimal = !isNaN(requiredPaidOffPerLoanMetrics)
                 ? parseFloat(requiredPaidOffPerLoanMetrics) / 100
@@ -1254,6 +1473,8 @@
                 ? parseInt(record.Loan_Cycle)
                 : 1;
 
+            let hasException = false;
+
             console.log('Loan Cycle:', loanCycle);
 
             // If loan cycle is 1 → Show "Not Applicable"
@@ -1273,7 +1494,7 @@
 
             // === Loan Cycle > 1 → Fetch ongoing loan details ===
             try {
-                console.log(`Fetching ongoing loan details for CNIC: ${record.cnic}`);
+                console.log(`Fetching ongoing loan details for CNIC: ${record.CNIC}`);
 
                 const response = await fetch(`/get_on_going_loan_details?cnic=${encodeURIComponent(record.CNIC)}`, {
                     method: 'GET',
@@ -1353,6 +1574,8 @@
                     ? (paidOffVsRequired / existingLoanLimit) * 100
                     : 0;
 
+                hasException = paidOffVsRequired < 0;
+
                 // Generate HTML Table
                 const html = `
                     <tr>
@@ -1391,6 +1614,8 @@
                 document.getElementById("tableCalculatorMathsPaidOff").innerHTML = html;
                 console.log(`Table updated successfully using loan index ${loanIndex}`);
 
+                return hasException;
+
             } catch (error) {
                 console.error('Error fetching ongoing loan details:', error);
 
@@ -1402,6 +1627,7 @@
                     </tr>
                 `;
                 document.getElementById("tableCalculatorMathsPaidOff").innerHTML = errorHtml;
+                return false;
             }
         }
 
@@ -1523,6 +1749,7 @@
         }
 
         async function generateLoanLimitTable(record, repeatIncrementPerLoanMetrics) {
+            let hasException = false;
 
             try{
                  const response = await fetch(`/get_on_going_loan_details?cnic=${encodeURIComponent(record.CNIC)}`, {
@@ -1625,6 +1852,8 @@
                     ? (kftRequirementForIncrement - approvedLoanBank)
                     : 0.00;
 
+                hasException = meetRequirement < 0;
+
                 // Generate HTML table
                 const html = `
                     <tr>
@@ -1661,7 +1890,7 @@
                 // Update DOM
                 document.getElementById("tableCalculatorMathsLoanLimit").innerHTML = html;
                 console.log('Updating tableCalculatorMathsLoanLimit', 'HTML updated');
-
+                return hasException;
 
             } catch (error) {
                 console.error('Error fetching ongoing loan details:', error);
@@ -1674,6 +1903,8 @@
                     </tr>
                 `;
                 document.getElementById("tableCalculatorMathsLoanLimit").innerHTML = errorHtml;
+
+                return false;
             }
         }
 
@@ -1703,69 +1934,152 @@
           });
         }
 
-        function checkAgainstLoanMetrics(data, natureOfBusiness, experience) {
+        async function checkAgainstLoanMetrics(data, natureOfBusiness, experience) {
             console.log('---checkAgainstLoanMetrics---')
             console.log('data:- ', data)
             const productCode = data.LoanProductCode;
             const applicantGender = data.Gender;
             console.log(productCode, applicantGender, natureOfBusiness, experience);
+
+            // Find matching loan metrics based on selected nature and experience
             const proposedLoanMetric = findMatchingLoanMetric(loanMetrics, productCode, applicantGender, natureOfBusiness, experience);
-            console.log(proposedLoanMetric);
+            console.log('checkAgainstLoanMetrics -> proposedLoanMetric:- ', proposedLoanMetric);
+
             let interest_rate = 0;
             let loanCeilingLoanMetrics = 0;
             let requiredPaidOffPerLoanMetrics = 0;
             let repeatIncrementPerLoanMetrics = 0;
-            if(proposedLoanMetric)
-            {
+            let maxExpPerPrudReg = 0;
+
+            if(proposedLoanMetric) {
                 interest_rate = proposedLoanMetric.interest_rate || 0;
-                console.log(interest_rate);
+                console.log('interest_rate:', interest_rate);
                 loanCeilingLoanMetrics = proposedLoanMetric.global_loan_ceiling || 0;
-                console.log(loanCeilingLoanMetrics);
-                requiredPaidOffPerLoanMetrics =  proposedLoanMetric.required_paid_off || 0;
-                console.log(requiredPaidOffPerLoanMetrics);
+                console.log('loanCeilingLoanMetrics:', loanCeilingLoanMetrics);
+                requiredPaidOffPerLoanMetrics = proposedLoanMetric.required_paid_off || 0;
+                console.log('requiredPaidOffPerLoanMetrics:', requiredPaidOffPerLoanMetrics);
                 repeatIncrementPerLoanMetrics = proposedLoanMetric.repeat_increment || 0;
-                console.log(repeatIncrementPerLoanMetrics);
+                console.log('repeatIncrementPerLoanMetrics:', repeatIncrementPerLoanMetrics);
+                maxExpPerPrudReg = proposedLoanMetric.max_exp_per_prud_reg || 0;
+                console.log('maxExpPerPrudReg:', maxExpPerPrudReg);
             }
-            generateLoanStatusTable(data, requiredPaidOffPerLoanMetrics);
-            generateLoanCeilingTable(data, loanCeilingLoanMetrics);
-            generateLoanLimitTable(data, repeatIncrementPerLoanMetrics);
+
+            // AWAIT the async functions to get actual boolean values from REAL fetched data
+            const paidOffException = await generateLoanStatusTable(data, requiredPaidOffPerLoanMetrics);
+            generateLoanCeilingTable(data, loanCeilingLoanMetrics, maxExpPerPrudReg);
+            const loanLimitException = await generateLoanLimitTable(data, repeatIncrementPerLoanMetrics);
+
+            // Update interest rate display
             document.getElementById('td-interest-rate').innerHTML = interest_rate + "%";
+
+            // NOW check exceptions based on actual fetched data
+            const hasAnyException = paidOffException === true || loanLimitException === true;
+            console.log('Exceptions - PaidOff:', paidOffException, 'LoanLimit:', loanLimitException, 'HasAny:', hasAnyException);
+
+            // Update the status dropdown and badge
+            const statusSelect = document.getElementById('temp-status');
+            if (statusSelect) {
+                const currentStatus = statusSelect.value;
+
+                // Generate new options based on exception status
+                let newOptions = '';
+
+                // Get user roles
+                const isReviewer = {{ result.is_reviewer|tojson }};
+                const isApprover = {{ result.is_approver|tojson }};
+                const isExecutiveApprover = {{ result.is_executive_approver|tojson }};
+                const isAdmin = {{ result.is_admin|tojson }};
+
+                if (hasAnyException) {
+                    // Show exception options first
+                    if (isApprover || isExecutiveApprover || isAdmin) {
+                        newOptions += `<option value="9" ${currentStatus === '9' ? 'selected' : ''}>Agreed (With Exception)</option>`;
+                        newOptions += `<option value="10" ${currentStatus === '10' ? 'selected' : ''}>Disagreed (With Exception)</option>`;
+                    }
+                    if (isReviewer || isApprover || isExecutiveApprover || isAdmin) {
+                        newOptions += `<option value="7" ${currentStatus === '7' ? 'selected' : ''}>Recommended for Agreement (With Exception)</option>`;
+                        newOptions += `<option value="8" ${currentStatus === '8' ? 'selected' : ''}>Recommended for Disagreement (With Exception)</option>`;
+                    }
+                    if (isReviewer || isExecutiveApprover || isAdmin) {
+                        newOptions += `<option value="1" ${currentStatus === '1' ? 'selected' : ''}>Under Review</option>`;
+                    }
+
+                    // Add or update exception badge
+                    let exceptionBadge = document.querySelector('#temp-status + .badge');
+                    if (!exceptionBadge) {
+                        statusSelect.insertAdjacentHTML('afterend', '<span class="badge bg-danger text-white ms-2">⚠️ Exception Detected! Use Exception Status</span>');
+                    } else {
+                        exceptionBadge.style.display = 'inline-block';
+                    }
+                } else {
+                    // Show normal options
+                    if (isReviewer || isExecutiveApprover || isAdmin) {
+                        newOptions += `<option value="1" ${currentStatus === '1' ? 'selected' : ''}>Under Review</option>`;
+                    }
+                    if (isApprover || isExecutiveApprover || isAdmin) {
+                        newOptions += `<option value="2" ${currentStatus === '2' ? 'selected' : ''}>Agreed</option>`;
+                        newOptions += `<option value="3" ${currentStatus === '3' ? 'selected' : ''}>Disagreed</option>`;
+                    }
+                    if (isReviewer || isApprover || isExecutiveApprover || isAdmin) {
+                        newOptions += `<option value="5" ${currentStatus === '5' ? 'selected' : ''}>Recommended for Agreement</option>`;
+                        newOptions += `<option value="6" ${currentStatus === '6' ? 'selected' : ''}>Recommended for Disagreement</option>`;
+                    }
+
+                    // Remove or hide exception badge
+                    const exceptionBadge = document.querySelector('#temp-status + .badge');
+                    if (exceptionBadge) {
+                        exceptionBadge.style.display = 'none';
+                    }
+                }
+
+                // Only update if options changed
+                if (statusSelect.innerHTML !== newOptions) {
+                    statusSelect.innerHTML = newOptions;
+                }
+            }
         }
 
-        // View letter in modal
+        // === Improved Approval Letter Loading ===
         function viewLetter(pre_disb_temp_id, email_sent) {
-            console.log(email_sent)
             const iframe = document.getElementById('letter-iframe');
             const errorDiv = document.getElementById('letter-error');
             const sendEmailBtn = document.getElementById('send-email-btn');
+
             iframe.classList.add('loading');
             errorDiv.style.display = 'none';
             sendEmailBtn.style.display = 'none';
+
+            // Clear previous content immediately
+            iframe.src = 'about:blank';
+
             iframe.src = `/approval-letter/${pre_disb_temp_id}`;
+
             iframe.onload = function() {
                 iframe.classList.remove('loading');
-                if (iframe.contentDocument.body.innerHTML.trim() === '') {
+                if (iframe.contentDocument.body.innerHTML.trim() === '' ||
+                    iframe.contentDocument.body.innerHTML.includes('404') ||
+                    iframe.contentDocument.body.innerHTML.includes('not found')) {
                     errorDiv.style.display = 'block';
                     iframe.style.display = 'none';
                 } else {
                     iframe.style.display = 'block';
+                    // Show send email button logic...
                     if(String(email_sent) === '2'){
                         sendEmailBtn.style.display = 'none';
-                    }
-                    else{
+                    } else {
                         {% if result.is_user_have_sign and (result.is_admin or result.is_approver or result.is_executive_approver) %}
                             sendEmailBtn.style.display = 'block';
-                        {% else %}
-                            sendEmailBtn.style.display = 'none';
                         {% endif %}
                     }
                 }
             };
+
             iframe.onerror = function() {
                 iframe.classList.remove('loading');
                 errorDiv.style.display = 'block';
                 iframe.style.display = 'none';
             };
+
             const modal = new bootstrap.Modal(document.getElementById('letterModal'));
             modal.show();
         }
@@ -1826,6 +2140,30 @@
 
         // Save temp record via AJAX
         function saveTempRecord(pre_disb_temp_id, saveBtn) {
+            // Validation: Check if Experience Start Date is selected
+            const experienceSelect = document.getElementById('experience');
+            const selectedExperience = experienceSelect ? experienceSelect.value : '';
+
+            // Validation: Check if Nature of Business is selected
+            const natureSelect = document.getElementById('nature-of-business');
+            const selectedNature = natureSelect ? natureSelect.value : '';
+
+            if (!selectedExperience || selectedExperience === '') {
+                showToast('Please select Experience Start Date first!', 3000, 'warning');
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = `Save`;
+                experienceSelect.focus();
+                return;
+            }
+
+            if (!selectedNature || selectedNature === '') {
+                showToast('Please select Nature of Business first!', 3000, 'warning');
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = `Save`;
+                natureSelect.focus();
+                return;
+            }
+
             saveBtn.disabled = true;
             saveBtn.innerHTML = `Saving... <i class="fas fa-spinner fa-spin ml-2 ms-2"></i>`;
             const status = document.getElementById('temp-status').value;
@@ -1855,7 +2193,7 @@
                         saveBtn.innerHTML = `Save`;
                         showToast('Record updated successfully', 3000);
 
-                        if(record.status == '2'){
+                        if(record.status == '2' || record.status == '9'){
                             $('.btn-send-email').show();
                         }
                         else{
