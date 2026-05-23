@@ -87,11 +87,11 @@ def update_pre_disbursement_temp():
             '5': ('reviewed_by', 'reviewed_date'),
             '6': ('reviewed_by', 'reviewed_date'),
 
-            '7': ('reviewed_by', 'Recommended for Agreement (With Exception)'),
-            '8': ('reviewed_by', 'Recommended for Disagreement (With Exception)'),
+            '7': ('reviewed_by', 'reviewed_date'),
+            '8': ('reviewed_by', 'reviewed_date'),
 
-            '9': ('approved_by', 'Agreed (With Exception)'),
-            '10': ('rejected_by', 'Disagreed (With Exception)')
+            '9': ('approved_by', 'approved_date'),
+            '10': ('rejected_by', 'rejected_date')
         }
 
         # Validate status
