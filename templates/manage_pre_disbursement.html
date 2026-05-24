@@ -2039,47 +2039,40 @@
             }
         }
 
-        // === Improved Approval Letter Loading ===
+        // View letter in modal
         function viewLetter(pre_disb_temp_id, email_sent) {
+            console.log(email_sent)
             const iframe = document.getElementById('letter-iframe');
             const errorDiv = document.getElementById('letter-error');
             const sendEmailBtn = document.getElementById('send-email-btn');
-
             iframe.classList.add('loading');
             errorDiv.style.display = 'none';
             sendEmailBtn.style.display = 'none';
-
-            // Clear previous content immediately
-            iframe.src = 'about:blank';
-
             iframe.src = `/approval-letter/${pre_disb_temp_id}`;
-
             iframe.onload = function() {
                 iframe.classList.remove('loading');
-                if (iframe.contentDocument.body.innerHTML.trim() === '' ||
-                    iframe.contentDocument.body.innerHTML.includes('404') ||
-                    iframe.contentDocument.body.innerHTML.includes('not found')) {
+                if (iframe.contentDocument.body.innerHTML.trim() === '') {
                     errorDiv.style.display = 'block';
                     iframe.style.display = 'none';
                 } else {
                     iframe.style.display = 'block';
-                    // Show send email button logic...
                     if(String(email_sent) === '2'){
                         sendEmailBtn.style.display = 'none';
-                    } else {
+                    }
+                    else{
                         {% if result.is_user_have_sign and (result.is_admin or result.is_approver or result.is_executive_approver) %}
                             sendEmailBtn.style.display = 'block';
+                        {% else %}
+                            sendEmailBtn.style.display = 'none';
                         {% endif %}
                     }
                 }
             };
-
             iframe.onerror = function() {
                 iframe.classList.remove('loading');
                 errorDiv.style.display = 'block';
                 iframe.style.display = 'none';
             };
-
             const modal = new bootstrap.Modal(document.getElementById('letterModal'));
             modal.show();
         }
