@@ -284,7 +284,7 @@ def approval_letter(app_no):
         query = f"""
             SELECT "Borrower_Name", "Application_No", "Loan_Amount", KFT_Approved_Loan_Limit, "ApplicationDate", "Father_Husband_Name", "CNIC", "approved_date", "email_status" 
             FROM tbl_pre_disbursement_temp 
-            WHERE "pre_disb_temp_id" = '{str(app_no)}' AND "status" = '2'
+            WHERE "pre_disb_temp_id" = '{str(app_no)}' AND "status" IN ('2', '9')
         """
         record = fetch_records(query)
         print(record)

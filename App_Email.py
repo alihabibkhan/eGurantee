@@ -20,7 +20,7 @@ def send_email():
             KFT_Approved_Loan_Limit, "Collage_Univeristy", "Student_Name", "LoanProductCode", b.branch_name, b.branch_manager
             FROM tbl_pre_disbursement_temp
             LEFT JOIN tbl_branches b on "Branch_Name" LIKE CONCAT('%', b."branch_code", '%') AND b."live_branch" = '1'
-            WHERE "pre_disb_temp_id" = '{str(pre_disb_temp_id)}' AND "status" = '2'
+            WHERE "pre_disb_temp_id" = '{str(pre_disb_temp_id)}' AND "status" IN ('2', '9')
         """
         record = fetch_records(query)
 

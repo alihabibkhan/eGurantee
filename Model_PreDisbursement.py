@@ -130,7 +130,7 @@ def get_all_pre_disbursement_temp():
             LEFT JOIN tbl_users u3 ON u3.user_id = pdt.reviewed_by
             LEFT JOIN tbl_users u4 ON u4.user_id = pdt.rejected_by
             LEFT JOIN tbl_bank_details bd ON bd.bank_id = b.bank_id AND bd.status = '1'
-            WHERE pdt.status IN {("('1', '5', '6')" if get_current_user_role() == '1' else "('2', '3', '5', '6')")}
+            WHERE pdt.status IN {("('1', '5', '6', '7', '8')" if get_current_user_role() == '1' else "('2', '3', '5', '6', '7', '8', '9', '10')")}
         """
     else:
         sql_part_temp = """

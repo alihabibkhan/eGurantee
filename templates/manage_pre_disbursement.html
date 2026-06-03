@@ -575,11 +575,11 @@
 
                 let letterButton = '';
                 {% if result.is_user_have_sign %}
-                    if (record.status === '2') {
+                    if (record.status === '2' || record.status === '9') {
                         let badge = '';
-                        if (record.email_status === 2) {
+                        if (record.email_status === 2 || record.status === 9) {
                             badge = '<span class="badge badge-approved">Email Sent</span>';
-                        } else if (record.email_status === 3) {
+                        } else if (record.email_status === 3 || record.status === 10) {
                             badge = '<span class="badge badge-rejected">Email Rejected</span>';
                         }
                         {% if result.is_reviewer == False %}
@@ -811,10 +811,15 @@
                 if (isApprover || isExecutiveApprover || isAdmin) {
                     options += `<option value="2" ${statusValue === '2' ? 'selected' : ''}>Agreed</option>`;
                     options += `<option value="3" ${statusValue === '3' ? 'selected' : ''}>Disagreed</option>`;
+                    options += `<option value="9" ${statusValue === '9' ? 'selected' : ''}>Agreed (With Exception)</option>`;
+                    options += `<option value="10" ${statusValue === '10' ? 'selected' : ''}>Disagreed (With Exception)</option>`;
                 }
                 if (isReviewer || isApprover || isExecutiveApprover || isAdmin) {
                     options += `<option value="5" ${statusValue === '5' ? 'selected' : ''}>Recommended for Agreement</option>`;
                     options += `<option value="6" ${statusValue === '6' ? 'selected' : ''}>Recommended for Disagreement</option>`;
+
+                    options += `<option value="7" ${statusValue === '7' ? 'selected' : ''}>Recommended for Agreement (With Exception)</option>`;
+                    options += `<option value="8" ${statusValue === '8' ? 'selected' : ''}>Recommended for Disagreement (With Exception)</option>`;
                 }
 
             } else {
@@ -829,12 +834,18 @@
                 if (isApprover || isExecutiveApprover || isAdmin) {
                     options += `<option value="2" ${statusValue === '2' ? 'selected' : ''}>Agreed</option>`;
                     options += `<option value="3" ${statusValue === '3' ? 'selected' : ''}>Disagreed</option>`;
+
+                    options += `<option value="9" ${statusValue === '9' ? 'selected' : ''}>Agreed (With Exception)</option>`;
+                    options += `<option value="10" ${statusValue === '10' ? 'selected' : ''}>Disagreed (With Exception)</option>`;
                 }
 
                 // For Reviewers, Approvers, Executive Approvers, Admin
                 if (isReviewer || isApprover || isExecutiveApprover || isAdmin) {
                     options += `<option value="5" ${statusValue === '5' ? 'selected' : ''}>Recommended for Agreement</option>`;
                     options += `<option value="6" ${statusValue === '6' ? 'selected' : ''}>Recommended for Disagreement</option>`;
+
+                    options += `<option value="7" ${statusValue === '7' ? 'selected' : ''}>Recommended for Agreement (With Exception)</option>`;
+                    options += `<option value="8" ${statusValue === '8' ? 'selected' : ''}>Recommended for Disagreement (With Exception)</option>`;
                 }
             }
 
@@ -2019,10 +2030,15 @@
                     if (isApprover || isExecutiveApprover || isAdmin) {
                         newOptions += `<option value="2" ${currentStatus === '2' ? 'selected' : ''}>Agreed</option>`;
                         newOptions += `<option value="3" ${currentStatus === '3' ? 'selected' : ''}>Disagreed</option>`;
+                        newOptions += `<option value="9" ${currentStatus === '9' ? 'selected' : ''}>Agreed (With Exception)</option>`;
+                        newOptions += `<option value="10" ${currentStatus === '10' ? 'selected' : ''}>Disagreed (With Exception)</option>`;
                     }
                     if (isReviewer || isApprover || isExecutiveApprover || isAdmin) {
                         newOptions += `<option value="5" ${currentStatus === '5' ? 'selected' : ''}>Recommended for Agreement</option>`;
                         newOptions += `<option value="6" ${currentStatus === '6' ? 'selected' : ''}>Recommended for Disagreement</option>`;
+
+                        newOptions += `<option value="7" ${currentStatus === '7' ? 'selected' : ''}>Recommended for Agreement (With Exception)</option>`;
+                        newOptions += `<option value="8" ${currentStatus === '8' ? 'selected' : ''}>Recommended for Disagreement (With Exception)</option>`;
                     }
 
                     // Remove or hide exception badge
