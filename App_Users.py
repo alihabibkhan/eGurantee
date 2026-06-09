@@ -11,7 +11,7 @@ def generate_random_password():
 @application.route('/manage_users')
 def manage_users():
     try:
-        if is_login() and (is_admin() or is_executive_approver()):
+        if is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/manage_users")):
             content = {
                 'get_all_user_data': get_all_user_data(),
                 'get_all_branches_info': get_all_branches_info(),
@@ -248,7 +248,7 @@ def add_edit_user(user_id=None):
         print(f"Entering add_edit_user with user_id: {user_id}")
 
         # Check if user is logged in and is admin
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/add-edit-user"))):
             print("User not logged in or not an admin, redirecting to login")
             return redirect(url_for('login'))
 
@@ -571,7 +571,7 @@ def add_edit_user_service_term(term_id=None):
 @application.route('/delete-user', methods=['GET'])
 def delete_user():
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/delete-user"))):
             return redirect(url_for('login'))
 
         user_id = request.args.get('user_id')
@@ -601,7 +601,7 @@ def delete_user_privilege():
     Soft-delete a user privilege by setting status to 0
     """
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/delete-user-privilege"))):
             return redirect(url_for('login'))
 
         privilege_id = request.args.get('privilege_id')
@@ -633,7 +633,7 @@ def delete_user_service_term():
     Soft-delete a user service term by setting status to 0
     """
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/delete-user-service-term"))):
             return redirect(url_for('login'))
 
         term_id = request.args.get('term_id')

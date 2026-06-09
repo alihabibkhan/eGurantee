@@ -75,8 +75,9 @@ def generate_anomalies_html(anomaly_applications):
 
     # Render HTML template
     try:
-        from flask import render_template
-        html_content = render_template('anomalies_report.html', **template_data)
+        from flask import render_template, current_app
+        with current_app.test_request_context():
+            html_content = render_template('anomalies_report.html', **template_data)
     except Exception as e:
         application.logger.error(f"generate_anomalies_html: Template rendering failed: {str(e)}")
         # Fallback to simple HTML if template fails

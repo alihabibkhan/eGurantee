@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Web Permissions</title>
+    {% include 'head.html' %}
+    <style>
+        .table-responsive { margin-bottom: 1rem; }
+        .pagination .page-item.active .page-link {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        .action-icons a, .action-icons button {
+            margin-right: 0.5rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+        }
+        .add-button { margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url":"", "label":"Manage Web Permissions"}]) }}
+
+    <div class="mt-3">
+        {% include 'message_box.html' %}
+    </div>
+
+    <div class="container py-4">
+        <a href="/add-web-permission" class="btn btn-primary add-button mb-3">Add New Permission</a>
+
+        <h1 class="mb-4">Manage Web Permissions</h1>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">All Web Permissions</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover text-nowrap">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Title</th>
+                                <th>Route</th>
+                                <th>Permission Key</th>
+                                <th>Description</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="web-permissions-table-body"></tbody>
+                    </table>
+                </div>
+                <nav aria-label="Web permissions pagination">
+                    <ul class="pagination justify-content-center" id="web-permissions-pagination"></ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const permissionsData = {{ result.permissions | tojson }};
+        const itemsPerPage = 10;
+        let currentPage = 1;
+        let filteredData = permissionsData;
+
+        function formatStatus(status) {
+            return status == 1 ?
+                '<span class="badge bg-success">Active</span>' :
+                '<span class="badge bg-secondary">Inactive</span>';
+        }
+
+        function renderTable(data, tableBodyId, page) {
+            const tbody = document.getElementById(tableBodyId);
+            tbody.innerHTML = '';
+            const start = (page - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const pageData = data.slice(start, end);
+
+            if (pageData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No records found</td></tr>';
+                return;
+            }
+
+            pageData.forEach(record => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${record.title || 'N/A'}</td>
+                    <td>${record.route || 'N/A'}</td>
+                    <td><code>${record.permission_key || 'N/A'}</code></td>
+                    <td class="text-truncate" style="max-width: 250px;" title="${record.description || ''}">
+                        ${record.description || 'N/A'}
+                    </td>
+                    <td>${formatStatus(record.status)}</td>
+                    <td class="action-icons">
+                        <a href="/edit-web-permission/${record.web_permission_id}" class="text-decoration-none" title="Edit">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <form action="/delete-web-permission/${record.web_permission_id}" method="POST" style="display:inline;">
+                            <button type="submit" title="Delete" onclick="return confirm('Are you sure you want to delete this permission?')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Render pagination
+        function renderPagination(data, paginationId, currentPage) {
+            const pagination = document.getElementById(paginationId);
+            pagination.innerHTML = '';
+            const totalPages = Math.ceil(data.length / itemsPerPage);
+            if (totalPages <= 1) return;
+
+            const prevLi = document.createElement('li');
+            prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `<a class="page-link" href="#" ${currentPage === 1 ? '' : `onclick="changePage(${currentPage - 1})"`}>Previous</a>`;
+            pagination.appendChild(prevLi);
+
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            if (endPage - startPage + 1 < maxVisiblePages) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+
+            if (startPage > 1) {
+                const firstLi = document.createElement('li');
+                firstLi.className = 'page-item';
+                firstLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(1)">1</a>`;
+                pagination.appendChild(firstLi);
+
+                if (startPage > 2) {
+                    const ellipsisLi = document.createElement('li');
+                    ellipsisLi.className = 'page-item disabled';
+                    ellipsisLi.innerHTML = '<span class="page-link">...</span>';
+                    pagination.appendChild(ellipsisLi);
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                const pageLi = document.createElement('li');
+                pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                pageLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i})">${i}</a>`;
+                pagination.appendChild(pageLi);
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    const ellipsisLi = document.createElement('li');
+                    ellipsisLi.className = 'page-item disabled';
+                    ellipsisLi.innerHTML = '<span class="page-link">...</span>';
+                    pagination.appendChild(ellipsisLi);
+                }
+
+                const lastLi = document.createElement('li');
+                lastLi.className = 'page-item';
+                lastLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${totalPages})">${totalPages}</a>`;
+                pagination.appendChild(lastLi);
+            }
+
+            const nextLi = document.createElement('li');
+            nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+            nextLi.innerHTML = `<a class="page-link" href="#" ${currentPage === totalPages ? '' : `onclick="changePage(${currentPage + 1})"`}>Next</a>`;
+            pagination.appendChild(nextLi);
+        }
+
+        // Change page
+        function changePage(page) {
+            bankDetailsCurrentPage = page;
+            renderTable(filteredData, 'web-permissions-table-body', bankDetailsCurrentPage);
+            renderPagination(filteredData, 'web-permissions-pagination', bankDetailsCurrentPage);
+        }
+
+        // Initial render
+        renderTable(filteredData, 'web-permissions-table-body', currentPage);
+        renderPagination(filteredData, 'web-permissions-pagination', currentPage);
+    </script>
+</body>
+</html>

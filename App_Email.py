@@ -5,11 +5,12 @@ from application import application
 @application.route('/send-email', methods=['POST'])
 def send_email():
     try:
-        if not is_login() and not (is_admin() or is_executive_approver() or is_approver()):
-            return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        # if not is_login() and not (is_admin() or is_executive_approver() or is_approver()):
+        #     return jsonify({'success': False, 'error': 'Unauthorized'}), 401
         data = request.get_json()
         pre_disb_temp_id = data.get('app_no')
         recipient_email = data.get('recipient_email')
+        user_id = data.get('user_id', None)
 
         if not pre_disb_temp_id or not recipient_email or '@' not in recipient_email:
             return jsonify({'success': False, 'error': 'Invalid application number or email'}), 400
@@ -42,11 +43,18 @@ def send_email():
             base64_image = base64.b64encode(image_file.read()).decode('utf-8')
         logo_base64 = f'data:image/png;base64,{base64_image}'
 
+        sql_part = ''
+
+        if not user_id:
+            sql_part = f" AND u.user_id = '{get_current_user_id()}'"
+        else:
+            sql_part = f" AND u.user_id = '{str(user_id)}'"
+
         # Convert User sign to base64
         query = f"""
                     SELECT u.name, u.email, u.signature, u.scan_sign 
                     FROM tbl_users u 
-                    WHERE u.active = '1' AND u.user_id = '{get_current_user_id()}'
+                    WHERE u.active = '1' {sql_part}
                 """
         user = fetch_records(query)
 

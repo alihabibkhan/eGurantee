@@ -45,6 +45,7 @@
                                         <th>Product Code</th>
                                         <th>Maximum Exposure Per Prudential Regulations</th>
                                         <th>Description</th>
+                                        <th>Auto Approve</th>
                                         <th>Modified By</th>
                                         <th>Modified Date</th>
                                         <th>Actions</th>
@@ -57,6 +58,13 @@
                                         <td>{{ product.product_code or '' }}</td>
                                         <td>{{ product.max_exp_per_prud_reg or '' }}</td>
                                         <td class="text-truncate" style="max-width: 150px;">{{ product.description }}</td>
+                                        <td class="text-truncate" style="max-width: 150px;">
+                                            {% if product.auto_approve|string == '1' %}
+                                                Active
+                                            {% else %}
+                                                In-Active
+                                            {% endif %}
+                                        </td>
                                         <td>{{ product.modified_by }}</td>
                                         <td>{{ product.modified_date|format_date }}</td>
                                         <td>

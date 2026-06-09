@@ -4,7 +4,7 @@ from application import application
 @application.route('/manage-announcements')
 def manage_announcements():
     try:
-        if is_login() and (is_admin() or is_executive_approver()):
+        if is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/manage-announcements")):
             # Fetch only non-deleted records (add status if you add it later)
             query = """
                 SELECT 
@@ -28,7 +28,7 @@ def manage_announcements():
 @application.route('/edit-announcement/<int:ann_id>', methods=['GET', 'POST'])
 def add_edit_announcement(ann_id=None):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/add-announcement"))):
             return redirect(url_for('login'))
 
         announcement = None
@@ -122,7 +122,7 @@ def add_edit_announcement(ann_id=None):
 @application.route('/delete-announcement/<int:ann_id>', methods=['POST'])
 def delete_announcement(ann_id):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/delete-announcement"))):
             return redirect(url_for('login'))
 
         # Soft delete: set is_active = false (matches your schema philosophy)

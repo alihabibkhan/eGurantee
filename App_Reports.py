@@ -6,7 +6,7 @@ from datetime import timedelta
 @application.route('/fund-projection-report')
 def fund_projection_report():
     try:
-        if is_login() and (is_admin() or is_executive_approver()):
+        if is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/fund-projection-report")):
             content = {
                 'get_all_bank_details': get_all_bank_details(),
                 'get_all_banks_last_entry_records': get_all_banks_last_entry_records(),
@@ -176,7 +176,7 @@ def get_report_data():
 @application.route('/fund_projected_vs_disbursement')
 def fund_projected_vs_disbursement():
     try:
-        if is_login() and (is_admin() or is_executive_approver()):
+        if is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/fund_projected_vs_disbursement")):
 
             # query = """
             #     WITH LatestMonth AS (
@@ -288,7 +288,7 @@ def fund_projected_vs_disbursement():
 @application.route('/loan_projection_report')
 def loan_projection_report():
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/loan_projection_report"))):
             return redirect(url_for('login'))
 
         # Product list
@@ -392,7 +392,7 @@ def get_loan_projection_report_data():
 
 @application.route('/reports/pre-disbursement-cron')
 def pre_disbursement_cron_report():
-    if not (is_login() and (is_admin() or is_executive_approver())):
+    if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/reports/pre-disbursement-cron"))):
         flash("Access denied.", "danger")
         return redirect(url_for('login'))
 
@@ -406,7 +406,7 @@ def pre_disbursement_cron_report():
 @application.route('/reports/image-zip-cron')
 def image_zip_cron_report():
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/reports/image-zip-cron"))):
             flash("Access denied.", "danger")
             return redirect(url_for('login'))
 
@@ -425,7 +425,7 @@ def image_zip_cron_report():
 
 @application.route('/api/reports/pre-disbursement-runs', methods=['GET'])
 def api_pre_disbursement_runs():
-    if not (is_login() and (is_admin() or is_executive_approver())):
+    if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/api/reports/pre-disbursement-runs"))):
         return jsonify({"error": "Unauthorized"}), 403
 
     start_date = request.args.get('start')
@@ -448,7 +448,7 @@ def api_pre_disbursement_runs():
 
 @application.route('/api/reports/image-zip-runs', methods=['GET'])
 def api_image_zip_runs():
-    if not (is_login() and (is_admin() or is_executive_approver())):
+    if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/api/reports/image-zip-runs"))):
         return jsonify({"error": "Unauthorized"}), 403
 
     start_date = request.args.get('start')

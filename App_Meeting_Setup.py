@@ -339,7 +339,7 @@ def schedule_meeting(mand_meet_id):
 @application.route('/manage-meeting-setup')
 def manage_meeting_setup():
     try:
-        if is_login() and (is_admin() or is_executive_approver()):
+        if is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/manage-meeting-setup")):
             content = {
                 'get_all_meeting_categories': get_all_meeting_categories(),
                 'get_all_meeting_frequencies': get_all_meeting_frequencies(),
@@ -362,7 +362,7 @@ def manage_meeting_setup():
 @application.route('/edit-meeting-category/<int:meeting_category_id>', methods=['GET', 'POST'])
 def add_edit_meeting_category(meeting_category_id=None):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/add-meeting-category"))):
             return redirect(url_for('login'))
 
         meeting_category_details = None
@@ -420,7 +420,7 @@ def add_edit_meeting_category(meeting_category_id=None):
 @application.route('/delete-meeting-category/<int:meeting_category_id>', methods=['POST', 'GET'])
 def delete_meeting_category(meeting_category_id):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/delete-meeting-category"))):
             return redirect(url_for('login'))
 
         current_user_id = get_current_user_id()
@@ -442,7 +442,7 @@ def delete_meeting_category(meeting_category_id):
 @application.route('/edit-meeting-frequency/<int:meeting_freq_id>', methods=['GET', 'POST'])
 def add_edit_meeting_frequency(meeting_freq_id=None):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/add-meeting-frequency"))):
             return redirect(url_for('login'))
 
         meeting_freq_details = None
@@ -501,7 +501,7 @@ def add_edit_meeting_frequency(meeting_freq_id=None):
 @application.route('/delete-meeting-frequency/<int:meeting_freq_id>', methods=['POST', 'GET'])
 def delete_meeting_frequency(meeting_freq_id):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/delete-meeting-frequency"))):
             return redirect(url_for('login'))
 
         current_user_id = get_current_user_id()
@@ -522,7 +522,7 @@ def delete_meeting_frequency(meeting_freq_id):
 @application.route('/edit-meeting-priority/<int:meeting_priority_id>', methods=['GET', 'POST'])
 def add_edit_meeting_priority(meeting_priority_id=None):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/add-meeting-priority"))):
             return redirect(url_for('login'))
 
         meeting_priority_details = None
@@ -577,7 +577,7 @@ def add_edit_meeting_priority(meeting_priority_id=None):
 @application.route('/delete-meeting-priority/<int:meeting_priority_id>', methods=['POST', 'GET'])
 def delete_meeting_priority(meeting_priority_id):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/delete-meeting-priority"))):
             return redirect(url_for('login'))
 
         current_user_id = get_current_user_id()
@@ -598,7 +598,7 @@ def delete_meeting_priority(meeting_priority_id):
 @application.route('/edit-pre-meeting-status/<int:pre_ms_id>', methods=['GET', 'POST'])
 def add_edit_pre_meeting_status(pre_ms_id=None):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/add-pre-meeting-status"))):
             return redirect(url_for('login'))
 
         pre_ms_details = None
@@ -654,7 +654,7 @@ def add_edit_pre_meeting_status(pre_ms_id=None):
 @application.route('/delete-pre-meeting-status/<int:pre_ms_id>', methods=['POST', 'GET'])
 def delete_pre_meeting_status(pre_ms_id):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/delete-pre-meeting-status"))):
             return redirect(url_for('login'))
 
         current_user_id = get_current_user_id()
@@ -675,7 +675,7 @@ def delete_pre_meeting_status(pre_ms_id):
 @application.route('/edit-post-meeting-status/<int:post_ms_id>', methods=['GET', 'POST'])
 def add_edit_post_meeting_status(post_ms_id=None):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/add-post-meeting-status"))):
             return redirect(url_for('login'))
 
         post_ms_details = None
@@ -731,7 +731,7 @@ def add_edit_post_meeting_status(post_ms_id=None):
 @application.route('/delete-post-meeting-status/<int:post_ms_id>', methods=['POST', 'GET'])
 def delete_post_meeting_status(post_ms_id):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/delete-post-meeting-status"))):
             return redirect(url_for('login'))
 
         current_user_id = get_current_user_id()
@@ -752,7 +752,7 @@ def delete_post_meeting_status(post_ms_id):
 @application.route('/edit-meeting-action-item/<int:mai_id>', methods=['GET', 'POST'])
 def add_edit_meeting_action_item(mai_id=None):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/add-meeting-action-item"))):
             return redirect(url_for('login'))
 
         mai_details = None
@@ -807,7 +807,7 @@ def add_edit_meeting_action_item(mai_id=None):
 @application.route('/delete-meeting-action-item/<int:mai_id>', methods=['POST', 'GET'])
 def delete_meeting_action_item(mai_id):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/delete-meeting-action-item"))):
             return redirect(url_for('login'))
 
         current_user_id = get_current_user_id()
@@ -828,7 +828,7 @@ def delete_meeting_action_item(mai_id):
 @application.route('/edit-meeting-action-item-priority/<int:maip_id>', methods=['GET', 'POST'])
 def add_edit_meeting_action_item_priority(maip_id=None):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/add-meeting-action-item-priority"))):
             return redirect(url_for('login'))
 
         maip_details = None
@@ -883,7 +883,7 @@ def add_edit_meeting_action_item_priority(maip_id=None):
 @application.route('/delete-meeting-action-item-priority/<int:maip_id>', methods=['POST', 'GET'])
 def delete_meeting_action_item_priority(maip_id):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/delete-meeting-action-item-priority"))):
             return redirect(url_for('login'))
 
         current_user_id = get_current_user_id()
@@ -904,7 +904,7 @@ def delete_meeting_action_item_priority(maip_id):
 @application.route('/edit-meeting-action-item-status/<int:mais_id>', methods=['GET', 'POST'])
 def add_edit_meeting_action_item_status(mais_id=None):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/add-meeting-action-item-status"))):
             return redirect(url_for('login'))
 
         mais_details = None
@@ -959,7 +959,7 @@ def add_edit_meeting_action_item_status(mais_id=None):
 @application.route('/delete-meeting-action-item-status/<int:mais_id>', methods=['POST', 'GET'])
 def delete_meeting_action_item_status(mais_id):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/delete-meeting-action-item-status"))):
             return redirect(url_for('login'))
 
         current_user_id = get_current_user_id()
@@ -981,7 +981,7 @@ def delete_meeting_action_item_status(mais_id):
 @application.route('/edit-mandatory-meeting/<int:mand_meet_id>', methods=['GET', 'POST'])
 def add_edit_mandatory_meeting(mand_meet_id=None):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/add-mandatory-meeting"))):
             return redirect(url_for('login'))
 
         mand_meet_details = None
@@ -1059,7 +1059,7 @@ def add_edit_mandatory_meeting(mand_meet_id=None):
 @application.route('/delete-mandatory-meeting/<int:mand_meet_id>', methods=['POST', 'GET'])
 def delete_mandatory_meeting(mand_meet_id):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/delete-mandatory-meeting"))):
             return redirect(url_for('login'))
 
         current_user_id = get_current_user_id()

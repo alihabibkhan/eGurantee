@@ -7,7 +7,7 @@ from application import application
 @application.route('/edit-national-council-distribution/<int:national_council_distribution_id>', methods=['GET', 'POST'])
 def add_edit_national_council_distribution(national_council_distribution_id=None):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/add-national-council-distribution"))):
             return redirect(url_for('login'))
 
         national_council_distribution_details = None
@@ -65,7 +65,7 @@ def add_edit_national_council_distribution(national_council_distribution_id=None
 @application.route('/delete-national-council-distribution/<int:national_council_distribution_id>', methods=['POST', 'GET'])
 def delete_national_council_distribution(national_council_distribution_id):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/delete-national-council-distribution"))):
             return redirect(url_for('login'))
 
         current_user_id = get_current_user_id()

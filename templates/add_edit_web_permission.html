@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% include 'head.html' %}
+    <title>{{ 'Edit Web Permission' if result.permission else 'Add Web Permission' }}</title>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([
+        {"url": "manage_web_permissions", "label": "Manage Web Permissions"},
+        {"url": "", "label": 'Edit Web Permission' if result.permission else 'Add Web Permission'}
+    ]) }}
+
+    <div class="container mt-4">
+        {% include 'message_box.html' %}
+
+        <div class="card">
+            <div class="card-header">
+                <h2>{{ 'Edit Web Permission' if result.permission else 'Add Web Permission' }}</h2>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="form-group mb-3">
+                        <label for="category">Category</label>
+                        <select name="category" id="category" class="form-select" required>
+                            <option value="">[[Select]]</option>
+                            <option value="1" {% if result.permission.category|string == '1' %}selected{% endif %}>Information</option>
+                            <option value="2" {% if result.permission.category|string == '2' %}selected{% endif %}>Data Entry</option>
+                            <option value="3" {% if result.permission.category|string == '3' %}selected{% endif %}>Report</option>
+                            <option value="4" {% if result.permission.category|string == '4' %}selected{% endif %}>Setup</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="title">Title</label>
+                        <input type="text" name="title" class="form-control"
+                               value="{{ result.permission.title if result.permission else '' }}" required>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="route">Route</label>
+                        <input type="text" name="route" class="form-control"
+                               value="{{ result.permission.route if result.permission else '' }}" required>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="permission_key">Permission Key</label>
+                        <input type="text" name="permission_key" class="form-control"
+                               value="{{ result.permission.permission_key if result.permission else '' }}" required>
+                        <small class="text-muted">Example: page.dashboard.view</small>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="description">Description</label>
+                        <textarea name="description" class="form-control" rows="3">{{ result.permission.description if result.permission else '' }}</textarea>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="status">Status</label>
+                        <select name="status" class="form-control form-select">
+                            <option value="1" {% if result.permission and result.permission.status|string == '1' %}selected{% endif %}>Active</option>
+                            <option value="0" {% if result.permission and result.permission.status|string == '0' %}selected{% endif %}>Inactive</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        {{ 'Update Permission' if result.permission else 'Add Permission' }}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

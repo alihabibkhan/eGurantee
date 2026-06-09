@@ -7,7 +7,7 @@ from application import application
 @application.route('/edit-bank-distribution/<int:bank_distribution_id>', methods=['GET', 'POST'])
 def add_edit_bank_distribution(bank_distribution_id=None):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/add-bank-distribution"))):
             return redirect(url_for('login'))
 
         bank_distribution_details = None
@@ -67,7 +67,7 @@ def add_edit_bank_distribution(bank_distribution_id=None):
 @application.route('/delete-bank-distribution/<int:bank_distribution_id>', methods=['POST', 'GET'])
 def delete_bank_distribution(bank_distribution_id):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/delete-bank-distribution"))):
             return redirect(url_for('login'))
 
         current_user_id = get_current_user_id()

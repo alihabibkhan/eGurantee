@@ -562,11 +562,32 @@
             </a>
             <ul class="sub-dropdown-menu">
               <li class="nav-item"><a class="nav-link dropdown-title">Loan Portfolio Reports</a></li>
-              {% if session['rights']|string == '4' or session['rights']|string == '2' or session['rights']|string == '3' %}
-                <li class="nav-item"><a href="{{url_for('post_disbursement_report')}}" class="nav-link">Gross / Net Loans Reports</a></li>
-                <li class="nav-item"><a href="{{url_for('loan_projection_report')}}" class="nav-link">Loan Projections Report</a></li>
-                <li class="nav-item"><a href="{{url_for('view_rejected_applications')}}" class="nav-link">Disagreed Loans Report</a></li>
-                <li class="nav-item"><a href="#" class="nav-link">Loan Budget Vs Disbursed</a></li>
+              {# Gross / Net Loans Reports #}
+              {% if session['rights']|string in ['2', '3', '4'] or PermissionHelper.has_permission(logged_in_user, "/post-disbursement-report") %}
+                <li class="nav-item">
+                  <a href="{{url_for('post_disbursement_report')}}" class="nav-link">Gross / Net Loans Reports</a>
+                </li>
+              {% endif %}
+
+              {# Loan Projections Report #}
+              {% if session['rights']|string in ['2', '3', '4'] or PermissionHelper.has_permission(logged_in_user, "/loan-projection-report") %}
+                <li class="nav-item">
+                  <a href="{{url_for('loan_projection_report')}}" class="nav-link">Loan Projections Report</a>
+                </li>
+              {% endif %}
+
+              {# Disagreed Loans Report #}
+              {% if session['rights']|string in ['2', '3', '4'] or PermissionHelper.has_permission(logged_in_user, "/view-rejected-applications") %}
+                <li class="nav-item">
+                  <a href="{{url_for('view_rejected_applications')}}" class="nav-link">Disagreed Loans Report</a>
+                </li>
+              {% endif %}
+
+              {# Loan Budget Vs Disbursed #}
+              {% if session['rights']|string in ['2', '3', '4'] or PermissionHelper.has_permission(logged_in_user, "/loan-budget-vs-disbursed") %}
+                <li class="nav-item">
+                  <a href="#" class="nav-link">Loan Budget Vs Disbursed</a>
+                </li>
               {% endif %}
               <li class="nav-item"><a href="#" class="nav-link">Non Performance Loan Report</a></li>
             </ul>
@@ -583,8 +604,11 @@
         <ul class="custom-dropdown-menu">
           <li class="nav-item"><a class="nav-link dropdown-title">Volunteers</a></li>
           <li class="nav-item"><a href="{{url_for('profile')}}" class="nav-link dropdown-link">Profile</a></li>
-          {% if session['rights']|string == '3' or session['rights']|string == '4' %}
-            <li class="nav-item"><a href="#" class="nav-link dropdown-link">Roles & Service Term Update</a></li>
+          {# Roles & Service Term Update #}
+          {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/roles-service-term-update") %}
+            <li class="nav-item">
+              <a href="#" class="nav-link dropdown-link">Roles & Service Term Update</a>
+            </li>
           {% endif %}
           <li class="nav-item"><a href="{{url_for('manage_self_update_community')}}" class="nav-link dropdown-link">Self Update Committee Hours</a></li>
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Volunteer Report</a></li>
@@ -599,10 +623,18 @@
         </a>
         <ul class="custom-dropdown-menu">
           <li class="nav-item"><a class="nav-link dropdown-title">Financial Management</a></li>
-          {% if session['rights']|string == '3' or session['rights']|string == '4' %}
+
+          {% if session['rights']|string == '3' or session['rights']|string == '4' or PermissionHelper.has_permission(logged_in_user, "/manage-bank-entries") %}
             <li class="nav-item"><a href="{{url_for('manage_bank_entries')}}" class="nav-link dropdown-link">Bank Data Entry</a></li>
-            <li class="nav-item"><a href="#" class="nav-link dropdown-link">Bank Reconciliation</a></li>
           {% endif %}
+
+          {# Bank Reconciliation #}
+          {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/bank-reconciliation") %}
+            <li class="nav-item">
+              <a href="#" class="nav-link dropdown-link">Bank Reconciliation</a>
+            </li>
+          {% endif %}
+
           <li class="nav-item sub-dropdown-container">
             <a href="#" class="nav-link dropdown-link sub-custom-dropdown-toggle">
               <span class="">Financial Reports</span>
@@ -610,38 +642,63 @@
             </a>
             <ul class="sub-dropdown-menu">
               <li class="nav-item"><a class="nav-link dropdown-title">Financial Reports</a></li>
-              {% if session['rights']|string == '3' or session['rights']|string == '4' %}
-                <li class="nav-item"><a href="#" class="nav-link dropdown-link">Bank Account Statement</a></li>
-                <li class="nav-item"><a href="#" class="nav-link dropdown-link">Loan to Value Report</a></li>
+              {# Bank Account Statement #}
+              {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/bank-account-statement") %}
+                <li class="nav-item">
+                  <a href="#" class="nav-link dropdown-link">Bank Account Statement</a>
+                </li>
               {% endif %}
-              {% if session['rights']|string == '3' or session['rights']|string == '4' %}
+
+              {# Loan to Value Report #}
+              {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/loan-to-value-report") %}
+                <li class="nav-item">
+                  <a href="#" class="nav-link dropdown-link">Loan to Value Report</a>
+                </li>
+              {% endif %}
+
+              {% if session['rights']|string == '3' or session['rights']|string == '4' or PermissionHelper.has_permission(logged_in_user, "/fund-projection-report") %}
                 <li class="nav-item"><a href="{{url_for('fund_projection_report')}}" class="nav-link dropdown-link">Funds Projection Analysis</a></li>
+              {% endif %}
+
+              {% if session['rights']|string == '3' or session['rights']|string == '4' or PermissionHelper.has_permission(logged_in_user, "/fund-projected-vs-disbursement") %}
                 <li class="nav-item"><a href="{{url_for('fund_projected_vs_disbursement')}}" class="nav-link dropdown-link">Funds Projected Vs Actual</a></li>
               {% endif %}
 
             </ul>
           </li>
-          {% if session['rights']|string == '3' or session['rights']|string == '4' %}
-            <li class="nav-item"><a href="#" class="nav-link dropdown-link">Data Archive</a></li>
+          {# Data Archive #}
+          {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/data-archive") %}
+            <li class="nav-item">
+              <a href="#" class="nav-link dropdown-link">Data Archive</a>
+            </li>
           {% endif %}
         </ul>
       </li>
 
-      {% if session['rights']|string == '3' or session['rights']|string == '4' %}
-        <!-- Dropdown -->
-        <li class="nav-item dropdown-container">
-          <a href="#" class="nav-link custom-dropdown-toggle">
-            <i class="fa-solid fa-list-check fa-xl"></i>
-            <span class="nav-label">Risk Management</span>
-            <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
-          </a>
-          <ul class="custom-dropdown-menu">
+      <!-- Dropdown -->
+      <li class="nav-item dropdown-container">
+        <a href="#" class="nav-link custom-dropdown-toggle">
+          <i class="fa-solid fa-list-check fa-xl"></i>
+          <span class="nav-label">Risk Management</span>
+          <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
+        </a>
+        <ul class="custom-dropdown-menu">
+          {# Risk Management - Title #}
+          {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/risk-management") %}
             <li class="nav-item"><a class="nav-link dropdown-title">Risk Management</a></li>
+          {% endif %}
+
+          {# TAT Exception Reports #}
+          {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/tat-exception-reports") %}
             <li class="nav-item"><a href="#" class="nav-link dropdown-link">TAT Exception Reports</a></li>
+          {% endif %}
+
+          {# Loan Matrix Exceptions Report #}
+          {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/loan-matrix-exceptions-report") %}
             <li class="nav-item"><a href="#" class="nav-link dropdown-link">Loan Matrix Exceptions Report</a></li>
-          </ul>
-        </li>
-      {% endif %}
+          {% endif %}
+        </ul>
+      </li>
 
       <!-- Dropdown -->
       <li class="nav-item dropdown-container">
@@ -651,10 +708,13 @@
           <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
         </a>
         <ul class="custom-dropdown-menu">
-          <li class="nav-item"><a class="nav-link dropdown-title">Meetings</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Calendars</a></li>
-          {% if session['rights']|string == '3' or session['rights']|string == '4' or session['rights']|string == '2' %}
-            <li class="nav-item"><a href="#" class="nav-link dropdown-link">Meeting Minutes Update</a></li>
+          <li class="nav-item"><a class="nav-link dropdown-title" href="{{url_for('view_meeting_calendar')}}">Meetings</a></li>
+          <!--<li class="nav-item"><a href="#" class="nav-link dropdown-link">Calendars</a></li>-->
+          {# Meeting Minutes Update #}
+          {% if session['rights']|string in ['2', '3', '4'] or PermissionHelper.has_permission(logged_in_user, "/meeting-minutes-update") %}
+            <li class="nav-item">
+              <a href="#" class="nav-link dropdown-link">Meeting Minutes Update</a>
+            </li>
           {% endif %}
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Meeting Action Items List</a></li>
         </ul>
@@ -693,32 +753,87 @@
           <li class="nav-item"><a href="#" class="nav-link dropdown-link">Pakistan Poverty</a></li>
         </ul>
       </li>
-      {% if session['rights']|string == '3' or session['rights']|string == '4' %}
-        <!-- Dropdown -->
-        <li class="nav-item dropdown-container">
-          <a href="#" class="nav-link custom-dropdown-toggle">
-            <i class="fa-solid fa-gear fa-xl"></i>
-            <span class="nav-label">Settings</span>
-            <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
-          </a>
-          <ul class="custom-dropdown-menu">
-            <li class="nav-item"><a class="nav-link dropdown-title">Settings</a></li>
+
+      <!-- Dropdown -->
+      <li class="nav-item dropdown-container">
+        <a href="#" class="nav-link custom-dropdown-toggle">
+          <i class="fa-solid fa-gear fa-xl"></i>
+          <span class="nav-label">Settings</span>
+          <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
+        </a>
+        <ul class="custom-dropdown-menu">
+          <li class="nav-item"><a class="nav-link dropdown-title">Settings</a></li>
+          {# Bank Setup #}
+          {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/manage-bank-details") %}
             <li class="nav-item"><a href="{{url_for('manage_bank_details')}}" class="nav-link">Bank Setup</a></li>
+          {% endif %}
+
+          {# Branch Setup #}
+          {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/manage-branches") %}
             <li class="nav-item"><a href="{{url_for('manage_branches')}}" class="nav-link">Branch Setup</a></li>
+          {% endif %}
+
+          {# Announcements Setup #}
+          {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/manage-announcements") %}
             <li class="nav-item"><a href="{{url_for('manage_announcements')}}" class="nav-link">Announcements Setup</a></li>
+          {% endif %}
+
+          {# Loan Administration - Title #}
+          {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/loan-administration") %}
             <li class="nav-item"><a class="nav-link dropdown-title">Loan Administration</a></li>
+          {% endif %}
+
+          {# Loan Matrix Parameters #}
+          {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/manage_loan_metrics") %}
             <li class="nav-item"><a href="{{url_for('manage_loan_metrics')}}" class="nav-link">Loan Matrix Parameters</a></li>
+          {% endif %}
+
+          {# Loan Annual Budgets #}
+          {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/manage-budget") %}
             <li class="nav-item"><a href="{{url_for('manage_budget')}}" class="nav-link">Loan Annual Budgets</a></li>
+          {% endif %}
+
+          {# Loan Assessment File Uploading #}
+          {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/manage-file") %}
             <li class="nav-item"><a href="{{url_for('manage_file')}}" class="nav-link">Loan Assessment File Uploading</a></li>
+          {% endif %}
+
+          {# Loan-Analysis Auto Upload Monitor #}
+          {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/reports/pre-disbursement-cron") %}
             <li class="nav-item"><a href="{{url_for('pre_disbursement_cron_report')}}" class="nav-link">Loan-Analysis Auto Upload Monitor</a></li>
+          {% endif %}
+
+          {# Images Auto Upload Monitor #}
+          {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/reports/image-zip-cron") %}
             <li class="nav-item"><a href="{{url_for('image_zip_cron_report')}}" class="nav-link">Images Auto Upload Monitor</a></li>
-            <li class="nav-item"><a href="#" class="nav-link">Volunteers Roles Update</a></li>
+          {% endif %}
+
+          {# Manage Web Permissions #}
+          {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/manage-web-permissions") %}
+            <li class="nav-item"><a href="{{url_for('manage_web_permissions')}}" class="nav-link">Manage Web Permissions</a></li>
+          {% endif %}
+
+          {# Volunteers Permissions #}
+          {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/manage-user-permissions") %}
+            <li class="nav-item"><a href="{{url_for('manage_user_permissions')}}" class="nav-link">Volunteers Permissions</a></li>
+          {% endif %}
+
+          {# Volunteers Setup #}
+          {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/manage_users") %}
             <li class="nav-item"><a href="{{url_for('manage_users')}}" class="nav-link dropdown-link">Volunteers Setup</a></li>
+          {% endif %}
+
+          {# Meeting Setup #}
+          {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/manage-meeting-setup") %}
             <li class="nav-item"><a href="{{url_for('manage_meeting_setup')}}" class="nav-link dropdown-link">Meeting Setup</a></li>
+          {% endif %}
+
+          {# Partner Organization #}
+          {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/partner-organization") %}
             <li class="nav-item"><a href="#" class="nav-link">Partner Organization</a></li>
-          </ul>
-        </li>
-      {% endif %}
+          {% endif %}
+        </ul>
+      </li>
     </ul>
     <!-- Secondary Bottom Nav -->
     <ul class="nav-list secondary-nav">
@@ -952,4 +1067,48 @@
   // Collapse sidebar by default on small screens
   if (window.innerWidth <= 1024) document.querySelector(".sidebar").classList.add("collapsed");
 </script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
 
+    function hideEmptyDropdowns() {
+        const dropdownContainers = document.querySelectorAll('.dropdown-container');
+
+        dropdownContainers.forEach(container => {
+            const menu = container.querySelector('.custom-dropdown-menu');
+            if (!menu) return;
+
+            const allItems = menu.querySelectorAll('li.nav-item');
+
+            let hasVisibleItem = false;
+
+            allItems.forEach(item => {
+                const link = item.querySelector('a');
+
+                // Skip if it's a dropdown-title (heading)
+                if (link && link.classList.contains('dropdown-title')) {
+                    return; // Ignore headings
+                }
+
+                // Check if this item is visible (not hidden by Jinja if condition)
+                if (item.style.display !== 'none' &&
+                    window.getComputedStyle(item).display !== 'none') {
+                    hasVisibleItem = true;
+                }
+            });
+
+            // Hide entire dropdown if no real menu items are visible
+            if (!hasVisibleItem) {
+                container.style.display = 'none';
+            } else {
+                container.style.display = ''; // Reset to default
+            }
+        });
+    }
+
+    // Run on page load
+    hideEmptyDropdowns();
+
+    // Optional: Re-check if needed (e.g., after dynamic permission changes)
+    // window.hideEmptyDropdowns = hideEmptyDropdowns;
+});
+</script>

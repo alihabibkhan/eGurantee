@@ -5,7 +5,7 @@ from application import application
 @application.route('/manage_loan_products')
 def manage_loan_products():
     try:
-        if is_login() and (is_admin() or is_executive_approver()):
+        if is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/manage_loan_products")):
             content = {
                 'get_all_loan_products': get_all_loan_products()
             }
@@ -19,14 +19,14 @@ def manage_loan_products():
 @application.route('/add-edit-loan-product/<int:product_id>', methods=['GET', 'POST'])
 def add_edit_loan_product(product_id=None):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/add-edit-loan-product"))):
             return redirect(url_for('login'))
 
         loan_product = None
 
         if product_id:
             query = f"""
-                SELECT product_id, product_code, max_exp_per_prud_reg, name, gender, description, status, created_by, created_date, modified_by, modified_date
+                SELECT product_id, product_code, max_exp_per_prud_reg, name, gender, description, auto_approve, status, created_by, created_date, modified_by, modified_date
                 FROM tbl_loan_products 
                 WHERE product_id = '{product_id}' AND status = '1'
             """
@@ -42,6 +42,7 @@ def add_edit_loan_product(product_id=None):
             product_code = request.form.get('product_code')
             gender = request.form.get('gender', 'Male')
             description = request.form.get('description')
+            auto_approve = request.form.get('auto_approve')
             max_exp_per_prud_reg = request.form.get('max_exp_per_prud_reg')
 
             current_user_id = str(get_current_user_id())
@@ -51,7 +52,7 @@ def add_edit_loan_product(product_id=None):
                 update_query = f"""
                     UPDATE tbl_loan_products 
                     SET name = '{name}', product_code = '{product_code}', gender = '{gender}', description = '{description}', 
-                        status = '{str(1)}', modified_by = '{current_user_id}', modified_date = '{current_timestamp}',
+                        auto_approve = '{auto_approve}', status = '{str(1)}', modified_by = '{current_user_id}', modified_date = '{current_timestamp}',
                         max_exp_per_prud_reg = {str(max_exp_per_prud_reg)}
                     WHERE product_id = '{product_id}'
                 """
@@ -60,9 +61,9 @@ def add_edit_loan_product(product_id=None):
             else:
                 insert_query = f"""
                     INSERT INTO tbl_loan_products (
-                        name, product_code, gender, description, status, created_by, created_date, modified_by, modified_date, max_exp_per_prud_reg
+                        name, product_code, gender, description, auto_approve, status, created_by, created_date, modified_by, modified_date, max_exp_per_prud_reg
                     ) VALUES (
-                        '{name}', '{product_code}', '{gender}', '{description}', '{str(1)}', '{current_user_id}', '{current_timestamp}', 
+                        '{name}', '{product_code}', '{gender}', '{description}', '{str(auto_approve)}', '{str(1)}', '{current_user_id}', '{current_timestamp}', 
                         '{current_user_id}', '{current_timestamp}', {str(max_exp_per_prud_reg)}
                     )
                 """
@@ -86,7 +87,7 @@ def add_edit_loan_product(product_id=None):
 @application.route('/delete-loan-product', methods=['GET'])
 def delete_loan_product():
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/delete-loan-product"))):
             return redirect(url_for('login'))
 
         product_id = request.args.get('product_id')

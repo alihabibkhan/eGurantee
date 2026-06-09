@@ -131,7 +131,7 @@ def is_executive_approver():
 
 
 def get_current_user_id():
-    if session['user_id']:
+    if 'user_id' in session and session['user_id'] not in ['', None]:
         return str(session['user_id'])
     return '-1'
 

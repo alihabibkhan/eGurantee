@@ -169,7 +169,7 @@ def get_on_going_loan_details():
 @application.route('/post_disbursement_report')
 def post_disbursement_report():
     try:
-        if is_login() and (is_admin() or is_executive_approver()):
+        if is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/post_disbursement_report")):
             query = "select DISTINCT(product_code) from tbl_loan_products"
             product_list = fetch_records(query)
 

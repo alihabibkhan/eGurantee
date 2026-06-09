@@ -89,7 +89,9 @@ def utility_processor():
     announcments_data = get_active_marquee_content(limit=50)
 
     return {
-        'announcments_data': announcments_data
+        'announcments_data': announcments_data,
+        'logged_in_user': str(get_current_user_id()),
+        'PermissionHelper': PermissionHelper
     }
 
 
@@ -296,7 +298,9 @@ from App_Branch_Role import *
 from App_User_Self_Update_Community import *
 from App_Meeting_Setup import *
 from App_Announcements import *
+from Manage_Web_Permission import *
+from Manage_User_Permission import *
 
 if __name__ == '__main__':
-    application.run(debug=True, port=8080)
+    application.run(debug=True, port=8000)
 

@@ -7,7 +7,7 @@ from application import application
 @application.route('/edit-branch-role/<int:branch_role_id>', methods=['GET', 'POST'])
 def add_edit_branch_role(branch_role_id=None):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/add-branch-role"))):
             return redirect(url_for('login'))
 
         branch_role_details = None
@@ -65,7 +65,7 @@ def add_edit_branch_role(branch_role_id=None):
 @application.route('/delete-branch-role/<int:branch_role_id>', methods=['POST', 'GET'])
 def delete_branch_role(branch_role_id):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/delete-branch-role"))):
             return redirect(url_for('login'))
 
         current_user_id = get_current_user_id()

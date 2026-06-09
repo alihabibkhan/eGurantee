@@ -5,7 +5,7 @@ from application import application
 @application.route('/manage_experience_ranges')
 def manage_experience_ranges():
     try:
-        if is_login() and (is_admin() or is_executive_approver()):
+        if is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/manage_experience_ranges")):
             content = {
                 'get_all_experience_ranges': get_all_experience_ranges()
             }
@@ -19,7 +19,7 @@ def manage_experience_ranges():
 @application.route('/add-edit-experience-range/<int:experience_range_id>', methods=['GET', 'POST'])
 def add_edit_experience_range(experience_range_id=None):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/add-edit-experience-range"))):
             return redirect(url_for('login'))
 
         experience_range = None
@@ -84,7 +84,7 @@ def add_edit_experience_range(experience_range_id=None):
 @application.route('/delete-experience-range', methods=['GET'])
 def delete_experience_range():
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/delete-experience-range"))):
             return redirect(url_for('login'))
 
         experience_range_id = request.args.get('experience_range_id')

@@ -5,7 +5,7 @@ from application import application
 @application.route('/manage-bank-entries')
 def manage_bank_entries():
     try:
-        if is_login() and (is_admin() or is_executive_approver()):
+        if is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/manage-bank-entries")):
             content = {
                 'get_all_bank_details': get_all_bank_details(),
                 'get_all_bank_entries_info': get_all_bank_entries_info()
@@ -22,7 +22,7 @@ from datetime import datetime
 @application.route('/add-bank-entry', methods=['POST'])
 def add_bank_entry():
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/add-bank-entry"))):
             return jsonify({'error': 'Unauthorized access'}), 401
 
         data = request.get_json()
@@ -72,7 +72,7 @@ def add_bank_entry():
 def edit_bank_entry(bank_entry_id):
     try:
         print('edit_bank_entry triggered!!!')
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/edit-bank-entry"))):
             return jsonify({'error': 'Unauthorized access'}), 401
 
         data = request.get_json()
@@ -131,7 +131,7 @@ def edit_bank_entry(bank_entry_id):
 @application.route('/delete-bank-entry/<int:bank_entry_id>', methods=['POST'])
 def delete_bank_entry(bank_entry_id):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver())):
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/delete-bank-entry"))):
             return jsonify({'error': 'Unauthorized access'}), 401
 
         # Check if bank_entry_id exists
