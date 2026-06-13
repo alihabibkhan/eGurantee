@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Finance Auto Approved Monitor</title>
+    {% include 'head.html' %}
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #0d6efd;
+        }
+        .stat-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: none;
+        }
+        .stat-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 15px 25px rgba(13, 110, 253, 0.15) !important;
+        }
+        .status-badge {
+            padding: 6px 14px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .filter-form {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 1.5rem;
+            border-radius: 16px;
+        }
+        .table th {
+            font-weight: 600;
+            cursor: pointer;
+            user-select: none;
+        }
+        .table tbody tr:hover {
+            background: #f1f3f5;
+            transition: all 0.2s;
+        }
+        .amount {
+            font-weight: 700;
+            color: #0d6efd;
+        }
+        .chart-container {
+            position: relative;
+            height: 320px;
+        }
+    </style>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url":"", "label":"Student Finance Auto Approved Monitor"}] ) }}
+
+    <div class="container py-4">
+        {% include 'message_box.html' %}
+
+        <div class="d-flex justify-content-between align-items-start mb-4">
+            <div>
+                <h1 class="mb-1">Student Finance Auto Approved Monitor</h1>
+                <p class="text-muted mb-0">Real-time audit log of auto-approval decisions</p>
+            </div>
+            <button id="exportBtn" class="btn btn-success shadow-sm">
+                <i class="bi bi-download"></i> Export CSV
+            </button>
+        </div>
+
+        <!-- Summary Statistics -->
+        <div class="row g-3 mb-4" id="statsRow"></div>
+
+        <!-- Charts Row -->
+        <div class="row g-3 mb-4">
+            <div class="col-lg-7">
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h6 class="mb-0">Approval Trend (Last 30 Days)</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header">
+                        <h6 class="mb-0">Status Distribution</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="pieChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Form -->
+        <div class="card filter-form mb-4 shadow-sm">
+            <div class="card-body">
+                <form id="filterForm" class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="startDate" value="{{ default_start }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">End Date</label>
+                        <input type="date" class="form-control" id="endDate" value="{{ default_end }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Quick Search</label>
+                        <input type="text" class="form-control" id="searchInput" placeholder="Application No, CNIC or Name...">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100" id="filterBtn">
+                            <span id="btnText">Apply Filter</span>
+                            <span class="spinner-border spinner-border-sm d-none" id="loadingSpinner" role="status"></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0 d-flex justify-content-between align-items-center">
+                    Audit Records
+                    <span class="text-muted fs-6" id="resultCount"></span>
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover tbl_records text-nowrap text-center  table-responsive table-responsive-sm table-responsive-md table-responsive-lg table-responsive-xl table-responsive-xxl m-auto" id="logTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th data-sort="log_id">Log ID</th>
+                                <th data-sort="application_no">Application No</th>
+                                <th data-sort="cnic">CNIC</th>
+                                <th data-sort="borrower_name">Borrower Name</th>
+                                <th data-sort="branch_name">Branch</th>
+                                <th data-sort="loan_amount">Loan Amount</th>
+                                <th>Approval Type</th>
+                                <th>Approved By</th>
+                                <th data-sort="approved_date">Approved Date</th>
+                                <th>Status</th>
+                                <th>Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+                <nav class="p-3">
+                    <ul class="pagination justify-content-center mb-0" id="pagination"></ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const itemsPerPage = 15;
+        let currentPage = 1;
+        let allData = [];
+        let trendChart = null;
+        let pieChart = null;
+
+        const tableBody = document.getElementById('tableBody');
+        const pagination = document.getElementById('pagination');
+        const resultCount = document.getElementById('resultCount');
+
+        function formatDateTime(dt) {
+            if (!dt) return '—';
+            return new Date(dt).toLocaleString('en-PK', {
+                timeZone: 'Asia/Karachi',
+                dateStyle: 'medium',
+                timeStyle: 'short'
+            });
+        }
+
+        function formatAmount(amount) {
+            if (amount == null) return '—';
+            return Number(amount).toLocaleString('en-PK', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        function getStatusBadge(status) {
+            if (!status) return '<span class="badge bg-secondary">Unknown</span>';
+            const s = status.toLowerCase();
+            if (s.includes('approve') || s === 'approved') {
+                return `<span class="status-badge bg-success text-white">APPROVED</span>`;
+            }
+            if (s.includes('reject') || s === 'rejected') {
+                return `<span class="status-badge bg-danger text-white">REJECTED</span>`;
+            }
+            if (s.includes('pend')) {
+                return `<span class="status-badge bg-warning text-dark">PENDING</span>`;
+            }
+            return `<span class="status-badge bg-secondary">${status.toUpperCase()}</span>`;
+        }
+
+        function calculateStats(data) {
+            const total = data.length;
+            const approved = data.filter(r => (r.status || '').toLowerCase().includes('approve')).length;
+            const rejected = data.filter(r => (r.status || '').toLowerCase().includes('reject')).length;
+            const totalAmount = data.reduce((sum, r) => sum + (parseFloat(r.loan_amount) || 0), 0);
+
+            return { total, approved, rejected, totalAmount };
+        }
+
+        function renderStats(stats) {
+            const html = `
+                <div class="col-md-3">
+                    <div class="card stat-card h-100 text-center border-0 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="text-muted mb-1">Total Logs</h5>
+                            <h3 class="mb-0">${stats.total}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card h-100 text-center border-0 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="text-success mb-1">Approved</h5>
+                            <h3 class="mb-0 text-success">${stats.approved}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card h-100 text-center border-0 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="text-danger mb-1">Rejected</h5>
+                            <h3 class="mb-0 text-danger">${stats.rejected}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card h-100 text-center border-0 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="text-primary mb-1">Total Amount</h5>
+                            <h3 class="mb-0">PKR ${formatAmount(stats.totalAmount)}</h3>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('statsRow').innerHTML = html;
+        }
+
+        function renderTrendChart(data) {
+            const grouped = {};
+            data.forEach(row => {
+                const date = row.approved_date ? row.approved_date.split('T')[0] : 'Unknown';
+                if (!grouped[date]) grouped[date] = { approved: 0, rejected: 0 };
+                if ((row.status || '').toLowerCase().includes('approve')) grouped[date].approved++;
+                else if ((row.status || '').toLowerCase().includes('reject')) grouped[date].rejected++;
+            });
+
+            const labels = Object.keys(grouped).sort();
+            const approvedData = labels.map(d => grouped[d].approved);
+            const rejectedData = labels.map(d => grouped[d].rejected);
+
+            if (trendChart) trendChart.destroy();
+            trendChart = new Chart(document.getElementById('trendChart'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Approved',
+                            data: approvedData,
+                            borderColor: '#198754',
+                            backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                            tension: 0.3,
+                            fill: true
+                        },
+                        {
+                            label: 'Rejected',
+                            data: rejectedData,
+                            borderColor: '#dc3545',
+                            backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                            tension: 0.3,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top' } }
+                }
+            });
+        }
+
+        function renderPieChart(data) {
+            const approved = data.filter(r => (r.status || '').toLowerCase().includes('approve')).length;
+            const rejected = data.filter(r => (r.status || '').toLowerCase().includes('reject')).length;
+            const other = data.length - approved - rejected;
+
+            if (pieChart) pieChart.destroy();
+            pieChart = new Chart(document.getElementById('pieChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Approved', 'Rejected', 'Other'],
+                    datasets: [{
+                        data: [approved, rejected, other],
+                        backgroundColor: ['#198754', '#dc3545', '#6c757d']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        function renderTable(data, page) {
+            tableBody.innerHTML = '';
+            const start = (page - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const pageData = data.slice(start, end);
+
+            if (pageData.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="11" class="text-center text-muted py-4">No records found</td></tr>`;
+                return;
+            }
+
+            pageData.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${row.log_id}</strong></td>
+                    <td><strong>${row.application_no || '—'}</strong></td>
+                    <td>${row.cnic || '—'}</td>
+                    <td>${row.borrower_name || '—'}</td>
+                    <td>${row.branch_name || '—'}</td>
+                    <td class="amount">PKR ${formatAmount(row.loan_amount)}</td>
+                    <td>${row.approval_type || '—'}</td>
+                    <td>${row.approved_by || '—'}</td>
+                    <td>${formatDateTime(row.approved_date || row.created_date)}</td>
+                    <td>${getStatusBadge(row.status)}</td>
+                    <td class="text-truncate-ellipsis" title="${row.remarks || ''}">
+                        ${row.remarks ? row.remarks.substring(0, 85) + (row.remarks.length > 85 ? '...' : '') : '—'}
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        function renderPagination(totalItems, current) {
+            pagination.innerHTML = '';
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            if (totalPages <= 1) return;
+
+            const prev = document.createElement('li');
+            prev.className = `page-item ${current === 1 ? 'disabled' : ''}`;
+            prev.innerHTML = `<a class="page-link" href="#" ${current > 1 ? `onclick="changePage(${current-1})"` : ''}>Previous</a>`;
+            pagination.appendChild(prev);
+
+            for (let i = 1; i <= totalPages; i++) {
+                const li = document.createElement('li');
+                li.className = `page-item ${i === current ? 'active' : ''}`;
+                li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i})">${i}</a>`;
+                pagination.appendChild(li);
+            }
+
+            const next = document.createElement('li');
+            next.className = `page-item ${current === totalPages ? 'disabled' : ''}`;
+            next.innerHTML = `<a class="page-link" href="#" ${current < totalPages ? `onclick="changePage(${current+1})"` : ''}>Next</a>`;
+            pagination.appendChild(next);
+        }
+
+        function changePage(page) {
+            currentPage = page;
+            renderTable(allData, currentPage);
+            renderPagination(allData.length, currentPage);
+        }
+
+        function filterData(data, searchTerm) {
+            if (!searchTerm) return data;
+            const term = searchTerm.toLowerCase();
+            return data.filter(row =>
+                (row.application_no || '').toLowerCase().includes(term) ||
+                (row.cnic || '').toLowerCase().includes(term) ||
+                (row.borrower_name || '').toLowerCase().includes(term)
+            );
+        }
+
+        async function loadData() {
+            const start = document.getElementById('startDate').value;
+            const end = document.getElementById('endDate').value;
+            const btn = document.getElementById('filterBtn');
+            const btnText = document.getElementById('btnText');
+            const spinner = document.getElementById('loadingSpinner');
+
+            btn.disabled = true;
+            btnText.textContent = 'Loading...';
+            spinner.classList.remove('d-none');
+
+            try {
+                const res = await fetch(`/api/reports/auto-approval-log?start=${start}&end=${end}`);
+                const json = await res.json();
+
+                if (!json.success) throw new Error(json.error || "Failed to load data");
+
+                allData = json.data || [];
+                const searchTerm = document.getElementById('searchInput').value.trim();
+                const filteredData = filterData(allData, searchTerm);
+
+                currentPage = 1;
+                renderTable(filteredData, currentPage);
+                renderPagination(filteredData.length, currentPage);
+                renderStats(calculateStats(filteredData));
+                renderTrendChart(filteredData);
+                renderPieChart(filteredData);
+                resultCount.textContent = `(${filteredData.length} records)`;
+
+            } catch (err) {
+                console.error(err);
+                alert("Error loading data: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btnText.textContent = 'Apply Filter';
+                spinner.classList.add('d-none');
+            }
+        }
+
+        function exportToCSV() {
+            if (allData.length === 0) {
+                alert("No data to export");
+                return;
+            }
+            const headers = Object.keys(allData[0]);
+            let csv = headers.join(",") + "\n";
+            allData.forEach(row => {
+                csv += headers.map(h => `"${(row[h] || '').toString().replace(/"/g, '""')}"`).join(",") + "\n";
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `student_finance_auto_approval_${new Date().toISOString().slice(0,10)}.csv`;
+            a.click();
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+            document.getElementById('exportBtn').addEventListener('click', exportToCSV);
+        });
+
+        document.getElementById('filterForm').addEventListener('submit', e => {
+            e.preventDefault();
+            loadData();
+        });
+
+        // Live Search
+        let searchTimeout;
+        document.getElementById('searchInput').addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const filtered = filterData(allData, document.getElementById('searchInput').value.trim());
+                currentPage = 1;
+                renderTable(filtered, currentPage);
+                renderPagination(filtered.length, currentPage);
+                renderStats(calculateStats(filtered));
+                renderTrendChart(filtered);
+                renderPieChart(filtered);
+                resultCount.textContent = `(${filtered.length} records)`;
+            }, 300);
+        });
+    </script>
+</body>
+</html>

@@ -555,6 +555,7 @@
         <ul class="custom-dropdown-menu">
           <li class="nav-item"><a class="nav-link dropdown-title">Loan Portfolio</a></li>
           <li class="nav-item"><a href="{{url_for('manage_pre_disbursement')}}" class="nav-link dropdown-link">Loan Application Analysis</a></li>
+          <li class="nav-item"><a href="{{url_for('manage_approval_letters')}}" class="nav-link dropdown-link">Manage Approval Letters</a></li>
           <li class="nav-item sub-dropdown-container">
             <a href="#" class="nav-link dropdown-link sub-custom-dropdown-toggle">
               <span class="">Loan Portfolio Reports</span>
@@ -806,6 +807,16 @@
           {# Images Auto Upload Monitor #}
           {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/reports/image-zip-cron") %}
             <li class="nav-item"><a href="{{url_for('image_zip_cron_report')}}" class="nav-link">Images Auto Upload Monitor</a></li>
+          {% endif %}
+
+          {# Post Disbursement Monitor #}
+          {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/reports/post-disb-email-cron") %}
+            <li class="nav-item"><a href="{{url_for('post_disb_email_cron_report')}}" class="nav-link">Post Disbursement Upload Monitor</a></li>
+          {% endif %}
+
+          {# Student Finance Auto Approved Monitor #}
+          {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/reports/auto-approval-log") %}
+            <li class="nav-item"><a href="{{url_for('auto_approval_log_report')}}" class="nav-link">Student Finance Auto Approved Monitor</a></li>
           {% endif %}
 
           {# Manage Web Permissions #}

@@ -385,3 +385,132 @@ def serve_pre_image(image_id):
         as_attachment=False,
         download_name=f"pre_image_{image_id}.jpg"
     )
+
+
+@application.route('/manage-approval-letters')
+def manage_approval_letters():
+    """Page to list and download approval letters for approved applications"""
+    try:
+        if is_login():
+            # Fetch all applications with status 2 or 9
+            query = """
+                SELECT 
+                    pre_disb_temp_id,
+                    "Application_No",
+                    "Borrower_Name",
+                    "CNIC",
+                    "Requested_Loan_Amount",
+                    KFT_Approved_Loan_Limit,
+                    "ApplicationDate",
+                    status,
+                    approved_date,
+                    approved_by,
+                    email_status
+                FROM tbl_pre_disbursement_temp 
+                WHERE status IN ('2', '9')
+                ORDER BY approved_date DESC
+            """
+            approved_applications = fetch_records(query)
+
+            content = {
+                'approved_applications': approved_applications,
+                'is_admin': is_admin(),
+                'is_reviewer': is_reviewer(),
+                'is_approver': is_approver(),
+                'is_executive_approver': is_executive_approver()
+            }
+            return render_template('manage_approval_letters.html', result=content)
+    except Exception as e:
+        print('manage-approval-letters exception:- ', str(e))
+        return redirect(url_for('login'))
+
+
+@application.route('/print-approval-letter/<app_no>')
+def print_approval_letter(app_no):
+    """Print-friendly version of approval letter"""
+    try:
+        if is_login():
+            query = f"""
+                SELECT "Borrower_Name", "Application_No", "Loan_Amount", KFT_Approved_Loan_Limit, 
+                       "ApplicationDate", "Father_Husband_Name", "CNIC", "approved_date", "email_status" 
+                FROM tbl_pre_disbursement_temp 
+                WHERE "pre_disb_temp_id" = '{str(app_no)}' AND "status" IN ('2', '9')
+            """
+            record = fetch_records(query)
+
+            if not record:
+                abort(404, description="Approved record not found")
+
+            # Convert logo to base64
+            image_path = os.path.join(application.root_path, 'static', 'images', 'hbl_logo-removebg-preview.png')
+            with open(image_path, 'rb') as image_file:
+                base64_image = base64.b64encode(image_file.read()).decode('utf-8')
+            logo_base64 = f'data:image/png;base64,{base64_image}'
+
+            # Get user signature
+            query = f"""
+                SELECT u.name, u.email, u.signature, u.scan_sign 
+                FROM tbl_users u 
+                WHERE u.active = '1' AND u.user_id = '{get_current_user_id()}'
+            """
+            user = fetch_records(query)
+
+            sign_base64 = None
+            if user and user[0].get('scan_sign'):
+                sign_base64 = base64.b64encode(user[0]['scan_sign']).decode('utf-8')
+
+            return render_template('print_approval_letter.html',
+                                   result=record[0],
+                                   logo_base64=logo_base64,
+                                   sign_base64=sign_base64)
+    except Exception as e:
+        print('print-approval-letter exception:- ', str(e))
+        abort(500, description=str(e))
+
+
+@application.route('/download-approval-letter/<app_no>')
+def download_approval_letter(app_no):
+    """Automatically download as PDF using browser's print-to-PDF"""
+    try:
+        if not is_login():
+            return redirect(url_for('login'))
+
+        # Fetch your data
+        query = f"""
+            SELECT "Borrower_Name", "Application_No", "Loan_Amount", KFT_Approved_Loan_Limit, 
+                   "ApplicationDate", "Father_Husband_Name", "CNIC", "approved_date", "email_status" 
+            FROM tbl_pre_disbursement_temp 
+            WHERE "pre_disb_temp_id" = '{str(app_no)}' AND "status" IN ('2', '9')
+        """
+        record = fetch_records(query)
+
+        if not record:
+            return jsonify({'error': 'Record not found'}), 404
+
+        # Convert logo to base64
+        image_path = os.path.join(application.root_path, 'static', 'images', 'hbl_logo-removebg-preview.png')
+        with open(image_path, 'rb') as image_file:
+            base64_image = base64.b64encode(image_file.read()).decode('utf-8')
+        logo_base64 = f'data:image/png;base64,{base64_image}'
+
+        # Get user signature
+        query = f"""
+            SELECT u.name, u.email, u.signature, u.scan_sign 
+            FROM tbl_users u 
+            WHERE u.active = '1' AND u.user_id = '{get_current_user_id()}'
+        """
+        user = fetch_records(query)
+
+        sign_base64 = None
+        if user and user[0].get('scan_sign'):
+            sign_base64 = base64.b64encode(user[0]['scan_sign']).decode('utf-8')
+
+        # Return template with auto-print JavaScript
+        return render_template('lien_letter_pdf.html',
+                               result=record[0],
+                               logo_base64=logo_base64,
+                               sign_base64=sign_base64)
+
+    except Exception as e:
+        print('download-approval-letter exception:- ', str(e))
+        abort(500, description=str(e))

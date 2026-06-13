@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Letter of Lien - {{ result.Application_No }}</title>
+
+    <!-- html2pdf.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        body {
+            font-family: Garamond, serif;
+            margin: 20px;
+            font-size: 11px;
+            line-height: 1.3;
+        }
+        .letter {
+            max-width: 600px;
+            margin: auto;
+            padding: 10px;
+        }
+        .header {
+            text-align: left;
+            margin-bottom: 10px;
+        }
+        .header img {
+            width: 100px;
+            height: 20px;
+            display: block;
+            object-fit: contain;
+        }
+        .date {
+            margin-bottom: 5px;
+            text-decoration: underline;
+        }
+        .branch {
+            margin: 5px 0;
+        }
+        .which-branch {
+            text-decoration: underline;
+        }
+        .title {
+            font-weight: bold;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+        p {
+            margin: 5px 0;
+        }
+        table {
+            width: 100%;
+            max-width: 600px;
+            border-collapse: collapse;
+            margin: 10px auto;
+            font-size: 11px;
+            font-family: Garamond, serif;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 3px 5px;
+            text-align: left;
+        }
+        th {
+            font-weight: bold;
+            background-color: #f5f5f5;
+        }
+        .signature-section {
+            margin-top: 15px;
+        }
+        .signature-section p {
+            font-weight: bold;
+            margin: 3px 0;
+        }
+        .signature-section img {
+            width: 40px;
+            height: 20px;
+            vertical-align: middle;
+        }
+        .letter-heading {
+            text-align: center;
+            text-decoration: underline;
+            margin-bottom: 10px;
+            margin-top: 25px;
+        }
+
+        /* Print optimization */
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+            }
+            .letter {
+                margin: 0 auto;
+                padding: 10px;
+            }
+            .no-print {
+                display: none;
+            }
+            @page {
+                size: A4;
+                margin: 0.5in;
+            }
+        }
+
+        /* Status watermark for approved letters */
+        {% if result.email_status|string == '2' %}
+        body::before {
+            content: "APPROVED";
+            position: fixed;
+            top: 30%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 80px;
+            color: green;
+            opacity: 0.6;
+            z-index: 9999;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        {% endif %}
+    </style>
+</head>
+<body>
+    <!-- Hidden manual button (kept for fallback) -->
+    <div class="download-btn-container no-print" style="text-align: center; margin-bottom: 20px; display: none;">
+        <button class="download-btn" onclick="generateAndDownloadPDF();">
+            📄 Download as PDF
+        </button>
+    </div>
+
+    <div class="letter" id="letterContent">
+        <div class="header">
+            <img src="{{ logo_base64 }}" alt="HBL Logo" onerror="this.style.display='none';">
+        </div>
+        <h3 class="letter-heading">Letter of Lien</h3>
+        <span>Dated: <span class="date">{{ result.approved_date|format_date or '2025-06-22 15:22:00' }}</span></span>
+        <div class="branch">Branch Manager</div>
+        <p class="which-branch">AMINABAD HYDERABAD</p>
+        <div class="title">IRREVOCABLE AUTHORIZATION OF LIEN MARKING & ENCASHMENT OF ACCOUNT AS A COLLATERAL AGAINST LOANS AS PER FOLLOWING DETAILS</div>
+        <p>Dear Sir/Madam,</p>
+        <p>Kindly referred to Credit Guarantee Agreement signed off between RAINBOW HI TECH-KHUSHALI FOUNDATION TRUST and HBL MfB, I, being an authorized signatory of RAINBOW HI TECH-KHUSHALI FOUNDATION TRUST, hereby offer Account No-0401012363330016 as collateral against the following loan arrangements:</p>
+        <table>
+            <tr>
+                <th>Sr#</th>
+                <th>Borrower Name</th>
+                <th>S/o/D/o/W/o</th>
+                <th>CNIC No.</th>
+                <th>Loan Amount to be disbursed</th>
+            </tr>
+            <tr>
+                <td>1</td>
+                <td>{{ result.Borrower_Name or 'N/A' }}</td>
+                <td>{{ result.Father_Husband_Name or 'N/A' }}</td>
+                <td>{{ result.CNIC or 'N/A' }}</td>
+                <td>{{ '{:,.0f}'.format(result.kft_approved_loan_limit|int) if result.kft_approved_loan_limit is not none else ('{:,.0f}'.format(result.Loan_Amount|int) if result.Loan_Amount else 'N/A') }}</td>
+            </tr>
+        </table>
+        <p>I also hereby authorize HBL Microfinance Bank Ltd. to en-cash the proceeds of above instrument towards settlement of complete liability (principal and services charges) as against borrowers mentioned in above table directly in case of loan default.</p>
+        <p>This authorization of marking lien on the account is irrevocable until the entire liability owed by the above borrowers is satisfactorily paid off to HBL Microfinance Bank Ltd.</p>
+        <p>I also declare that this lien marking instructions shall be communicated to HBL MfB branch via email which may be considered as valid as physically submitted.</p>
+        <div class="signature-section">
+            <span>Customer/Guarantor's Name(s):</span>
+            <p>Authorized Signatures: {% if sign_base64 %}<img src="data:image/jpeg;base64,{{ sign_base64 }}" alt="signature" onerror="this.style.display='none';">{% endif %}</p>
+        </div>
+    </div>
+
+    <script>
+        function generateAndDownloadPDF() {
+            const element = document.getElementById('letterContent');
+
+            const options = {
+                margin: [0.5, 0.5, 0.5, 0.5],
+                filename: `Letter_of_Lien_${'{{ result.Application_No }}' || 'Unknown'}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true,
+                    letterRendering: true,
+                    allowTaint: true
+                },
+                jsPDF: {
+                    unit: 'in',
+                    format: 'a4',
+                    orientation: 'portrait'
+                },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            };
+
+            html2pdf().set(options).from(element).save().then(() => {
+                // Auto close window after download starts
+                setTimeout(() => {
+                    window.close();
+                }, 1800);
+            }).catch(err => {
+                console.error('PDF generation failed:', err);
+                // Fallback to print dialog
+                window.print();
+            });
+        }
+
+        // Auto generate and download PDF when page loads
+        window.onload = function() {
+            setTimeout(() => {
+                generateAndDownloadPDF();
+            }, 1200); // Small delay for images and rendering
+        };
+    </script>
+</body>
+</html>

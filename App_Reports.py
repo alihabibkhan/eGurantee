@@ -421,6 +421,51 @@ def image_zip_cron_report():
 
     return redirect(url_for('login'))
 
+
+@application.route('/reports/post-disb-email-cron')
+def post_disb_email_cron_report():
+    try:
+        if not (is_login() and (is_admin() or is_executive_approver() or
+                PermissionHelper.has_permission(get_current_user_id(), "/reports/post-disb-email-cron"))):
+            flash("Access denied.", "danger")
+            return redirect(url_for('login'))
+
+        now = datetime.now()
+        default_start = (now - timedelta(days=30)).strftime('%Y-%m-%d')
+        default_end = now.strftime('%Y-%m-%d')
+
+        return render_template('post_disb_email_cron_report.html',
+                               default_start=default_start,
+                               default_end=default_end,
+                               now=now)
+    except Exception as e:
+        print("/reports/post-disb-email-cron Error:", str(e))
+
+    return redirect(url_for('login'))
+
+
+@application.route('/reports/auto-approval-log')
+def auto_approval_log_report():
+    try:
+        if not (is_login() and (is_admin() or is_executive_approver() or
+                PermissionHelper.has_permission(get_current_user_id(), "/reports/auto-approval-log"))):
+            flash("Access denied.", "danger")
+            return redirect(url_for('login'))
+
+        now = datetime.now()
+        default_start = (now - timedelta(days=30)).strftime('%Y-%m-%d')
+        default_end = now.strftime('%Y-%m-%d')
+
+        return render_template('auto_approval_log_report.html',
+                               default_start=default_start,
+                               default_end=default_end,
+                               now=now)
+    except Exception as e:
+        print("/reports/auto-approval-log Error:", str(e))
+
+    return redirect(url_for('login'))
+
+
 # ── API Endpoints for AJAX ────────────────────────────────────────
 
 @application.route('/api/reports/pre-disbursement-runs', methods=['GET'])
@@ -485,6 +530,50 @@ def get_pre_disb_processor_runs(start_date, end_date):
     return records  # list of dicts
 
 
+@application.route('/api/reports/post-disb-email-runs', methods=['GET'])
+def api_post_disb_email_runs():
+    if not (is_login() and (is_admin() or is_executive_approver() or
+            PermissionHelper.has_permission(get_current_user_id(), "/api/reports/post-disb-email-runs"))):
+        return jsonify({"error": "Unauthorized"}), 403
+
+    start_date = request.args.get('start')
+    end_date   = request.args.get('end')
+
+    if not start_date:
+        start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+    if not end_date:
+        end_date = datetime.now().strftime('%Y-%m-%d')
+
+    try:
+        runs = get_post_disb_email_processor_runs(start_date, end_date)
+        return jsonify({"success": True, "data": runs})
+    except Exception as e:
+        application.logger.error(f"API error (post-disb-email): {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@application.route('/api/reports/auto-approval-log', methods=['GET'])
+def api_auto_approval_log():
+    if not (is_login() and (is_admin() or is_executive_approver() or
+            PermissionHelper.has_permission(get_current_user_id(), "/api/reports/auto-approval-log"))):
+        return jsonify({"error": "Unauthorized"}), 403
+
+    start_date = request.args.get('start')
+    end_date   = request.args.get('end')
+
+    if not start_date:
+        start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+    if not end_date:
+        end_date = datetime.now().strftime('%Y-%m-%d')
+
+    try:
+        logs = get_auto_approval_log(start_date, end_date)
+        return jsonify({"success": True, "data": logs})
+    except Exception as e:
+        application.logger.error(f"API error (auto-approval-log): {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 def get_image_zip_processor_runs(start_date, end_date):
     query = f"""
         SELECT 
@@ -494,6 +583,59 @@ def get_image_zip_processor_runs(start_date, end_date):
         FROM monitoring.cron_job_runs   -- or your image zip table
         WHERE started_at >= '{str(start_date)}' AND started_at <= '{str(end_date) + " 23:59:59"}'
         ORDER BY started_at DESC
+    """
+    records = fetch_records(query)
+    return records
+
+
+def get_post_disb_email_processor_runs(start_date, end_date):
+    query = f"""
+        SELECT 
+            id,
+            job_name,
+            started_at,
+            finished_at,
+            status,
+            duration_seconds,
+            emails_found,
+            files_processed,
+            new_records_count,
+            duplicates_count,
+            anomalies_count,
+            error_message,
+            summary_path,
+            anomalies_path
+        FROM monitoring.post_disb_email_processor_runs
+        WHERE started_at >= '{str(start_date)}' 
+          AND started_at <= '{str(end_date) + " 23:59:59"}'
+        ORDER BY started_at DESC
+    """
+    records = fetch_records(query)
+    return records
+
+
+def get_auto_approval_log(start_date, end_date):
+    query = f"""
+        SELECT 
+            log_id,
+            record_id,
+            module,
+            application_no,
+            cnic,
+            borrower_name,
+            branch_name,
+            loan_amount,
+            gender,
+            approval_type,
+            approved_by,
+            approved_date,
+            status,
+            remarks,
+            created_date
+        FROM tbl_auto_approval_log
+        WHERE created_date >= '{str(start_date)}' 
+          AND created_date <= '{str(end_date) + " 23:59:59"}'
+        ORDER BY created_date DESC
     """
     records = fetch_records(query)
     return records
