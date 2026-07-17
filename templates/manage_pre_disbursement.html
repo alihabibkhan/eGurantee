@@ -898,7 +898,7 @@
             console.log('proposedLoanMetric:-');
             console.log(proposedLoanMetric);
 
-            let interest_rate = 0;
+            let interest_rate = 4;
             let loanCeilingLoanMetrics = 0;
             let requiredPaidOffPerLoanMetrics = 0;
             let repeatIncrementPerLoanMetrics = 0;
@@ -906,7 +906,7 @@
 
             if(proposedLoanMetric)
             {
-                interest_rate = proposedLoanMetric.interest_rate || 0;
+                interest_rate = proposedLoanMetric.interest_rate || 4;
                 console.log('interest_rate:- ', interest_rate);
 
                 loanCeilingLoanMetrics = proposedLoanMetric.global_loan_ceiling || 0;
@@ -1956,14 +1956,14 @@
             const proposedLoanMetric = findMatchingLoanMetric(loanMetrics, productCode, applicantGender, natureOfBusiness, experience);
             console.log('checkAgainstLoanMetrics -> proposedLoanMetric:- ', proposedLoanMetric);
 
-            let interest_rate = 0;
+            let interest_rate = 4;
             let loanCeilingLoanMetrics = 0;
             let requiredPaidOffPerLoanMetrics = 0;
             let repeatIncrementPerLoanMetrics = 0;
             let maxExpPerPrudReg = 0;
 
             if(proposedLoanMetric) {
-                interest_rate = proposedLoanMetric.interest_rate || 0;
+                interest_rate = proposedLoanMetric.interest_rate || 4;
                 console.log('interest_rate:', interest_rate);
                 loanCeilingLoanMetrics = proposedLoanMetric.global_loan_ceiling || 0;
                 console.log('loanCeilingLoanMetrics:', loanCeilingLoanMetrics);
