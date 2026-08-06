@@ -208,7 +208,9 @@ def main():
         mail.select('INBOX')
 
         today = datetime.now().date()
-        date_str = today.strftime("%d-%b-%Y")
+        #date_str = today.strftime("%d-%b-%Y")
+        date_str = today - timedelta(days=1)
+        date_str = date_str.strftime("%d-%b-%Y")
 
         # april_10 = datetime(today.year, 5, 1).date()
         # april_10_str = april_10.strftime("%d-%b-%Y")

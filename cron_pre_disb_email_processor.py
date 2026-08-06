@@ -512,8 +512,10 @@ def main():
         mail.select('INBOX')
 
         today = datetime.now()
-        date_str = today.strftime("%d-%b-%Y")
-
+        #date_str = today.strftime("%d-%b-%Y")
+        
+        date_str = today - timedelta(days=1)
+        date_str = date_str.strftime("%d-%b-%Y")
         subject_search = os.getenv('PRE_DISB_SUBJECT', 'Daily Pre-Loan Disbursement Summary||Attachments Excel File')
 
         # Split into list and clean each one
