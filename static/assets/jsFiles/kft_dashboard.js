@@ -251,15 +251,10 @@
     $('kfd-dist-grid').innerHTML = rows.map((r) => `
       <div class="kfd-dist-card${isHighlighted(f, r.key) ? ' selected' : ''}" data-key="${esc(r.key)}">
         <div class="kfd-dist-name">${esc(r.label)}</div>
-        <div class="kfd-dist-body">
-          <div class="kfd-dist-icon">🏛️</div>
-          <div class="kfd-dist-metrics">
-            <div><div class="v">${fmtNum(r.bens)}</div><div class="l">Beneficiaries</div></div>
-            <div class="kfd-dist-row">
-              <div><div class="v">${fmtNum(r.loans)}</div><div class="l">Loan Disbursed</div></div>
-              <div><div class="v">${fmtNum(r.active)}</div><div class="l">Active Loan</div></div>
-            </div>
-          </div>
+        <div class="v">${fmtNum(r.bens)}</div><div class="l">Beneficiaries</div>
+        <div class="kfd-dist-row">
+          <div><div class="v">${fmtNum(r.loans)}</div><div class="l">Loan Disbursed</div></div>
+          <div><div class="v">${fmtNum(r.active)}</div><div class="l">Active Loan</div></div>
         </div>
       </div>`).join('') || '<div class="kfd-empty">No data for the selected filters</div>';
 

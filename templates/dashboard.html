@@ -5,7 +5,7 @@
     <title>Dashboard</title>
     {% include 'head.html' %}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-    <script src="{{ url_for('static', filename='assets/jsFiles/kft_dashboard.js', v=1) }}"></script>
+    <script src="{{ url_for('static', filename='assets/jsFiles/kft_dashboard.js', v=2) }}"></script>
     <style>
         /* ---------- Dashboard view toggle ---------- */
         .dashboard-toggle {
@@ -91,20 +91,20 @@
         .kfd .kpi-value { font-size: 21px; font-weight: 800; margin: 5px 0 3px; white-space: nowrap; }
         .kfd .kpi-sub { font-size: 11px; color: var(--muted); }
 
+        /* Council Distribution: same look as the Management / Regional report (kft_report.html).
+           The navbar's global "* { font-family: Poppins }" is overridden so the text matches the report. */
         .kfd .dist-card-wrap { background: var(--card); border-radius: 12px; padding: 18px; box-shadow: var(--shadow); }
-        .kfd .dist-card-wrap h3 { text-align: center; font-size: 18px; font-weight: 700; margin-bottom: 16px; }
-        .kfd .kfd-dist-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+        .kfd .dist-card-wrap, .kfd .dist-card-wrap * { font-family: 'Segoe UI', Arial, sans-serif; }
+        .kfd .dist-card-wrap h3 { text-align: center; font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 12px; }
+        .kfd .kfd-dist-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
         .kfd .kfd-dist-card {
-            border: 1px solid #e0e0e0; border-radius: 8px; padding: 14px 16px; cursor: pointer; transition: box-shadow 0.15s;
+            border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px 14px; cursor: pointer; transition: box-shadow 0.15s;
         }
         .kfd .kfd-dist-card:hover { box-shadow: 0 6px 16px rgba(0,0,0,0.1); }
         .kfd .kfd-dist-card.selected { border-color: var(--gold); background: #FFF9EB; }
-        .kfd .kfd-dist-name { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
-        .kfd .kfd-dist-body { display: flex; align-items: center; gap: 12px; }
-        .kfd .kfd-dist-icon { font-size: 22px; }
-        .kfd .kfd-dist-metrics { flex: 1; }
-        .kfd .kfd-dist-metrics .v { font-size: 17px; font-weight: 700; }
-        .kfd .kfd-dist-metrics .l { font-size: 11px; color: var(--muted); }
+        .kfd .kfd-dist-name { font-weight: 600; font-size: 13.5px; margin-bottom: 6px; }
+        .kfd .kfd-dist-card .v { font-size: 16px; font-weight: 700; }
+        .kfd .kfd-dist-card .l { font-size: 10.5px; color: var(--muted); }
         .kfd .kfd-dist-row { display: flex; justify-content: space-between; margin-top: 6px; }
 
         .kfd .visuals-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
