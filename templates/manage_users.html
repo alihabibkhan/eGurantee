@@ -194,10 +194,11 @@
                             <tr>
                                 <td title="{{ user.name or '-' }}">{{ user.name or '-' }}</td>
                                 <td title="{{ user.email or '-' }}">{{ user.email or '-' }}</td>
-                                <td title="{% if user.rights == 1 %}Reviewer{% elif user.rights == 2 %}Approver{% elif user.rights == 3 %}Executive Approver{% elif user.rights == 4 %}Administrator{% else %}Unknown{% endif %}">
+                                <td title="{% if user.rights == 1 %}Reviewer{% elif user.rights == 2 %}Approver{% elif user.rights == 3 %}Executive Approver{% elif user.rights == 5 %}Executive{% elif user.rights == 4 %}Administrator{% else %}Unknown{% endif %}">
                                     {% if user.rights == 1 %}Reviewer
                                     {% elif user.rights == 2 %}Approver
                                     {% elif user.rights == 3 %}Executive Approver
+                                    {% elif user.rights == 5 %}Executive
                                     {% elif user.rights == 4 %}Administrator
                                     {% else %}Unknown
                                     {% endif %}
@@ -212,7 +213,7 @@
                                        data-user-id="{{ user.user_id or '-' }}"
                                        data-name="{{ user.name or '-' }}"
                                        data-email="{{ user.email or '-' }}"
-                                       data-rights="{% if user.rights == 1 %}Reviewer{% elif user.rights == 2 %}Approver{% elif user.rights == 3 %}Executive Approver{% elif user.rights == 4 %}Administrator{% else %}Unknown{% endif %}"
+                                       data-rights="{% if user.rights == 1 %}Reviewer{% elif user.rights == 2 %}Approver{% elif user.rights == 3 %}Executive Approver{% elif user.rights == 5 %}Executive{% elif user.rights == 4 %}Administrator{% else %}Unknown{% endif %}"
                                        data-volunteer-id="{{ user.volunteer_id or '-' }}"
                                        data-gender="{{ user.gender or '-' }}"
                                        data-dob="{{ user.dob or '-' }}"

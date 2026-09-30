@@ -264,6 +264,13 @@ def get_post_disbursement_report_data():
         if filters.get('principal_outstanding_max'):
             query += f" AND p.principal_outstanding <= {float(filters['principal_outstanding_max'])}"
 
+        # Loans with no overdue_days are treated as 0 days overdue
+        if filters.get('overdue_days_min'):
+            query += f" AND COALESCE(p.overdue_days, 0) >= {int(float(filters['overdue_days_min']))}"
+
+        if filters.get('overdue_days_max'):
+            query += f" AND COALESCE(p.overdue_days, 0) <= {int(float(filters['overdue_days_max']))}"
+
         if filters.get('loan_status'):
             loan_statuses = "', '".join(filters['loan_status'])
             query += f" AND p.loan_status IN ('{loan_statuses}')"

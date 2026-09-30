@@ -87,7 +87,8 @@ def clear_user_session():
     session_keys = [
         'user_id', 'email', 'name', 'rights', 'volunteer_id', 'gender', 'dob', 'phone',
         'country_of_residence', 'date_of_joining', 'orientation_completed_on', 'manager_id',
-        'assigned_branch', 'IsLoggedIn', 'last_login'
+        'assigned_branch', 'IsLoggedIn', 'last_login',
+        'permission_routes', 'permission_loaded_at'
     ]
 
     for key in session_keys:
@@ -124,6 +125,14 @@ def is_approver():
 
 def is_executive_approver():
     if str(session['rights']) == '3':
+        return True
+
+    return False
+
+
+def is_executive():
+    # Executive works like an Approver, and also gets the applications awaiting executive approval.
+    if str(session['rights']) == '5':
         return True
 
     return False

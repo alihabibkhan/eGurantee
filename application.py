@@ -140,6 +140,20 @@ def index():
     return redirect(url_for('login'))
 
 
+@application.route('/dashboard/kft-data')
+def kft_dashboard_data():
+    if not is_login():
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    try:
+        data = get_kft_dashboard_data(force_refresh=request.args.get('refresh') == '1')
+        if data is None:
+            return jsonify({'success': False, 'error': 'No post-disbursement data available'}), 404
+        return jsonify({'success': True, 'data': data})
+    except Exception as e:
+        print('kft dashboard data exception:- ', str(e))
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @application.route('/awaiting-Service')
 def awaiting_service():
     # Fetch distinct national council distributions for table headers
@@ -300,6 +314,8 @@ from App_Meeting_Setup import *
 from App_Announcements import *
 from Manage_Web_Permission import *
 from Manage_User_Permission import *
+from App_Application_Assistant import *
+from App_Report_Configuration import *
 
 if __name__ == '__main__':
     application.run(debug=True, port=8000)

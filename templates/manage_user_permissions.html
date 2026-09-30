@@ -109,6 +109,7 @@
                                     <option value="1">Reviewer</option>
                                     <option value="2">Approver</option>
                                     <option value="3">Executive Approver</option>
+                                    <option value="5">Executive</option>
                                     <option value="4">Administrator</option>
                                 </select>
                             </div>
@@ -131,11 +132,13 @@
                                                     {% if user.rights == 1 %}bg-info
                                                     {% elif user.rights == 2 %}bg-success
                                                     {% elif user.rights == 3 %}bg-warning
+                                                    {% elif user.rights == 5 %}bg-primary
                                                     {% elif user.rights == 4 %}bg-danger
                                                     {% else %}bg-secondary{% endif %}">
                                                     {% if user.rights == 1 %}Reviewer
                                                     {% elif user.rights == 2 %}Approver
                                                     {% elif user.rights == 3 %}Executive Approver
+                                                    {% elif user.rights == 5 %}Executive
                                                     {% elif user.rights == 4 %}Administrator
                                                     {% else %}Unknown{% endif %}
                                                 </span>
@@ -271,6 +274,7 @@
                 '1': 'Reviewer',
                 '2': 'Approver',
                 '3': 'Executive Approver',
+                '5': 'Executive',
                 '4': 'Administrator'
             };
             const roleName = roleNames[selectedRole] || 'Selected Role';

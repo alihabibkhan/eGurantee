@@ -50,6 +50,9 @@ from Model_Bank_Details import *
 from Model_Bank_Entry import *
 from Model_User_Service_Hours import *
 from Model_Dashboard_Methods import *
+from Model_KFT_Dashboard import *
+from Model_KFT_Report import *
+from Model_Report_Recipients import *
 from Model_Bank_Distribution import *
 from Model_National_Council_Distribution import *
 from Model_KFT_Distribution import *

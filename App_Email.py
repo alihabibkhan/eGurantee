@@ -15,6 +15,9 @@ def send_email():
         if not pre_disb_temp_id or not recipient_email or '@' not in recipient_email:
             return jsonify({'success': False, 'error': 'Invalid application number or email'}), 400
 
+        if str(session.get('rights')) in ['1', '2'] and requires_executive_approval(pre_disb_temp_id):
+            return jsonify({'success': False, 'error': 'This product requires Executive approval before the email can be sent'}), 403
+
         query = f"""
             SELECT DISTINCT "Borrower_Name", "Application_No", "Loan_Amount", "ApplicationDate", 
             "Father_Husband_Name", "CNIC", "approved_date", 

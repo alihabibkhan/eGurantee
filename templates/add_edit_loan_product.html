@@ -18,39 +18,132 @@
             </div>
             <div class="card-body">
                 <form method="POST">
-                    <div class="form-group mb-3">
-                        <label for="name">Product Name</label>
-                        <input type="text" name="name" class="form-control" value="{{ result.loan_product.name if result.loan_product else '' }}" required>
+
+                    <!-- ==================== Loan Product Details ==================== -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0 text-dark">Loan Product Details</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="name">Product Name <span class="text-danger">*</span></label>
+                                        <input type="text" name="name" class="form-control"
+                                               value="{{ result.loan_product.name if result.loan_product else '' }}" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="product_code">Product Code <span class="text-danger">*</span></label>
+                                        <input type="text" name="product_code" class="form-control"
+                                               value="{{ result.loan_product.product_code if result.loan_product else '' }}" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="max_exp_per_prud_reg">Maximum Exposure Per Prudential Regulations <span class="text-danger">*</span></label>
+                                        <input type="number" min="0" name="max_exp_per_prud_reg" class="form-control"
+                                               value="{{ result.loan_product.max_exp_per_prud_reg if result.loan_product else '' }}" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="gender">Gender</label>
+                                        <select name="gender" class="form-control">
+                                            <option value="" disabled {{ 'selected' if not result.loan_product or not result.loan_product.gender }}>Select...</option>
+                                            <option value="Male" {{ 'selected' if result.loan_product and result.loan_product.gender == 'Male' }}>Male</option>
+                                            <option value="Female" {{ 'selected' if result.loan_product and result.loan_product.gender == 'Female' }}>Female</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="allow_exceptional_approval">Allow Exceptional Approval</label>
+                                        <select name="allow_exceptional_approval" class="form-control" id="allow_exceptional_approval">
+                                            <option value="" disabled {{ 'selected' if not result.loan_product or not result.loan_product.allow_exceptional_approval }}>Select...</option>
+                                            <option value="1" {{ 'selected' if result.loan_product and result.loan_product.allow_exceptional_approval|string == '1' }}>Yes</option>
+                                            <option value="2" {{ 'selected' if result.loan_product and result.loan_product.allow_exceptional_approval|string == '2' }}>No</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label for="description">Description</label>
+                                <textarea name="description" class="form-control" rows="3">{{ result.loan_product.description if result.loan_product else '' }}</textarea>
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group mb-3">
-                        <label for="product_code">Product Code</label>
-                        <input type="text" name="product_code" class="form-control" value="{{ result.loan_product.product_code if result.loan_product else '' }}" required>
+
+                    <!-- ==================== Auto Approval Settings ==================== -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0 text-dark">Auto Approval Settings</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="auto_approve">Auto Approve</label>
+                                        <select name="auto_approve" class="form-control">
+                                            <option value="" disabled {{ 'selected' if not result.loan_product or not result.loan_product.auto_approve }}>Select...</option>
+                                            <option value="1" {{ 'selected' if result.loan_product and result.loan_product.auto_approve|string == '1' }}>Active</option>
+                                            <option value="2" {{ 'selected' if result.loan_product and result.loan_product.auto_approve|string == '2' }}>In-Active</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="auto_approval_signature">Auto Approval Signature</label>
+                                        <select class="form-control" id="auto_approval_signature" name="auto_approval_signature">
+                                            <option value="">[[select user signature]]</option>
+                                            {% for user in result.user_with_signatures %}
+                                                <option value="{{ user.user_id }}"
+                                                    {% if result.loan_product and result.loan_product.auto_approval_signature == user.user_id %}selected{% endif %}>
+                                                    {{ user.name }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="auto_approval_max_amount">Auto Approval Max Amount</label>
+                                        <input type="number" step="0.01" class="form-control" id="auto_approval_max_amount"
+                                               name="auto_approval_max_amount"
+                                               value="{{ result.loan_product.auto_approval_max_amount if result.loan_product else '0.00' }}"
+                                               placeholder="Enter maximum amount for auto approval">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="auto_approval_check_loan_metrix">Auto Approval Check Loan Metrix</label>
+                                        <select name="auto_approval_check_loan_metrix" class="form-control" id="auto_approval_check_loan_metrix">
+                                            <option value="" disabled {{ 'selected' if not result.loan_product or not result.loan_product.auto_approval_check_loan_metrix }}>Select...</option>
+                                            <option value="1" {{ 'selected' if result.loan_product and result.loan_product.auto_approval_check_loan_metrix|string == '1' }}>Yes</option>
+                                            <option value="2" {{ 'selected' if result.loan_product and result.loan_product.auto_approval_check_loan_metrix|string == '2' }}>No</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group mb-3">
-                        <label for="max_exp_per_prud_reg">Maximum Exposure Per Prudential Regulations</label>
-                        <input type="number" min="0" name="max_exp_per_prud_reg" class="form-control" value="{{ result.loan_product.max_exp_per_prud_reg if result.loan_product else '' }}" required>
+
+                    <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn btn-primary">
+                            {{ 'Update Loan Product' if result.loan_product else 'Add Loan Product' }}
+                        </button>
                     </div>
-                    <div class="form-group mb-3">
-                        <label for="gender">Gender</label>
-                        <select name="gender" class="form-control">
-                            <option value="" disabled>Select...</option>
-                            <option value="Male" {{ 'selected' if result.loan_product and result.loan_product.gender == 'Male' }}>Male</option>
-                            <option value="Female" {{ 'selected' if result.loan_product and result.loan_product.gender == 'Female' }}>Female</option>
-                        </select>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="auto_approve">Auto Approve</label>
-                        <select name="auto_approve" class="form-control">
-                            <option value="" disabled>Select...</option>
-                            <option value="1" {{ 'selected' if result.loan_product and result.loan_product.auto_approve|string == '1' }}>Active</option>
-                            <option value="2" {{ 'selected' if result.loan_product and result.loan_product.auto_approve|string == '2' }}>In-Active</option>
-                        </select>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="description">Description</label>
-                        <textarea name="description" class="form-control">{{ result.loan_product.description if result.loan_product else '' }}</textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary">{{ 'Update Loan Product' if result.loan_product else 'Add Loan Product' }}</button>
                 </form>
             </div>
         </div>

@@ -13,7 +13,9 @@ def manage_pre_disbursement():
                 'experience_ranges_list': get_all_experience_ranges(),
                 'get_all_loan_metrics': get_all_loan_metrics(),
                 'is_reviewer': is_reviewer(),
-                'is_approver': is_approver(),
+                # Executive gets the same screen options as an Approver
+                'is_approver': is_approver() or is_executive(),
+                'is_executive': is_executive(),
                 'is_executive_approver': is_executive_approver(),
                 'is_admin': is_admin()
             }
@@ -34,7 +36,7 @@ def view_rejected_applications():
                 'experience_ranges_list': get_all_experience_ranges(),
                 'get_all_loan_metrics': get_all_loan_metrics(),
                 'is_reviewer': is_reviewer(),
-                'is_approver': is_approver(),
+                'is_approver': is_approver() or is_executive(),
                 'is_executive_approver': is_executive_approver(),
                 'is_admin': is_admin()
             }
@@ -139,7 +141,35 @@ def update_pre_disbursement_temp():
             execute_command(insert_query)
             print(f"Inserted rejected app record for post_disb_id: {pre_disb_temp_id}")
 
+        # Exceptional-approval products: reviewer/approver decisions go to the executive approver,
+        # who sends the email when they confirm the decision.
+        is_exceptional_product = requires_executive_approval(pre_disb_temp_id)
+        awaiting_executive = get_current_user_role() in ['1', '2'] and is_exceptional_product
+        if awaiting_executive:
+            print(f"Email held for executive approval: {pre_disb_temp_id}")
 
+        if is_exceptional_product:
+            # Executive approver / executive / admin confirming a final decision records the executive approval.
+            # A reviewer/approver final decision puts the application in the executive's queue
+            # (exec_approval_pending = 1); any other change takes it out until it is decided again.
+            if get_current_user_role() in ['3', '4', '5'] and status in ['2', '3', '9', '10']:
+                exec_query = f"""
+                    UPDATE tbl_pre_disbursement_temp
+                    SET exec_approved_by = '{approved_by}', exec_approved_date = '{approved_date}',
+                        exec_approval_pending = NULL
+                    WHERE pre_disb_temp_id = '{pre_disb_temp_id}'
+                """
+            else:
+                pending = '1' if awaiting_executive and status in ['2', '3', '9', '10'] else 'NULL'
+                exec_query = f"""
+                    UPDATE tbl_pre_disbursement_temp
+                    SET exec_approved_by = NULL, exec_approved_date = NULL,
+                        exec_approval_pending = {pending}
+                    WHERE pre_disb_temp_id = '{pre_disb_temp_id}'
+                """
+            execute_command(exec_query)
+
+        if status in ['3', '10'] and not awaiting_executive:
             from Model_Email import send_email
             query = f"""
                 select pdt."Application_No", pdt."Borrower_Name", pdt."Requested_Loan_Amount", pdt."LoanProductCode", u1.email as reviewed_by_email, u2.email as rejected_by_email,
@@ -263,7 +293,15 @@ def update_pre_disbursement_temp():
 
         # Return success response
         print("Update completed successfully")
-        return jsonify({'success': True, 'status': str(status)}), 200
+        exec_approved = is_exceptional_product and not awaiting_executive and status in ['2', '3', '9', '10']
+        return jsonify({
+            'success': True,
+            'status': str(status),
+            'awaiting_executive': awaiting_executive,
+            'exec_approval_pending': 1 if awaiting_executive and status in ['2', '3', '9', '10'] else None,
+            'exec_approved_by': session.get('name') if exec_approved else None,
+            'exec_approved_date': approved_date if exec_approved else None
+        }), 200
 
     except Exception as e:
         # Log error and return failure response
@@ -416,7 +454,7 @@ def manage_approval_letters():
                 'approved_applications': approved_applications,
                 'is_admin': is_admin(),
                 'is_reviewer': is_reviewer(),
-                'is_approver': is_approver(),
+                'is_approver': is_approver() or is_executive(),
                 'is_executive_approver': is_executive_approver()
             }
             return render_template('manage_approval_letters.html', result=content)

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>{{ r.title }} — {{ r.period }}</title>
+{# Self-contained report: inline CSS, inline SVG and an inlined filter script. No fonts, images, links or requests to the web. #}
+<style>
+  :root { --bg:#F3F6F4; --card:#fff; --primary:#1F5C3F; --primary-dark:#143D2A; --accent:#2E8B57; --gold:#C99A2E;
+          --red:#B4453A; --text:#1B2420; --muted:#64756B; --border:#DDE6E0; --shadow:0 2px 14px rgba(20,61,42,0.08); }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); font-family:'Segoe UI', Arial, sans-serif; color:var(--text); }
+  .header { background:linear-gradient(135deg,#143D2A 0%,#1F5C3F 55%,#2E8B57 100%); color:#fff; padding:20px 32px;
+            display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+  .header-left { display:flex; align-items:center; gap:16px; }
+  .logo-badge { background:rgba(255,255,255,0.16); border-radius:10px; padding:10px 16px; font-size:20px; font-weight:800;
+                letter-spacing:1px; border:1.5px solid rgba(255,255,255,0.3); }
+  .header h1 { font-size:20px; font-weight:700; }
+  .header p { font-size:12px; color:rgba(255,255,255,0.78); margin-top:3px; }
+  .header-right { text-align:right; }
+  .badge { display:inline-block; background:rgba(255,255,255,0.14); border:1px solid rgba(255,255,255,0.3);
+           border-radius:20px; padding:4px 14px; font-size:11.5px; margin-bottom:5px; }
+  .date { font-size:11px; color:rgba(255,255,255,0.7); }
+  .main { padding:8px 32px 24px; max-width:1500px; margin:0 auto; }
+  .section-label { font-size:13px; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:0.4px;
+                   margin:22px 0 12px; display:flex; align-items:center; gap:8px; }
+  .section-label::after { content:""; flex:1; height:1px; background:var(--border); }
+  .commentary { background:#FFF9EB; border:1px solid #EBCB77; border-radius:10px; padding:14px 18px; margin-top:18px;
+                font-size:13px; line-height:1.55; white-space:pre-wrap; }
+  .commentary b { display:block; color:#7A5A0A; margin-bottom:4px; }
+  .kpi-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:14px; }
+  .kpi-card { background:var(--card); border-radius:12px; padding:14px 14px 12px; box-shadow:var(--shadow); border-left:4px solid var(--primary); }
+  .kpi-label { font-size:10.5px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.3px; }
+  .kpi-value { font-size:20px; font-weight:800; margin:5px 0 3px; white-space:nowrap; }
+  .kpi-sub { font-size:11px; color:var(--muted); }
+  .card { background:var(--card); border-radius:12px; padding:18px; box-shadow:var(--shadow); }
+  .card h3 { font-size:13.5px; color:var(--primary); margin-bottom:12px; font-weight:700; }
+  .dist-title { text-align:center; font-size:17px; color:var(--text) !important; }
+  .dist-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  .dist-card { border:1px solid #e0e0e0; border-radius:8px; padding:12px 14px; }
+  .dist-name { font-weight:600; font-size:13.5px; margin-bottom:6px; }
+  .dist-row { display:flex; justify-content:space-between; margin-top:6px; }
+  .v { font-size:16px; font-weight:700; }
+  .l { font-size:10.5px; color:var(--muted); }
+  .grid-2 { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
+  .grid-2 + .grid-2 { margin-top:16px; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th { text-align:left; padding:8px 10px; background:var(--primary); color:#fff; font-size:10.5px; text-transform:uppercase;
+       letter-spacing:0.3px; white-space:nowrap; }
+  td { padding:7px 10px; border-bottom:1px solid var(--border); }
+  .num { text-align:right; }
+  .rank-badge { display:inline-block; width:20px; height:20px; line-height:20px; text-align:center; border-radius:50%;
+                font-size:10.5px; font-weight:800; color:#fff; background:#9BB0A5; }
+  .rank-1 { background:#D4AF37; } .rank-2 { background:#B0B0B0; } .rank-3 { background:#C68642; }
+  .yoy-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  .yoy-card { background:var(--card); border-radius:12px; padding:16px; box-shadow:var(--shadow); text-align:center; }
+  .yoy-card .lbl { font-size:11px; color:var(--muted); font-weight:600; margin-bottom:8px; }
+  .yoy-card .val { font-size:24px; font-weight:800; }
+  .pos { color:var(--accent); } .neg { color:var(--red); }
+  .tag { display:inline-block; padding:2px 8px; border-radius:10px; font-size:10.5px; font-weight:700; background:#E3F1E8; color:var(--primary); }
+  .tag.edu { background:#FBF0D9; color:#7A5A0A; }
+  .filters { display:none; background:var(--card); border-bottom:2px solid var(--border); padding:12px 32px; gap:18px; align-items:flex-end; flex-wrap:wrap; position:sticky; top:0; z-index:5; }
+  .js .filters { display:flex; }
+  .filters .lbl { font-size:13px; font-weight:700; color:var(--primary); align-self:center; }
+  .filters label { display:flex; flex-direction:column; gap:3px; font-size:11px; font-weight:600; color:var(--muted); }
+  .filters select { border:1.5px solid var(--border); border-radius:8px; padding:7px 10px; font-size:13px; color:var(--text); background:var(--bg); min-width:170px; }
+  .filters button { margin-left:auto; background:var(--red); color:#fff; border:none; border-radius:8px; padding:9px 16px; font-size:12px; font-weight:700; cursor:pointer; }
+  .dist-card.selected { border-color:var(--gold); background:#FFF9EB; }
+  tr.selected-row td { background:#EAF5EE; font-weight:700; }
+  .empty { color:var(--muted); font-style:italic; text-align:center; padding:16px; }
+  .footer { background:var(--primary-dark); color:rgba(255,255,255,0.7); padding:14px 32px; font-size:11px; margin-top:26px;
+            display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px; }
+  @media (max-width:1100px) { .kpi-grid { grid-template-columns:repeat(3,1fr); } .grid-2 { grid-template-columns:1fr; } .dist-grid { grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:640px) { .kpi-grid, .yoy-grid, .dist-grid { grid-template-columns:1fr; } .main { padding:8px 14px 20px; } }
+  @media print { .filters { display:none !important; } body { background:#fff; } .card, .kpi-card, .yoy-card { box-shadow:none; border:1px solid var(--border); break-inside:avoid; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo-badge">KFT</div>
+    <div>
+      <h1>{{ r.title }}</h1>
+      <p>Portfolio Growth · {{ r.dim }} Performance · Product Performance</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="badge">Reporting Period: {{ r.period }}</div>
+    <div class="date">MIS data as of {{ r.mis_date }} · {{ r.loan_count }} loans since inception</div>
+  </div>
+</div>
+
+<div class="filters" id="rpt-filters"></div>
+
+<div class="main">
+
+  {% if r.commentary %}
+  <div class="commentary"><b>Commentary</b>{{ r.commentary }}</div>
+  {% endif %}
+
+  <div class="section-label" id="rpt-kpi-heading">Key Performance Indicators — {{ r.region or 'All Regions' }} / All Products</div>
+  <div class="kpi-grid" id="rpt-kpis">
+    {% for label, value, sub, color in r.kpis %}
+    <div class="kpi-card" style="border-left-color:{{ color }};">
+      <div class="kpi-label">{{ label }}</div>
+      <div class="kpi-value">{{ value }}</div>
+      <div class="kpi-sub">{{ sub }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="section-label">Council Distribution</div>
+  <div class="card">
+    <h3 class="dist-title" id="rpt-dist-title">{{ r.distribution_title }}</h3>
+    <div class="dist-grid" id="rpt-dist">
+      {% for d in r.distribution %}
+      <div class="dist-card">
+        <div class="dist-name">{{ d.label }}</div>
+        <div class="v">{{ d.bens }}</div><div class="l">Beneficiaries</div>
+        <div class="dist-row">
+          <div><div class="v">{{ d.loans }}</div><div class="l">Loan Disbursed</div></div>
+          <div><div class="v">{{ d.active }}</div><div class="l">Active Loan</div></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="section-label">Visual Analytics — Trends &amp; Product Mix</div>
+  <div class="grid-2">
+    <div class="card"><h3 id="rpt-trend-title">{{ r.trend_title }}</h3><div id="rpt-trend">{{ r.trend_svg }}</div></div>
+    <div class="card"><h3>Disbursement Mix — Enterprise vs Education</h3><div id="rpt-mix">{{ r.mix_svg }}</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="card"><h3>Disbursement by <span class="rpt-dim">{{ r.dim }}</span> (Since Inception)</h3><div id="rpt-group-si">{{ r.group_si_svg }}</div></div>
+    <div class="card"><h3>YTD {{ r.report_year }} Disbursement by <span class="rpt-dim">{{ r.dim }}</span></h3><div id="rpt-group-ytd">{{ r.group_ytd_svg }}</div></div>
+  </div>
+
+  <div class="section-label" id="rpt-rank-title">{{ 'Branch' if r.region else 'Regional' }} Performance &amp; Ranking</div>
+  <div class="card" style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Rank</th><th class="rpt-dim">{{ r.dim }}</th><th class="num"># Beneficiaries</th><th class="num"># Loans</th>
+          <th class="num">Disbursed SI (PKR)</th><th class="num">% of Portfolio</th>
+          <th class="num">YTD {{ r.report_year }} Beneficiaries</th><th class="num">YTD {{ r.report_year }} Loans</th>
+          <th class="num">YTD {{ r.report_year }} Disbursed (PKR)</th>
+        </tr>
+      </thead>
+      <tbody id="rpt-rank">
+        {% for row in r.ranking %}
+        <tr>
+          <td><span class="rank-badge {{ 'rank-' ~ row.rank if row.rank <= 3 }}">{{ row.rank }}</span></td>
+          <td>{{ row.label }}</td>
+          <td class="num">{{ row.bens }}</td><td class="num">{{ row.loans }}</td><td class="num">{{ row.disb }}</td>
+          <td class="num">{{ row.share }}</td><td class="num">{{ row.ytd_bens }}</td><td class="num">{{ row.ytd_loans }}</td>
+          <td class="num">{{ row.ytd_disb }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section-label">Year-on-Year Growth</div>
+  <div class="yoy-grid" id="rpt-yoy">
+    {% for y in r.yoy %}
+    <div class="yoy-card"><div class="lbl">{{ y.label }}</div><div class="val {{ y.cls }}">{{ y.value }}</div></div>
+    {% endfor %}
+  </div>
+
+  <div class="section-label">Portfolio Quality — Arrears &amp; Write-offs ({{ r.period }})</div>
+  <div class="kpi-grid" id="rpt-pq">
+    {% for label, value, sub, color in r.pq_kpis %}
+    <div class="kpi-card" style="border-left-color:{{ color }};">
+      <div class="kpi-label">{{ label }}</div>
+      <div class="kpi-value">{{ value }}</div>
+      <div class="kpi-sub">{{ sub }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="grid-2" style="margin-top:16px;">
+    <div class="card"><h3>Outstanding Balance by Arrears Bucket</h3><div id="rpt-aging">{{ r.aging_svg }}</div></div>
+    <div class="card"><h3>Arrears Trend (Last 12 Months, Outstanding Principal)</h3><div id="rpt-arrears-trend">{{ r.arrears_trend_svg }}</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="card"><h3>Current Arrears by <span class="rpt-dim">{{ r.dim }}</span></h3><div id="rpt-arrears-group">{{ r.arrears_group_svg }}</div></div>
+    <div class="card"><h3>Current Arrears — Enterprise vs Education</h3><div id="rpt-arrears-sector">{{ r.arrears_sector_svg }}</div></div>
+  </div>
+
+  {% if r.region %}
+  <div class="section-label">Arrear Listing — <span id="rpt-listing-count">{{ r.listing|length }}</span>&nbsp;loans in arrears (30+ days)</div>
+  <div class="card" style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Sector Code</th><th>Branch Name</th><th>Gender</th><th>Mobile Number</th><th>Loan Title</th>
+          <th>Loan Number</th><th>Product Code</th><th>Loan Creation Date</th><th class="num">Disb. Amount</th>
+          <th>Loan Status</th><th class="num">OD Days</th><th class="num">OS_P</th><th>Sector</th>
+        </tr>
+      </thead>
+      <tbody id="rpt-listing">
+        {% for a in r.listing %}
+        <tr>
+          <td>{{ a.sector_code }}</td><td>{{ a.branch_name }}</td><td>{{ a.gender }}</td><td>{{ a.mobile_no }}</td>
+          <td>{{ a.loan_title }}</td><td>{{ a.loan_no }}</td><td>{{ a.product_code }}</td><td>{{ a.booked_on }}</td>
+          <td class="num">{{ '{:,.0f}'.format(a.disbursed_amount) }}</td><td>{{ a.loan_status }}</td>
+          <td class="num">{{ a.overdue_days }}</td><td class="num">{{ '{:,.0f}'.format(a.principal_outstanding) }}</td>
+          <td><span class="tag {{ 'edu' if a.sector == 'Education' }}">{{ a.sector }}</span></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="13" class="empty">No loans in arrears</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+</div>
+
+<div class="footer">
+  <div>© {{ r.report_year }} Khushhali Foundation Trust. Figures sourced from the KFT MIS (post-disbursement data).</div>
+  <div>Generated {{ r.generated_at }} · eGuarantee System</div>
+</div>
+
+<script type="application/json" id="rpt-data">{{ r.embedded|tojson }}</script>
+<script>{{ r.offline_js }}</script>
+</body>
+</html>

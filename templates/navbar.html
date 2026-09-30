@@ -546,7 +546,7 @@
         </ul>
       </li>
       <!-- Dropdown with Sub-Dropdown (Static Height: 500px) -->
-      <li class="nav-item dropdown-container" data-parent-close-height="134" data-parent-height="340">
+      <li class="nav-item dropdown-container" data-parent-close-height="176" data-parent-height="382">
         <a href="#" class="nav-link custom-dropdown-toggle">
           <i class="fa-classic fa-solid fa-wallet fa-xl"></i>
           <span class="nav-label">Loan Portfolio</span>
@@ -556,6 +556,9 @@
           <li class="nav-item"><a class="nav-link dropdown-title">Loan Portfolio</a></li>
           <li class="nav-item"><a href="{{url_for('manage_pre_disbursement')}}" class="nav-link dropdown-link">Loan Application Analysis</a></li>
           <li class="nav-item"><a href="{{url_for('manage_approval_letters')}}" class="nav-link dropdown-link">Manage Approval Letters</a></li>
+          {% if session['rights']|string in ['1', '2', '3', '4', '5'] or PermissionHelper.has_permission(logged_in_user, "/application-assistant") %}
+            <li class="nav-item"><a href="{{url_for('application_assistant')}}" class="nav-link dropdown-link">Application Tracker</a></li>
+          {% endif %}
           <li class="nav-item sub-dropdown-container">
             <a href="#" class="nav-link dropdown-link sub-custom-dropdown-toggle">
               <span class="">Loan Portfolio Reports</span>
@@ -564,28 +567,28 @@
             <ul class="sub-dropdown-menu">
               <li class="nav-item"><a class="nav-link dropdown-title">Loan Portfolio Reports</a></li>
               {# Gross / Net Loans Reports #}
-              {% if session['rights']|string in ['2', '3', '4'] or PermissionHelper.has_permission(logged_in_user, "/post-disbursement-report") %}
+              {% if session['rights']|string in ['2', '3', '4', '5'] or PermissionHelper.has_permission(logged_in_user, "/post-disbursement-report") %}
                 <li class="nav-item">
                   <a href="{{url_for('post_disbursement_report')}}" class="nav-link">Gross / Net Loans Reports</a>
                 </li>
               {% endif %}
 
               {# Loan Projections Report #}
-              {% if session['rights']|string in ['2', '3', '4'] or PermissionHelper.has_permission(logged_in_user, "/loan-projection-report") %}
+              {% if session['rights']|string in ['2', '3', '4', '5'] or PermissionHelper.has_permission(logged_in_user, "/loan-projection-report") %}
                 <li class="nav-item">
                   <a href="{{url_for('loan_projection_report')}}" class="nav-link">Loan Projections Report</a>
                 </li>
               {% endif %}
 
               {# Disagreed Loans Report #}
-              {% if session['rights']|string in ['2', '3', '4'] or PermissionHelper.has_permission(logged_in_user, "/view-rejected-applications") %}
+              {% if session['rights']|string in ['2', '3', '4', '5'] or PermissionHelper.has_permission(logged_in_user, "/view-rejected-applications") %}
                 <li class="nav-item">
                   <a href="{{url_for('view_rejected_applications')}}" class="nav-link">Disagreed Loans Report</a>
                 </li>
               {% endif %}
 
               {# Loan Budget Vs Disbursed #}
-              {% if session['rights']|string in ['2', '3', '4'] or PermissionHelper.has_permission(logged_in_user, "/loan-budget-vs-disbursed") %}
+              {% if session['rights']|string in ['2', '3', '4', '5'] or PermissionHelper.has_permission(logged_in_user, "/loan-budget-vs-disbursed") %}
                 <li class="nav-item">
                   <a href="#" class="nav-link">Loan Budget Vs Disbursed</a>
                 </li>
@@ -712,7 +715,7 @@
           <li class="nav-item"><a class="nav-link dropdown-title" href="{{url_for('view_meeting_calendar')}}">Meetings</a></li>
           <!--<li class="nav-item"><a href="#" class="nav-link dropdown-link">Calendars</a></li>-->
           {# Meeting Minutes Update #}
-          {% if session['rights']|string in ['2', '3', '4'] or PermissionHelper.has_permission(logged_in_user, "/meeting-minutes-update") %}
+          {% if session['rights']|string in ['2', '3', '4', '5'] or PermissionHelper.has_permission(logged_in_user, "/meeting-minutes-update") %}
             <li class="nav-item">
               <a href="#" class="nav-link dropdown-link">Meeting Minutes Update</a>
             </li>
@@ -777,6 +780,11 @@
           {# Announcements Setup #}
           {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/manage-announcements") %}
             <li class="nav-item"><a href="{{url_for('manage_announcements')}}" class="nav-link">Announcements Setup</a></li>
+          {% endif %}
+
+          {# Management Report Configuration #}
+          {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/management-report-configuration") %}
+            <li class="nav-item"><a href="{{url_for('management_report_configuration')}}" class="nav-link">Management Report Configuration</a></li>
           {% endif %}
 
           {# Loan Administration - Title #}

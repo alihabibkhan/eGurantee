@@ -177,6 +177,15 @@
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
+                            <label for="overdue-days-min" class="form-label">Overdue Days</label>
+                            <div class="input-group input-group-sm">
+                                <input type="number" class="form-control" id="overdue-days-min" placeholder="Min" min="0" step="1">
+                                <input type="number" class="form-control" id="overdue-days-max" placeholder="Max" min="0" step="1">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
                             <label for="loan-closed-on-filter" class="form-label">Loan Closed On</label>
                             <select class="form-select form-select-sm" id="loan-closed-on-filter">
                                 <option value="asc">Ascending</option>
@@ -477,6 +486,8 @@
                 disbursed_amount_max: document.getElementById('disbursed-amount-max').value,
                 principal_outstanding_min: document.getElementById('principal-outstanding-min').value,
                 principal_outstanding_max: document.getElementById('principal-outstanding-max').value,
+                overdue_days_min: document.getElementById('overdue-days-min').value,
+                overdue_days_max: document.getElementById('overdue-days-max').value,
                 loan_closed_on: document.getElementById('loan-closed-on-filter').value,
                 repayment_type: document.getElementById('repayment-type-filter').value,
                 sector: document.getElementById('sector-filter').value,

@@ -4,7 +4,174 @@
     <meta charset="UTF-8">
     <title>Dashboard</title>
     {% include 'head.html' %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script src="{{ url_for('static', filename='assets/jsFiles/kft_dashboard.js', v=1) }}"></script>
     <style>
+        /* ---------- Dashboard view toggle ---------- */
+        .dashboard-toggle {
+            display: inline-flex; background: #E7EEEA; border-radius: 999px; padding: 4px; gap: 2px;
+        }
+        .dashboard-toggle button {
+            border: none; background: transparent; color: #1F5C3F; font-weight: 600; font-size: 0.85rem;
+            padding: 6px 18px; border-radius: 999px; transition: background 0.15s, color 0.15s;
+        }
+        .dashboard-toggle button.active { background: #1F5C3F; color: #fff; box-shadow: 0 2px 6px rgba(20,61,42,0.25); }
+
+        /* ---------- KFT dashboard (scoped under .kfd so Bootstrap pages are unaffected) ---------- */
+        .kfd {
+            --bg: #F3F6F4; --card: #ffffff; --primary: #1F5C3F; --primary-dark: #143D2A; --accent: #2E8B57;
+            --gold: #C99A2E; --red: #B4453A; --text: #1B2420; --muted: #64756B; --border: #DDE6E0;
+            --shadow: 0 2px 14px rgba(20,61,42,0.08); --shadow-hover: 0 8px 26px rgba(20,61,42,0.16);
+            background: var(--bg); color: var(--text); font-family: 'Segoe UI', Arial, sans-serif;
+            border-radius: 14px; overflow: hidden; margin: 1.5rem 0 2rem; box-shadow: var(--shadow);
+        }
+        .kfd h1, .kfd h3, .kfd p { margin: 0; }
+        .kfd .kfd-header {
+            background: linear-gradient(135deg, #143D2A 0%, #1F5C3F 55%, #2E8B57 100%);
+            color: #fff; padding: 20px 28px; display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 12px;
+        }
+        .kfd .header-left { display: flex; align-items: center; gap: 16px; }
+        .kfd .logo-badge {
+            background: rgba(255,255,255,0.16); border-radius: 10px; padding: 10px 16px; font-size: 20px;
+            font-weight: 800; letter-spacing: 1px; border: 1.5px solid rgba(255,255,255,0.3);
+        }
+        .kfd .header-title h1 { font-size: 20px; font-weight: 700; }
+        .kfd .header-title p { font-size: 12px; color: rgba(255,255,255,0.78); margin-top: 3px; }
+        .kfd .header-right { text-align: right; }
+        .kfd .header-right .badge-period {
+            display: inline-block; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 20px; padding: 4px 14px; font-size: 11.5px; margin-bottom: 5px;
+        }
+        .kfd .header-right .date { font-size: 11px; color: rgba(255,255,255,0.7); }
+
+        .kfd .slicer-bar {
+            background: var(--card); border-bottom: 2px solid var(--border); padding: 13px 28px;
+            display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap; position: sticky; top: 0; z-index: 20;
+        }
+        .kfd .slicer-bar .lbl { font-size: 13px; font-weight: 700; color: var(--primary); align-self: center; }
+        .kfd .slicer-group { display: flex; flex-direction: column; gap: 3px; }
+        .kfd .slicer-group label { font-size: 11px; font-weight: 600; color: var(--muted); white-space: nowrap; margin: 0; }
+        .kfd .slicer-bar select {
+            border: 1.5px solid var(--border); border-radius: 8px; padding: 7px 32px 7px 12px; font-size: 13px;
+            color: var(--text); background-color: var(--bg); appearance: none; cursor: pointer; min-width: 170px; outline: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%231F5C3F' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 10px center;
+        }
+        .kfd .slicer-bar select:focus { border-color: var(--accent); }
+        .kfd .slicer-actions { margin-left: auto; display: flex; gap: 8px; }
+        .kfd .kfd-btn {
+            border: none; border-radius: 8px; padding: 9px 16px; font-size: 12px; font-weight: 700; cursor: pointer;
+            color: #fff; background: var(--primary); transition: opacity 0.15s;
+        }
+        .kfd .kfd-btn:hover { opacity: 0.88; }
+        .kfd .kfd-btn.red { background: var(--red); }
+        .kfd .kfd-btn.light { background: #E7EEEA; color: var(--primary); }
+
+        .kfd .kfd-main { padding: 8px 28px 24px; }
+        .kfd .section-label {
+            font-size: 13px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.4px;
+            margin: 22px 0 12px; display: flex; align-items: center; gap: 8px;
+        }
+        .kfd .section-label::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+        .kfd .kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+        .kfd .kpi-grid + .kpi-grid { margin-top: 14px; }
+        .kfd .kpi-card {
+            background: var(--card); border-radius: 12px; padding: 16px 16px 14px; box-shadow: var(--shadow);
+            border-left: 4px solid var(--primary); transition: box-shadow 0.15s, transform 0.15s;
+        }
+        .kfd .kpi-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-2px); }
+        .kfd .kpi-card.green { border-left-color: var(--accent); }
+        .kfd .kpi-card.gold { border-left-color: var(--gold); }
+        .kfd .kpi-card.red { border-left-color: var(--red); }
+        .kfd .kpi-card.dark { border-left-color: var(--primary-dark); }
+        .kfd .kpi-icon { font-size: 17px; margin-bottom: 6px; }
+        .kfd .kpi-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; }
+        .kfd .kpi-value { font-size: 21px; font-weight: 800; margin: 5px 0 3px; white-space: nowrap; }
+        .kfd .kpi-sub { font-size: 11px; color: var(--muted); }
+
+        .kfd .dist-card-wrap { background: var(--card); border-radius: 12px; padding: 18px; box-shadow: var(--shadow); }
+        .kfd .dist-card-wrap h3 { text-align: center; font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+        .kfd .kfd-dist-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+        .kfd .kfd-dist-card {
+            border: 1px solid #e0e0e0; border-radius: 8px; padding: 14px 16px; cursor: pointer; transition: box-shadow 0.15s;
+        }
+        .kfd .kfd-dist-card:hover { box-shadow: 0 6px 16px rgba(0,0,0,0.1); }
+        .kfd .kfd-dist-card.selected { border-color: var(--gold); background: #FFF9EB; }
+        .kfd .kfd-dist-name { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+        .kfd .kfd-dist-body { display: flex; align-items: center; gap: 12px; }
+        .kfd .kfd-dist-icon { font-size: 22px; }
+        .kfd .kfd-dist-metrics { flex: 1; }
+        .kfd .kfd-dist-metrics .v { font-size: 17px; font-weight: 700; }
+        .kfd .kfd-dist-metrics .l { font-size: 11px; color: var(--muted); }
+        .kfd .kfd-dist-row { display: flex; justify-content: space-between; margin-top: 6px; }
+
+        .kfd .visuals-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+        .kfd .visuals-grid + .visuals-grid { margin-top: 16px; }
+        .kfd .chart-card { background: var(--card); border-radius: 12px; padding: 18px; box-shadow: var(--shadow); }
+        .kfd .chart-card h3 { font-size: 13.5px; color: var(--primary); margin-bottom: 12px; font-weight: 700; }
+        .kfd .chart-wrap { position: relative; height: 260px; }
+        .kfd .chart-wrap.tall { height: 320px; }
+
+        .kfd .table-card { background: var(--card); border-radius: 12px; padding: 18px; box-shadow: var(--shadow); overflow-x: auto; }
+        .kfd table.kfd-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+        .kfd table.kfd-table th {
+            text-align: left; padding: 9px 10px; background: var(--primary); color: #fff; font-size: 11px;
+            text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap;
+        }
+        .kfd table.kfd-table th.num, .kfd table.kfd-table td.num { text-align: right; }
+        .kfd table.kfd-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+        .kfd table.kfd-table tr.selected-row td { background: #EAF5EE; font-weight: 700; }
+        .kfd table.kfd-rank tr:hover td { background: #F5FAF7; cursor: pointer; }
+        .kfd .listing-scroll { max-height: 480px; overflow: auto; }
+        .kfd .listing-scroll th { position: sticky; top: 0; }
+        .kfd .listing-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 12.5px; color: var(--muted); }
+        .kfd .sector-tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+        .kfd .sector-tag.ent { background: #E3F1E8; color: var(--primary); }
+        .kfd .sector-tag.edu { background: #FBF0D9; color: #7A5A0A; }
+        .kfd .rank-badge {
+            display: inline-block; width: 20px; height: 20px; line-height: 20px; text-align: center;
+            border-radius: 50%; font-size: 10.5px; font-weight: 800; color: #fff;
+        }
+        .kfd .rank-1 { background: #D4AF37; } .kfd .rank-2 { background: #B0B0B0; }
+        .kfd .rank-3 { background: #C68642; } .kfd .rank-n { background: #9BB0A5; }
+
+        .kfd .yoy-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+        .kfd .yoy-card { background: var(--card); border-radius: 12px; padding: 16px; box-shadow: var(--shadow); text-align: center; }
+        .kfd .yoy-card .lbl { font-size: 11px; color: var(--muted); font-weight: 600; margin-bottom: 8px; min-height: 28px; }
+        .kfd .yoy-card .val { font-size: 24px; font-weight: 800; }
+        .kfd .yoy-card .val.pos { color: var(--accent); }
+        .kfd .yoy-card .val.neg { color: var(--red); }
+
+        .kfd .kfd-empty { color: var(--muted); font-style: italic; text-align: center; padding: 16px; }
+        .kfd .kfd-status { padding: 60px 20px; text-align: center; color: var(--muted); font-size: 14px; }
+        .kfd .kfd-status.error { color: var(--red); }
+
+        @media (max-width: 1400px) {
+            .kfd .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 1100px) {
+            .kfd .visuals-grid { grid-template-columns: 1fr; }
+            .kfd .kfd-dist-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 700px) {
+            .kfd .kpi-grid, .kfd .yoy-grid, .kfd .kfd-dist-grid { grid-template-columns: 1fr; }
+            .kfd .kfd-main { padding: 8px 14px 16px; }
+            .kfd .slicer-bar { padding: 10px 14px; }
+            .kfd .slicer-actions { margin-left: 0; }
+        }
+        @media print {
+            body * { visibility: hidden; }
+            #kft-dashboard, #kft-dashboard * { visibility: visible; }
+            #kft-dashboard { position: absolute; left: 0; top: 0; width: 100%; margin: 0; box-shadow: none; }
+            .kfd .slicer-actions { display: none !important; }
+            .kfd .slicer-bar { position: static; }
+            .kfd .chart-card, .kfd .kpi-card, .kfd .table-card, .kfd .yoy-card { break-inside: avoid; }
+            .kfd .listing-scroll { max-height: none; overflow: visible; }
+        }
+
+        /* ---------- Classic dashboard ---------- */
         /* New dashboard parent card styling */
         .dashboard-parent-card {
             background: #f8f9fa;
@@ -178,15 +345,289 @@
 
         <div class="container mb-3">
             <div class="row me-5 ps-5">
-                <div class="d-flex justify-content-between">
+                <div class="d-flex justify-content-between align-items-center">
                     <a href="{{url_for('view_meeting_calendar')}}" class="btn btn-primary">My Meetings</a>
+                    <div class="dashboard-toggle" role="group" aria-label="Dashboard view">
+                        <button type="button" data-dashboard-view="new" class="active">New Dashboard</button>
+                        <button type="button" data-dashboard-view="classic">Classic Dashboard</button>
+                    </div>
                     {% if result.is_executive_approver or result.is_admin or PermissionHelper.has_permission(logged_in_user, "/awaiting-Service") %}
                         <a href="{{url_for('awaiting_service')}}" class="btn btn-primary">Awaiting Services</a>
+                    {% else %}
+                        <span></span>
                     {% endif %}
                 </div>
             </div>
         </div>
+    </div>
 
+    <!-- ================= New KFT dashboard (Management / Regional report) ================= -->
+    <div class="container">
+        <div id="kft-dashboard" class="kfd">
+            <div class="kfd-header">
+                <div class="header-left">
+                    <div class="logo-badge">KFT</div>
+                    <div class="header-title">
+                        <h1 id="kfd-title">KFT - Khushali Foundation Trust - Management Dashboard</h1>
+                        <p>Portfolio Growth · Regional Performance · Product Performance</p>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="badge-period" id="kfd-period">Reporting Period: —</div>
+                    <div class="date" id="kfd-refresh">Loading…</div>
+                </div>
+            </div>
+
+            <div class="slicer-bar">
+                <span class="lbl">FILTERS:</span>
+                <div class="slicer-group">
+                    <label for="kfd-region">Region</label>
+                    <select id="kfd-region"><option value="">All Regions</option></select>
+                </div>
+                <div class="slicer-group">
+                    <label for="kfd-branch">Branch</label>
+                    <select id="kfd-branch"><option value="">All Branches</option></select>
+                </div>
+                <div class="slicer-group">
+                    <label for="kfd-product">Product</label>
+                    <select id="kfd-product">
+                        <option value="">All Products</option>
+                        <option value="enterprise">Enterprise</option>
+                        <option value="education">Education</option>
+                    </select>
+                </div>
+                <div class="slicer-group">
+                    <label for="kfd-year">Trend Focus Year</label>
+                    <select id="kfd-year"></select>
+                </div>
+                <div class="slicer-actions">
+                    <button type="button" class="kfd-btn light" id="kfd-reload" title="Reload the latest data from the database">⟳ Refresh</button>
+                    <button type="button" class="kfd-btn" id="kfd-print">⬇ Download PDF</button>
+                    <button type="button" class="kfd-btn red" id="kfd-reset">✖ Reset Filters</button>
+                </div>
+            </div>
+
+            <div class="kfd-status" id="kfd-loading">Loading dashboard data…</div>
+            <div class="kfd-status error" id="kfd-error" style="display:none;"></div>
+
+            <div class="kfd-main" id="kfd-content" style="display:none;">
+
+                <div class="section-label" id="kfd-kpi-heading">Key Performance Indicators</div>
+                <div class="kpi-grid">
+                    <div class="kpi-card dark">
+                        <div class="kpi-icon">👥</div>
+                        <div class="kpi-label"># of Beneficiaries</div>
+                        <div class="kpi-value" id="kfd-k-bens">—</div>
+                        <div class="kpi-sub" id="kfd-k-bens-sub"></div>
+                    </div>
+                    <div class="kpi-card dark">
+                        <div class="kpi-icon">📁</div>
+                        <div class="kpi-label"># of Loans</div>
+                        <div class="kpi-value" id="kfd-k-loans">—</div>
+                        <div class="kpi-sub" id="kfd-k-loans-sub"></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon">💰</div>
+                        <div class="kpi-label">Loan Disbursement</div>
+                        <div class="kpi-value" id="kfd-k-disb">—</div>
+                        <div class="kpi-sub" id="kfd-k-disb-sub"></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon">📈</div>
+                        <div class="kpi-label">Outstanding Loans</div>
+                        <div class="kpi-value" id="kfd-k-os">—</div>
+                        <div class="kpi-sub" id="kfd-k-os-sub"></div>
+                    </div>
+                    <div class="kpi-card red">
+                        <div class="kpi-icon">⚠️</div>
+                        <div class="kpi-label">Non-Performing Loans</div>
+                        <div class="kpi-value" id="kfd-k-npl">—</div>
+                        <div class="kpi-sub" id="kfd-k-npl-sub"></div>
+                    </div>
+                    <div class="kpi-card green">
+                        <div class="kpi-icon">📏</div>
+                        <div class="kpi-label">Avg Loan Size</div>
+                        <div class="kpi-value" id="kfd-k-avg">—</div>
+                        <div class="kpi-sub" id="kfd-k-avg-sub"></div>
+                    </div>
+                </div>
+                <div class="kpi-grid">
+                    <div class="kpi-card gold">
+                        <div class="kpi-icon">📅</div>
+                        <div class="kpi-label">YTD Disbursement</div>
+                        <div class="kpi-value" id="kfd-k-ytd-disb">—</div>
+                        <div class="kpi-sub" id="kfd-k-ytd-disb-sub"></div>
+                    </div>
+                    <div class="kpi-card gold">
+                        <div class="kpi-icon">🧑‍🤝‍🧑</div>
+                        <div class="kpi-label">YTD # of Beneficiaries</div>
+                        <div class="kpi-value" id="kfd-k-ytd-bens">—</div>
+                        <div class="kpi-sub" id="kfd-k-ytd-bens-sub"></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon">🗓️</div>
+                        <div class="kpi-label">Latest Month Disbursement</div>
+                        <div class="kpi-value" id="kfd-k-cur-disb">—</div>
+                        <div class="kpi-sub" id="kfd-k-cur-disb-sub"></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon">🗓️</div>
+                        <div class="kpi-label">Latest Month # of Beneficiaries</div>
+                        <div class="kpi-value" id="kfd-k-cur-bens">—</div>
+                        <div class="kpi-sub" id="kfd-k-cur-bens-sub"></div>
+                    </div>
+                    <div class="kpi-card green">
+                        <div class="kpi-icon">🏢</div>
+                        <div class="kpi-label">Enterprise Share</div>
+                        <div class="kpi-value" id="kfd-k-ent">—</div>
+                        <div class="kpi-sub" id="kfd-k-ent-sub"></div>
+                    </div>
+                    <div class="kpi-card gold">
+                        <div class="kpi-icon">🎓</div>
+                        <div class="kpi-label">Education Share</div>
+                        <div class="kpi-value" id="kfd-k-edu">—</div>
+                        <div class="kpi-sub" id="kfd-k-edu-sub"></div>
+                    </div>
+                </div>
+
+                <div class="section-label">Council Distribution</div>
+                <div class="dist-card-wrap">
+                    <h3 id="kfd-dist-title">National Council Distribution</h3>
+                    <div class="kfd-dist-grid" id="kfd-dist-grid"></div>
+                </div>
+
+                <div class="section-label">Visual Analytics — Trends &amp; Product Mix</div>
+                <div class="visuals-grid">
+                    <div class="chart-card">
+                        <h3 id="kfd-trend-title">📈 Monthly Disbursement Trend</h3>
+                        <div class="chart-wrap tall"><canvas id="kfd-ch-trend"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>🥧 Disbursement Mix — Enterprise vs Education</h3>
+                        <div class="chart-wrap tall"><canvas id="kfd-ch-mix"></canvas></div>
+                    </div>
+                </div>
+                <div class="visuals-grid">
+                    <div class="chart-card">
+                        <h3>🗺️ Disbursement by <span class="kfd-dim">Region</span> (Since Inception)</h3>
+                        <div class="chart-wrap"><canvas id="kfd-ch-group-si"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>📅 YTD <span class="kfd-ry"></span> Disbursement by <span class="kfd-dim">Region</span></h3>
+                        <div class="chart-wrap"><canvas id="kfd-ch-group-ytd"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="section-label" id="kfd-rank-title">Regional Performance &amp; Ranking</div>
+                <div class="table-card">
+                    <table class="kfd-table kfd-rank">
+                        <thead>
+                            <tr>
+                                <th>Rank</th><th class="kfd-dim">Region</th>
+                                <th class="num"># Beneficiaries</th><th class="num"># Loans</th>
+                                <th class="num">Disbursed SI (PKR)</th><th class="num">% of Portfolio</th>
+                                <th class="num">YTD <span class="kfd-ry"></span> Beneficiaries</th>
+                                <th class="num">YTD <span class="kfd-ry"></span> Loans</th>
+                                <th class="num">YTD <span class="kfd-ry"></span> Disbursed (PKR)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="kfd-rank-body"></tbody>
+                    </table>
+                </div>
+
+                <div class="section-label">Year-on-Year Growth</div>
+                <div class="yoy-grid" id="kfd-yoy"></div>
+
+                <div class="section-label" id="kfd-pq-title">Portfolio Quality — Arrears &amp; Write-offs</div>
+                <div class="kpi-grid">
+                    <div class="kpi-card dark">
+                        <div class="kpi-icon">🏦</div>
+                        <div class="kpi-label">Total Outstanding</div>
+                        <div class="kpi-value" id="kfd-pq-os">—</div>
+                        <div class="kpi-sub" id="kfd-pq-os-sub"></div>
+                    </div>
+                    <div class="kpi-card gold">
+                        <div class="kpi-icon">⚠️</div>
+                        <div class="kpi-label">30-60 Days Past Due</div>
+                        <div class="kpi-value" id="kfd-pq-30">—</div>
+                        <div class="kpi-sub" id="kfd-pq-30-sub"></div>
+                    </div>
+                    <div class="kpi-card red">
+                        <div class="kpi-icon">🟠</div>
+                        <div class="kpi-label">60-180 Days Past Due</div>
+                        <div class="kpi-value" id="kfd-pq-60">—</div>
+                        <div class="kpi-sub" id="kfd-pq-60-sub"></div>
+                    </div>
+                    <div class="kpi-card red">
+                        <div class="kpi-icon">🔴</div>
+                        <div class="kpi-label">180+ Days Past Due</div>
+                        <div class="kpi-value" id="kfd-pq-180">—</div>
+                        <div class="kpi-sub" id="kfd-pq-180-sub"></div>
+                    </div>
+                    <div class="kpi-card gold">
+                        <div class="kpi-icon">📋</div>
+                        <div class="kpi-label">Cases in Arrears</div>
+                        <div class="kpi-value" id="kfd-pq-cases">—</div>
+                        <div class="kpi-sub" id="kfd-pq-cases-sub"></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon">✂️</div>
+                        <div class="kpi-label">Written-off Loans</div>
+                        <div class="kpi-value" id="kfd-pq-wo">—</div>
+                        <div class="kpi-sub" id="kfd-pq-wo-sub"></div>
+                    </div>
+                </div>
+
+                <div class="visuals-grid" style="margin-top:16px;">
+                    <div class="chart-card">
+                        <h3>📊 Outstanding Balance by Arrears Bucket</h3>
+                        <div class="chart-wrap"><canvas id="kfd-ch-aging"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>📈 Arrears Trend (Last 12 Months, Outstanding Principal)</h3>
+                        <div class="chart-wrap"><canvas id="kfd-ch-arrears-trend"></canvas></div>
+                    </div>
+                </div>
+                <div class="visuals-grid">
+                    <div class="chart-card">
+                        <h3>🗺️ Current Arrears by <span class="kfd-dim">Region</span></h3>
+                        <div class="chart-wrap"><canvas id="kfd-ch-arrears-group"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>🏢 Current Arrears — Enterprise vs Education</h3>
+                        <div class="chart-wrap"><canvas id="kfd-ch-arrears-sector"></canvas></div>
+                    </div>
+                </div>
+
+                <div id="kfd-listing-section" style="display:none;">
+                    <div class="section-label">Arrear Listing</div>
+                    <div class="table-card">
+                        <div class="listing-head">
+                            <span id="kfd-listing-count"></span>
+                            <button type="button" class="kfd-btn light" id="kfd-listing-csv">⬇ Download CSV</button>
+                        </div>
+                        <div class="listing-scroll">
+                            <table class="kfd-table">
+                                <thead>
+                                    <tr>
+                                        <th>Sector Code</th><th>Branch Name</th><th>Gender</th><th>Mobile Number</th>
+                                        <th>Loan Title</th><th>Loan Number</th><th>Product Code</th><th>Loan Creation Date</th>
+                                        <th class="num">Disb. Amount</th><th>Loan Status</th><th class="num">OD Days</th>
+                                        <th class="num">OS_P</th><th>Sector</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="kfd-listing-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= Classic dashboard ================= -->
+    <div class="container" id="classic-dashboard" style="display:none;">
 
         <div class="dashboard-parent-card shadow-lg">
             <div class="d-flex justify-content-between mb-3">

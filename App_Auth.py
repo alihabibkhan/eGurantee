@@ -20,6 +20,8 @@ def login():
             if user and check_password_hash(user[0]['password'], password):
                 print('setting user sessions.')
                 set_user_session(user[0])
+                # Load the user's permissions once so navbar/route checks don't hit the DB
+                PermissionHelper.cache_user_permissions(user[0]['user_id'])
                 print('user sessions has been set.')
                 flash(f"Welcome, {user[0]['name']}!", 'success')
                 return redirect(url_for('index'))

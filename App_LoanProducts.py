@@ -7,7 +7,8 @@ def manage_loan_products():
     try:
         if is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/manage_loan_products")):
             content = {
-                'get_all_loan_products': get_all_loan_products()
+                'get_all_loan_products': get_all_loan_products(),
+                'user_with_signatures': user_with_signatures()
             }
             return render_template('manage_loan_products.html', result=content)
     except Exception as e:
@@ -19,14 +20,18 @@ def manage_loan_products():
 @application.route('/add-edit-loan-product/<int:product_id>', methods=['GET', 'POST'])
 def add_edit_loan_product(product_id=None):
     try:
-        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/add-edit-loan-product"))):
+        if not (is_login() and (
+                is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/add-edit-loan-product"))):
             return redirect(url_for('login'))
 
         loan_product = None
 
         if product_id:
             query = f"""
-                SELECT product_id, product_code, max_exp_per_prud_reg, name, gender, description, auto_approve, status, created_by, created_date, modified_by, modified_date
+                SELECT product_id, product_code, max_exp_per_prud_reg, name, gender, description, auto_approve, status, 
+                       created_by, created_date, modified_by, modified_date,
+                       auto_approval_signature, auto_approval_max_amount,
+                       auto_approval_check_loan_metrix, allow_exceptional_approval
                 FROM tbl_loan_products 
                 WHERE product_id = '{product_id}' AND status = '1'
             """
@@ -45,15 +50,36 @@ def add_edit_loan_product(product_id=None):
             auto_approve = request.form.get('auto_approve')
             max_exp_per_prud_reg = request.form.get('max_exp_per_prud_reg')
 
+            # Existing auto approval fields
+            auto_approval_signature = request.form.get('auto_approval_signature', 0)
+            auto_approval_max_amount = request.form.get('auto_approval_max_amount', 0.00)
+
+            if auto_approval_signature in ['', None]:
+                auto_approval_signature = 0
+
+            # Newly added fields
+            auto_approval_check_loan_metrix = request.form.get('auto_approval_check_loan_metrix', 2)
+            allow_exceptional_approval = request.form.get('allow_exceptional_approval', 2)
+
             current_user_id = str(get_current_user_id())
             current_timestamp = str(datetime.now())
 
             if product_id:
                 update_query = f"""
                     UPDATE tbl_loan_products 
-                    SET name = '{name}', product_code = '{product_code}', gender = '{gender}', description = '{description}', 
-                        auto_approve = '{auto_approve}', status = '{str(1)}', modified_by = '{current_user_id}', modified_date = '{current_timestamp}',
-                        max_exp_per_prud_reg = {str(max_exp_per_prud_reg)}
+                    SET name = '{name}', 
+                        product_code = '{product_code}', 
+                        gender = '{gender}', 
+                        description = '{description}', 
+                        auto_approve = '{auto_approve}', 
+                        status = '{str(1)}', 
+                        modified_by = '{current_user_id}', 
+                        modified_date = '{current_timestamp}',
+                        max_exp_per_prud_reg = {str(max_exp_per_prud_reg)},
+                        auto_approval_signature = {str(auto_approval_signature)},
+                        auto_approval_max_amount = {str(auto_approval_max_amount)},
+                        auto_approval_check_loan_metrix = {str(auto_approval_check_loan_metrix)},
+                        allow_exceptional_approval = {str(allow_exceptional_approval)}
                     WHERE product_id = '{product_id}'
                 """
                 execute_command(update_query)
@@ -61,10 +87,16 @@ def add_edit_loan_product(product_id=None):
             else:
                 insert_query = f"""
                     INSERT INTO tbl_loan_products (
-                        name, product_code, gender, description, auto_approve, status, created_by, created_date, modified_by, modified_date, max_exp_per_prud_reg
+                        name, product_code, gender, description, auto_approve, status, 
+                        created_by, created_date, modified_by, modified_date, 
+                        max_exp_per_prud_reg, auto_approval_signature, auto_approval_max_amount,
+                        auto_approval_check_loan_metrix, allow_exceptional_approval
                     ) VALUES (
-                        '{name}', '{product_code}', '{gender}', '{description}', '{str(auto_approve)}', '{str(1)}', '{current_user_id}', '{current_timestamp}', 
-                        '{current_user_id}', '{current_timestamp}', {str(max_exp_per_prud_reg)}
+                        '{name}', '{product_code}', '{gender}', '{description}', '{str(auto_approve)}', '{str(1)}', 
+                        '{current_user_id}', '{current_timestamp}', 
+                        '{current_user_id}', '{current_timestamp}', 
+                        {str(max_exp_per_prud_reg)}, {str(auto_approval_signature)}, {str(auto_approval_max_amount)},
+                        {str(auto_approval_check_loan_metrix)}, {str(allow_exceptional_approval)}
                     )
                 """
                 execute_command(insert_query)
@@ -74,7 +106,8 @@ def add_edit_loan_product(product_id=None):
 
         content = {
             'loan_product': loan_product,
-            'product_id': product_id
+            'product_id': product_id,
+            'user_with_signatures': user_with_signatures()
         }
         return render_template('add_edit_loan_product.html', result=content)
 

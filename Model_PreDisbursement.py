@@ -120,7 +120,9 @@ from imports import *
 def get_all_pre_disbursement_temp():
     sql_part_temp = ''
 
-    if get_current_user_role() in ['1', '2']:
+    # Executive ('5') sees the same assigned-branch applications as an Approver; that includes the ones
+    # awaiting executive approval, since those are always Agreed/Disagreed statuses.
+    if get_current_user_role() in ['1', '2', '5']:
         sql_part_temp = f"""
             INNER JOIN tbl_branches b ON pdt."Branch_Name" LIKE CONCAT('%', b.branch_code, '%') AND b.live_branch = '1'
             INNER JOIN tbl_users u ON b.role = ANY (u.assigned_branch) AND u.active = '1' and u.user_id = '{str(get_current_user_id())}'
@@ -129,6 +131,7 @@ def get_all_pre_disbursement_temp():
             LEFT JOIN tbl_users u2 ON u2.user_id = pdt.approved_by
             LEFT JOIN tbl_users u3 ON u3.user_id = pdt.reviewed_by
             LEFT JOIN tbl_users u4 ON u4.user_id = pdt.rejected_by
+            LEFT JOIN tbl_users u5 ON u5.user_id = pdt.exec_approved_by
             LEFT JOIN tbl_bank_details bd ON bd.bank_id = b.bank_id AND bd.status = '1'
             WHERE pdt.status IN {("('1', '5', '6', '7', '8')" if get_current_user_role() == '1' else "('2', '3', '5', '6', '7', '8', '9', '10')")}
         """
@@ -140,12 +143,13 @@ def get_all_pre_disbursement_temp():
             LEFT JOIN tbl_users u2 ON u2.user_id = pdt.approved_by
             LEFT JOIN tbl_users u3 ON u3.user_id = pdt.reviewed_by
             LEFT JOIN tbl_users u4 ON u4.user_id = pdt.rejected_by
+            LEFT JOIN tbl_users u5 ON u5.user_id = pdt.exec_approved_by
             LEFT JOIN tbl_bank_details bd ON bd.bank_id = b.bank_id AND bd.status = '1'
         """
 
     query = f"""
         SELECT 
-            {"DISTINCT" if get_current_user_role() in ['1', '2'] else ""}
+            {"DISTINCT" if get_current_user_role() in ['1', '2', '5'] else ""}
             pdt."pre_disb_temp_id",
             pdt."Application_No",
             pdt."Annual_Business_Incomes",
@@ -222,14 +226,41 @@ def get_all_pre_disbursement_temp():
             pdt.client_dob,
             pdt.co_borrower_dob,
             pdt.relationship_ownership,
-            pdt.other_bank_loans_os
-        FROM 
+            pdt.other_bank_loans_os,
+            {ALLOW_EXCEPTIONAL_APPROVAL_SQL} AS allow_exceptional_approval,
+            u5.name AS exec_approved_by,
+            pdt.exec_approved_date,
+            pdt.exec_approval_pending
+        FROM
             tbl_pre_disbursement_temp pdt
         {sql_part_temp}
     """
     print(query)
     result = fetch_records(query)
     return result
+
+
+# Product flag for an application: '1' = needs executive approval before the email goes out.
+# Prefers the product row matching the applicant's gender, falls back to any row with the same code.
+ALLOW_EXCEPTIONAL_APPROVAL_SQL = """
+    COALESCE((
+        SELECT CAST(lp.allow_exceptional_approval AS VARCHAR)
+        FROM tbl_loan_products lp
+        WHERE lp.product_code = pdt."LoanProductCode" AND lp.status = '1'
+        ORDER BY CASE WHEN lp.gender = pdt."Gender" THEN 0 ELSE 1 END
+        LIMIT 1
+    ), '2')
+"""
+
+
+def requires_executive_approval(pre_disb_temp_id):
+    query = f"""
+        SELECT {ALLOW_EXCEPTIONAL_APPROVAL_SQL} AS allow_exceptional_approval
+        FROM tbl_pre_disbursement_temp pdt
+        WHERE pdt.pre_disb_temp_id = '{str(pre_disb_temp_id)}'
+    """
+    result = fetch_records(query)
+    return bool(result) and str(result[0].get('allow_exceptional_approval')) == '1'
 
 
 

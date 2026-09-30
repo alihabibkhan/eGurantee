@@ -232,7 +232,7 @@
                                 <option value="all">All</option>
                                 <!-- Your existing options remain the same -->
                                 {% if result.is_reviewer or result.is_executive_approver or result.is_admin %}
-                                    <option value="1" selected>Under Review</option>
+                                    <option value="1" {{ '' if result.is_executive else 'selected' }}>Under Review</option>
                                 {% endif %}
                                 {% if result.is_approver or result.is_executive_approver or result.is_admin %}
                                     <option value="2">Agreed</option>
@@ -245,6 +245,9 @@
                                     <option value="6">Recommended for Disagreement</option>
                                     <option value="7">Recommended for Agreement (With Exception)</option>
                                     <option value="8">Recommended for Disagreement (With Exception)</option>
+                                {% endif %}
+                                {% if result.is_approver or result.is_executive_approver or result.is_admin %}
+                                    <option value="awaiting-exec" {{ 'selected' if result.is_executive else '' }}>Awaiting Executive Approval</option>
                                 {% endif %}
                             </select>
                         </div>
@@ -469,6 +472,34 @@
             '10': 'Disagreed (With Exception)'
         };
 
+        // Products with "Allow Exceptional Approval" = Yes need the Executive Approver to send the email
+        // (an Executive is treated as an Approver on this screen, but is the one who gives executive approval)
+        const isReviewerOrApprover = {{ ((result.is_reviewer or result.is_approver) and not result.is_executive)|tojson }};
+
+        function requiresExecutiveApproval(record) {
+            return String(record.allow_exceptional_approval) === '1';
+        }
+
+        // Agreed/Disagreed by a reviewer/approver after exceptional approval was enabled,
+        // not yet confirmed by the Executive Approver
+        function isAwaitingExecutiveApproval(record) {
+            return String(record.exec_approval_pending) === '1';
+        }
+
+        function canSendApprovalEmail(record) {
+            const status = String(record.status);
+            if (status !== '2' && status !== '9') return false;
+            return !(isReviewerOrApprover && requiresExecutiveApproval(record));
+        }
+
+        // Approvers can still view the letter of exceptional products, just not send the email
+        const isApproverRole = {{ result.is_approver|tojson }};
+
+        function canViewApprovalLetter(record) {
+            return canSendApprovalEmail(record)
+                || (isApproverRole && ['2', '9'].includes(String(record.status)));
+        }
+
         // All possible fields for display
         const allFields = [
             'Application_No', 'Annual Business Incomes', 'Annual Disposable Income', 'Annual Expenses',
@@ -533,7 +564,9 @@
                 }
 
                 // Status filter
-                if (statusFilter !== 'all') {
+                if (statusFilter === 'awaiting-exec') {
+                    statusMatch = isAwaitingExecutiveApproval(record);
+                } else if (statusFilter !== 'all') {
                     statusMatch = record.status === statusFilter;
                 }
 
@@ -597,7 +630,9 @@
                     <td>${formatDate(record.ApplicationDate)}</td>
                     <td>${record.approved_by || ''}</td>
                     <td title='${record.approved_date}'>${formatDate(String(record.approved_date))}</td>
-                    <td>${statusText}</td>
+                    <td>
+                        ${statusText}
+                    </td>
                     <td>
                         <button class="btn btn-sm btn-primary view-btn"
                                 data-index="${start + index}">
@@ -877,6 +912,7 @@
             $('.btn-send-email').attr('data-pre-id', record.pre_disb_temp_id);
             $('.btn-send-email').attr('data-email', record.email);
             $('.btn-send-email').attr('data-pre-email-status', record.email_status);
+            $('.btn-send-email').attr('data-can-send', canSendApprovalEmail(record) ? '1' : '0');
 
 
             const section = document.getElementById('imagesSection');
@@ -885,7 +921,7 @@
             section.style.display = 'none';
             gallery.innerHTML = '';
 
-            if(record.status == '2' || record.status == '9'){
+            if(canViewApprovalLetter(record)){
                 $('.btn-send-email').show();
             }
 
@@ -1235,6 +1271,13 @@
                             <th>Rejected By (Rejected Date):</th>
                             <td>${record.rejected_by || ''}${formatDate(record.rejected_date) ? ` (${formatDate(record.rejected_date)})` : ''}</td>
                         </tr>
+                        ${requiresExecutiveApproval(record) ? `
+                        <tr>
+                            <th>Executive Approved By (Date):</th>
+                            <td>${record.exec_approved_by
+                                ? `${record.exec_approved_by}${formatDate(record.exec_approved_date) ? ` (${formatDate(record.exec_approved_date)})` : ''}`
+                                : (isAwaitingExecutiveApproval(record) ? '<span class="badge bg-warning text-dark">Awaiting Executive Approval</span>' : '')}</td>
+                        </tr>` : ''}
                         <tr><th>Status:</th>
                         <td>
                             <select class="form-select form-select-sm" id="temp-status">
@@ -2056,7 +2099,7 @@
         }
 
         // View letter in modal
-        function viewLetter(pre_disb_temp_id, email_sent) {
+        function viewLetter(pre_disb_temp_id, email_sent, can_send) {
             console.log(email_sent)
             const iframe = document.getElementById('letter-iframe');
             const errorDiv = document.getElementById('letter-error');
@@ -2072,7 +2115,7 @@
                     iframe.style.display = 'none';
                 } else {
                     iframe.style.display = 'block';
-                    if(String(email_sent) === '2'){
+                    if(String(email_sent) === '2' || can_send === '0'){
                         sendEmailBtn.style.display = 'none';
                     }
                     else{
@@ -2197,12 +2240,20 @@
                     if (record) {
                         record.status = status;
                         record.Notes = notes;
+                        if (requiresExecutiveApproval(record)) {
+                            record.exec_approved_by = data.exec_approved_by;
+                            record.exec_approved_date = data.exec_approved_date;
+                            record.exec_approval_pending = data.exec_approval_pending;
+                        }
                         applyFilters();
                         saveBtn.disabled = false;
                         saveBtn.innerHTML = `Save`;
-                        showToast('Record updated successfully', 3000);
+                        showToast(data.awaiting_executive
+                            ? 'Record updated. Sent to Executive for final approval and email.'
+                            : 'Record updated successfully', 3000);
 
-                        if(record.status == '2' || record.status == '9'){
+                        $('.btn-send-email').attr('data-can-send', canSendApprovalEmail(record) ? '1' : '0');
+                        if(canViewApprovalLetter(record)){
                             $('.btn-send-email').show();
                         }
                         else{
@@ -2427,7 +2478,7 @@
                 pre_disb_id = $(this).attr('data-pre-id');
                 email_status = $(this).attr('data-pre-email-status');
 
-                viewLetter(pre_disb_id, email_status);
+                viewLetter(pre_disb_id, email_status, $(this).attr('data-can-send'));
             });
         });
     </script>
