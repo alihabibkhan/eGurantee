@@ -4,7 +4,7 @@
 <body style="margin:0;padding:0;background:#F3F6F4;font-family:'Segoe UI',Arial,sans-serif;color:#1B2420;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F3F6F4;padding:24px 0;">
   <tr><td align="center">
-    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:10px;overflow:hidden;">
+    <table role="presentation" width="940" cellpadding="0" cellspacing="0" style="max-width:940px;width:100%;background:#ffffff;border-radius:10px;overflow:hidden;">
       <tr>
         <td style="background:#1F5C3F;color:#ffffff;padding:22px 28px;">
           <div style="font-size:19px;font-weight:700;">{{ r.title }}</div>
@@ -29,12 +29,80 @@
           {% if r.commentary %}
           <div style="background:#FFF9EB;border:1px solid #EBCB77;border-radius:8px;padding:12px 16px;margin:0 0 16px;white-space:pre-wrap;"><b style="color:#7A5A0A;">Commentary</b><br>{{ r.commentary }}</div>
           {% endif %}
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:13px;margin:0 0 18px;">
-            <tr><td colspan="2" style="background:#1F5C3F;color:#ffffff;font-weight:700;padding:8px 12px;">Highlights{{ ' — ' ~ r.region if r.region }}</td></tr>
-            {% for label, value in r.summary %}
+          {# Highlights: Excel-style summary (see task/001-Task-Reference-Image.png). Inline styles + bgcolor for mail clients. #}
+          {% set h = r.highlights %}
+          {% set dim_label = 'BRANCHES' if r.region else 'REGIONS' %}
+          {% set B = 'border:1px solid #A6A6A6;' %}
+          {% set C = B ~ 'padding:4px 8px;white-space:nowrap;' %}
+          {% macro title_cell(text, bg, fg, span) %}<td colspan="{{ span }}" bgcolor="{{ bg }}" style="{{ C }}background:{{ bg }};color:{{ fg }};font-size:14px;font-weight:700;">{{ text }}</td>{% endmacro %}
+          {% macro head_cell(text, bg='#E2EFDA', align='center', italic=True) %}<td bgcolor="{{ bg }}" style="{{ C }}background:{{ bg }};font-weight:700;text-align:{{ align }};{{ 'font-style:italic;' if italic }}">{{ text }}</td>{% endmacro %}
+          {% macro cell(text, align='right', bg='#FFFFFF', bold=False) %}<td bgcolor="{{ bg }}" style="{{ C }}background:{{ bg }};text-align:{{ align }};{{ 'font-weight:700;' if bold }}">{{ text }}</td>{% endmacro %}
+          {% macro gap() %}<td width="24" style="width:24px;border:none;padding:0;">&nbsp;</td>{% endmacro %}
+          {% macro region_table(t, label, bg, fg) %}
+          <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:12px;">
+            <tr>{{ title_cell(label ~ ' - Since Inception', bg, fg, 3) }}</tr>
+            <tr>{{ head_cell(dim_label) }}{{ head_cell('#') }}{{ head_cell('Disbursed') }}</tr>
+            {% for row in t.rows %}
+            <tr>{{ cell(row.label|upper, 'center') }}{{ cell(row.loans) }}{{ cell(row.disb) }}</tr>
+            {% endfor %}
+            <tr>{{ cell('TOTAL', 'center', '#DDEBF7', True) }}{{ cell(t.loans, 'right', '#DDEBF7', True) }}{{ cell(t.disb, 'right', '#DDEBF7', True) }}</tr>
+          </table>
+          {% endmacro %}
+
+          <div style="font-size:16px;font-weight:700;text-align:center;margin:6px 0 12px;">Summary - KFT{{ ' ' ~ r.region|upper if r.region }} ({{ r.period|upper }})</div>
+
+          {# OVERALL since inception + YTD #}
+          <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:12px;margin:0 0 18px;">
             <tr>
-              <td style="padding:8px 12px;border-bottom:1px solid #DDE6E0;color:#64756B;">{{ label }}</td>
-              <td style="padding:8px 12px;border-bottom:1px solid #DDE6E0;text-align:right;font-weight:700;">{{ value }}</td>
+              {{ title_cell('OVERALL - Since Inception', '#FFF04F', '#1B2420', 3) }}{{ gap() }}
+              <td rowspan="2" bgcolor="#FFFFFF" style="{{ C }}font-weight:700;text-align:center;font-size:11px;">YTD {{ r.report_year }}<br>#</td>
+              <td rowspan="2" bgcolor="#FFFFFF" style="{{ C }}font-weight:700;text-align:center;font-size:11px;">YTD {{ r.report_year }}<br>Disbursed</td>
+            </tr>
+            <tr>{{ head_cell(dim_label) }}{{ head_cell('#') }}{{ head_cell('Disbursed') }}{{ gap() }}</tr>
+            {% for row in h.overall.rows %}
+            <tr>{{ cell(row.label|upper, 'center') }}{{ cell(row.loans) }}{{ cell(row.disb) }}{{ gap() }}{{ cell(row.ytd_loans, 'center', '#FFFFFF', True) }}{{ cell(row.ytd_disb) }}</tr>
+            {% endfor %}
+            <tr>
+              {{ cell('TOTAL', 'center', '#DDEBF7', True) }}{{ cell(h.overall.loans, 'right', '#DDEBF7', True) }}{{ cell(h.overall.disb, 'right', '#DDEBF7', True) }}{{ gap() }}
+              {{ cell(h.overall.ytd_loans, 'center', '#DDEBF7', True) }}{{ cell(h.overall.ytd_disb, 'right', '#DDEBF7', True) }}
+            </tr>
+          </table>
+
+          {# ENTERPRISE | EDUCATION since inception #}
+          <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 18px;">
+            <tr>
+              <td valign="top" style="padding:0;">{{ region_table(h.enterprise, 'ENTERPRISE', '#4472C4', '#FFFFFF') }}</td>
+              {{ gap() }}
+              <td valign="top" style="padding:0;">{{ region_table(h.education, 'EDUCATION', '#00B050', '#FFFFFF') }}</td>
+            </tr>
+          </table>
+
+          {# Loan disbursement trends: last three years, month by month #}
+          {% set year_colors = [('#FCE4B4', '#FFD98E'), ('#DDEBF7', '#BDD7EE'), ('#DDEBF7', '#BDD7EE')] %}
+          <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:12px;margin:0 0 18px;">
+            <tr>{{ title_cell('Loan Disbursement Trends Analysis', '#FFF04F', '#1B2420', 11) }}</tr>
+            <tr>
+              {% for y in h.years %}{% set bg = year_colors[loop.index0][0] %}
+              <td colspan="3" bgcolor="{{ bg }}" style="{{ C }}background:{{ bg }};font-weight:700;font-size:11px;">{{ y.year }} (Actual)</td>{% if not loop.last %}{{ gap() }}{% endif %}
+              {% endfor %}
+            </tr>
+            <tr>
+              {% for y in h.years %}{% set bg = year_colors[loop.index0][0] %}
+              {{ head_cell('Months', bg, 'center', False) }}{{ head_cell('# Loan', bg, 'right', False) }}{{ head_cell('Disbursed', bg, 'right', False) }}{% if not loop.last %}{{ gap() }}{% endif %}
+              {% endfor %}
+            </tr>
+            {% for m in range(12) %}
+            <tr>
+              {% for y in h.years %}{% set mo = y.months[m] %}
+              {{ cell(mo.label, 'center') }}{{ cell(mo.loans) }}{{ cell(mo.disb) }}{% if not loop.last %}{{ gap() }}{% endif %}
+              {% endfor %}
+            </tr>
+            {% endfor %}
+            {% for kind in ('Sum', 'Avg') %}
+            <tr>
+              {% for y in h.years %}{% set bg = year_colors[loop.index0][1] %}
+              {{ cell(kind ~ ' ' ~ y.year, 'center', bg, True) }}{{ cell(y.sum_loans if kind == 'Sum' else y.avg_loans, 'right', bg, True) }}{{ cell(y.sum_disb if kind == 'Sum' else y.avg_disb, 'right', bg, True) }}{% if not loop.last %}{{ gap() }}{% endif %}
+              {% endfor %}
             </tr>
             {% endfor %}
           </table>

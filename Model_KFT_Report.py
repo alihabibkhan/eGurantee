@@ -49,7 +49,7 @@ def _summarize(loans, ry, rym):
         'cur_loans': 0, 'cur_disb': 0.0, 'cur_bens': set(),
         'os': 0.0, 'active': 0,
         'b30': 0.0, 'b60': 0.0, 'b180': 0.0, 'arrears_cases': 0, 'arrears_amt': 0.0, 'write_off_cases': 0,
-        'ent': 0.0, 'edu': 0.0,
+        'ent': 0.0, 'edu': 0.0, 'ent_loans': 0, 'edu_loans': 0,
     }
     for l in loans:
         ym, disb, os_p, od = l[L_YM], l[L_DISB], l[L_OS], l[L_OD]
@@ -79,8 +79,10 @@ def _summarize(loans, ry, rym):
                 s['write_off_cases'] += 1
         if l[L_CAT] == CATEGORY_ENTERPRISE:
             s['ent'] += disb
+            s['ent_loans'] += 1
         elif l[L_CAT] == CATEGORY_EDUCATION:
             s['edu'] += disb
+            s['edu_loans'] += 1
     return s
 
 
@@ -93,6 +95,44 @@ def _period_totals(loans, year, last_month):
             disb += l[L_DISB]
             bens.add(l[L_BEN])
     return count, disb, len(bens)
+
+
+def _email_highlights(scope, group_rows, ry, rm, regions):
+    """Excel-style summary for the email body: totals by region/branch and the monthly disbursement trend."""
+    if regions:
+        order = {name: i for i, name in enumerate(regions)}
+        rows = sorted(group_rows, key=lambda r: order.get(r['key'], len(order)))
+    else:
+        rows = sorted(group_rows, key=lambda r: r['label'])
+
+    def table(loans_key, disb_key):
+        out = [{'label': r['label'], 'loans': r['s'][loans_key], 'disb': r['s'][disb_key]} for r in rows]
+        return {'rows': [dict(o, loans=fmt_num(o['loans']), disb=fmt_num(o['disb'])) for o in out],
+                'loans': fmt_num(sum(o['loans'] for o in out)), 'disb': fmt_num(sum(o['disb'] for o in out))}
+
+    overall, ytd = table('loans', 'disb'), table('ytd_loans', 'ytd_disb')
+    overall['rows'] = [dict(o, ytd_loans=y['loans'], ytd_disb=y['disb']) for o, y in zip(overall['rows'], ytd['rows'])]
+    overall['ytd_loans'], overall['ytd_disb'] = ytd['loans'], ytd['disb']
+
+    years = []
+    for y in (ry - 2, ry - 1, ry):
+        counts, amounts = [0] * 12, [0.0] * 12
+        for l in scope:
+            if l[L_YM] // 100 == y:
+                counts[l[L_YM] % 100 - 1] += 1
+                amounts[l[L_YM] % 100 - 1] += l[L_DISB]
+        n = rm if y == ry else 12
+        years.append({
+            'year': y,
+            'months': [{'label': f"{MONTHS[m]}-{y % 100:02d}",
+                        'loans': fmt_num(counts[m]) if m < n else '', 'disb': fmt_num(amounts[m]) if m < n else ''}
+                       for m in range(12)],
+            'sum_loans': fmt_num(sum(counts)), 'sum_disb': fmt_num(sum(amounts)),
+            'avg_loans': fmt_num(sum(counts) / n), 'avg_disb': fmt_num(sum(amounts) / n),
+        })
+
+    return {'overall': overall, 'enterprise': table('ent_loans', 'ent'), 'education': table('edu_loans', 'edu'),
+            'years': years}
 
 
 def build_report_context(data, region=None, commentary=''):
@@ -251,16 +291,8 @@ def build_report_context(data, region=None, commentary=''):
         'listing': listing,
         'embedded': embedded,
         'offline_js': _offline_script(),
-        # short summary for the email body
-        'summary': [
-            ('Beneficiaries (since inception)', fmt_num(len(s['bens']))),
-            ('Loans (since inception)', fmt_num(s['loans'])),
-            ('Disbursement (since inception)', fmt_pkr(s['disb'])),
-            (f"YTD {ry} Disbursement", fmt_pkr(s['ytd_disb'])),
-            (f"{period} Disbursement", fmt_pkr(s['cur_disb'])),
-            ('Outstanding Portfolio', fmt_pkr(s['os'])),
-            ('Non-Performing Loans (30+ days)', f"{fmt_pkr(s['arrears_amt'])} ({fmt_pct(s['arrears_amt'], s['os'], 2)})"),
-        ],
+        # Excel-style summary tables for the email body
+        'highlights': _email_highlights(scope, group_rows, ry, rm, None if region else data['regions']),
     }
 
 
