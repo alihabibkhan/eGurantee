@@ -28,6 +28,12 @@ def _to_float(value):
     return float(value) if value is not None else 0.0
 
 
+def _normalize_branch_code(code):
+    """Strip leading zeros so '017' and '17' match. Keep '0' if the value was all zeros."""
+    code = (code or '').strip()
+    return code.lstrip('0') or '0'
+
+
 def _get_branch_regions():
     query = """
         SELECT
@@ -36,7 +42,8 @@ def _get_branch_regions():
             ncd.national_council_distribution_name AS region
         FROM tbl_branches b
         LEFT JOIN tbl_national_council_distribution ncd
-            ON b.national_council_distribution = ncd.national_council_distribution_id
+            ON b.national_council_distribution = ncd.national_council_distribution_id and ncd.status = '1'
+        WHERE b.live_branch = 1
     """
     return fetch_records(query)
 
@@ -101,7 +108,7 @@ def build_kft_dashboard_data():
 
     # Branch lookup: tbl_branches is the source of truth for branch -> region (National Council Distribution)
     known_branches = {
-        (row['branch_code'] or '').strip(): {
+        _normalize_branch_code(row['branch_code'] or '').strip(): {
             'name': (row['branch_name'] or '').strip() or (row['branch_code'] or '').strip(),
             'region': row['region'] or UNASSIGNED_REGION,
         }
