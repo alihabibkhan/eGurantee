@@ -157,3 +157,4 @@ def delete_bank_entry(bank_entry_id):
     except Exception as e:
         print('Delete bank entry exception:', str(e))
         return jsonify({'error': 'Server error'}), 500
+        return jsonify({'error': 'Server error'}), 500

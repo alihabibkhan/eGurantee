@@ -495,10 +495,29 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
-                const result = await response.json();
+                const result = await response.json().catch(() => ({}));
                 if (response.ok) {
-                    alert(result.message);
-                    location.reload(); // Refresh to get updated data
+                    // Update local data and re-render without reloading
+                    const savedFields = {
+                        bank_id: data.bank_id,
+                        date_posted: data.date_posted,
+                        general_ledger: data.general_ledger,
+                        narration: data.narration,
+                        inst_no: data.inst_no,
+                        withdrawal: parseFloat(data.withdrawal) || 0,
+                        deposit: parseFloat(data.deposit) || 0,
+                        balance: parseFloat(data.balance) || 0,
+                        status: data.status
+                    };
+                    if (isNew) {
+                        bankEntriesData.unshift({ bank_entry_id: result.bank_entry_id, ...savedFields });
+                    } else {
+                        const record = bankEntriesData.find(entry => entry.bank_entry_id == id);
+                        if (record) Object.assign(record, savedFields);
+                    }
+                    editRowId = null;
+                    applyFilters();
+                    alert(result.message || 'Bank entry saved successfully');
                 } else {
                     alert(result.error || 'Error saving entry');
                     resetButton(button, icon, spinner);
@@ -508,7 +527,6 @@
                 alert('Error saving entry');
                 resetButton(button, icon, spinner);
             }
-            editRowId = null;
         }
 
         // Delete row
@@ -528,10 +546,15 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
                 });
-                const result = await response.json();
+                const result = await response.json().catch(() => ({}));
                 if (response.ok) {
-                    alert(result.message);
-                    location.reload();
+                    // Remove the deleted entry from local data and re-render without reloading
+                    const allIdx = bankEntriesData.findIndex(entry => entry.bank_entry_id == id);
+                    if (allIdx !== -1) bankEntriesData.splice(allIdx, 1);
+                    filteredData = filteredData.filter(entry => entry.bank_entry_id != id);
+                    if (editRowId == id) editRowId = null;
+                    renderTable(filteredData, 'bank-entries-table-body');
+                    alert(result.message || 'Bank entry deleted successfully');
                 } else {
                     alert(result.error || 'Error deleting entry');
                     resetButton(button, icon, spinner);
