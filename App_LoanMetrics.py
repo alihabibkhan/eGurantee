@@ -58,16 +58,16 @@ def add_edit_loan_metric(loan_metric_id=None):
             current_timestamp = str(datetime.now())
 
             if loan_metric_id:
-                update_query = f"""
-                    UPDATE tbl_loan_metrics 
-                    SET product_id = '{product_id}', occupation_id = '{occupation_id}', 
-                        experience_id = '{experience_id}', branch_id = '{branch_id}', 
-                        global_loan_ceiling = '{global_loan_ceiling}', repeat_increment = '{repeat_increment}', interest_rate = '{interest_rate}', required_paid_off = '{required_paid_off}', 
-                        is_active = '{is_active}', status = '{str(1)}', 
-                        modified_by = '{current_user_id}', modified_date = '{current_timestamp}'
-                    WHERE loan_metric_id = '{loan_metric_id}'
+                update_query = """
+                    UPDATE tbl_loan_metrics
+                    SET product_id = %s, occupation_id = %s, experience_id = %s, branch_id = %s,
+                        global_loan_ceiling = %s, repeat_increment = %s, interest_rate = %s, required_paid_off = %s,
+                        is_active = %s, status = '1', modified_by = %s, modified_date = %s
+                    WHERE loan_metric_id = %s
                 """
-                execute_command(update_query)
+                execute_command(update_query, params=(
+                    product_id, occupation_id, experience_id, branch_id, global_loan_ceiling, repeat_increment,
+                    interest_rate, required_paid_off, is_active, current_user_id, current_timestamp, loan_metric_id))
                 flash('Loan metric updated successfully.', 'success')
             else:
                 insert_query = f"""
@@ -75,13 +75,11 @@ def add_edit_loan_metric(loan_metric_id=None):
                         product_id, occupation_id, experience_id, branch_id, 
                         global_loan_ceiling, repeat_increment, required_paid_off, interest_rate, is_active, status, 
                         created_by, created_date, modified_by, modified_date
-                    ) VALUES (
-                        '{product_id}', '{occupation_id}', '{experience_id}', '{branch_id}', 
-                        '{global_loan_ceiling}', '{repeat_increment}', '{required_paid_off}', '{interest_rate}', '{is_active}', '{str(1)}', 
-                        '{current_user_id}', '{current_timestamp}', '{current_user_id}', '{current_timestamp}'
-                    )
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, '1', %s, %s, %s, %s)
                 """
-                execute_command(insert_query)
+                execute_command(insert_query, params=(
+                    product_id, occupation_id, experience_id, branch_id, global_loan_ceiling, repeat_increment,
+                    required_paid_off, interest_rate, is_active, current_user_id, current_timestamp, current_user_id, current_timestamp))
                 flash('Loan metric added successfully.', 'success')
 
             return redirect(url_for('manage_loan_metrics') + "#loan-metrics")
@@ -110,12 +108,12 @@ def delete_loan_metric():
 
         loan_metric_id = request.args.get('loan_metric_id')
         if loan_metric_id:
-            delete_query = f"""
-                UPDATE tbl_loan_metrics 
+            delete_query = """
+                UPDATE tbl_loan_metrics
                 SET is_active = '0', status = '0'
-                WHERE loan_metric_id = '{loan_metric_id}'
+                WHERE loan_metric_id = %s
             """
-            execute_command(delete_query)
+            execute_command(delete_query, params=(loan_metric_id,))
             flash('Loan metric deleted successfully.', 'success')
         else:
             flash('Invalid loan metric ID.', 'danger')

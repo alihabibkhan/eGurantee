@@ -6,79 +6,17 @@
     <title>Manage User Permissions</title>
     {% include 'head.html' %}
     <style>
-        .table-responsive { margin-bottom: 1rem; }
-        .pagination .page-item.active .page-link {
-            background-color: #0d6efd;
-            border-color: #0d6efd;
-        }
-        .action-icons a, .action-icons button {
-            margin-right: 0.5rem;
-            border: none;
-            background: none;
-            cursor: pointer;
-        }
-        .add-button { margin-bottom: 1rem; }
-        .form-group {
-            margin-bottom: 1rem;
-        }
-        .user-select-container {
-            border: 1px solid #ced4da;
-            border-radius: 0.25rem;
-            padding: 0.5rem;
-            max-height: 250px;
-            overflow-y: auto;
-            background-color: #f8f9fa;
-        }
-        .user-checkbox-item {
-            padding: 0.5rem;
-            cursor: pointer;
-            border-bottom: 1px solid #e9ecef;
-            transition: background-color 0.2s;
-        }
-        .user-checkbox-item:hover {
-            background-color: #e9ecef;
-        }
-        .user-checkbox-item:last-child {
-            border-bottom: none;
-        }
-        .user-checkbox-item input {
-            margin-right: 0.75rem;
-        }
-        .select-all-container {
-            padding-bottom: 0.75rem;
-            margin-bottom: 0.75rem;
-            border-bottom: 2px solid #dee2e6;
-            font-weight: bold;
-            background-color: white;
-            position: sticky;
-            top: 0;
-            z-index: 1;
-        }
-        .bulk-actions {
-            margin-bottom: 1rem;
-            padding: 0.75rem;
-            background-color: #f8f9fa;
-            border-radius: 0.25rem;
-        }
-        .checkbox-column {
-            width: 40px;
-            text-align: center;
-        }
-        .role-badge {
-            margin-left: 0.5rem;
-        }
-        .selected-role-info {
-            margin-top: 0.5rem;
-            padding: 0.5rem;
-            background-color: #e7f3ff;
-            border-left: 3px solid #0d6efd;
-            font-size: 0.875rem;
-        }
-        .user-stats {
-            font-size: 0.875rem;
-            color: #6c757d;
-            margin-top: 0.5rem;
-        }
+        .user-select-container { border: 1px solid var(--line); border-radius: 8px; max-height: 260px; overflow-y: auto; background: var(--surface); }
+        .user-checkbox-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; cursor: pointer; border-bottom: 1px solid var(--line-2); margin: 0; flex-wrap: wrap; }
+        .user-checkbox-item:last-child { border-bottom: none; }
+        .user-checkbox-item:hover { background: var(--hover); }
+        .user-checkbox-item input { margin: 0; accent-color: var(--green-600); }
+        .user-select-empty { padding: 14px 10px; color: var(--ink-3); font-size: 12.5px; }
+        .role-badge { margin-left: auto; }
+        .selected-role-info { margin-top: 8px; padding: 8px 10px; background: var(--green-50); border-left: 3px solid var(--green-600); font-size: 12.5px; border-radius: 4px; }
+        #user-permissions-table th.chk, #user-permissions-table td.chk { width: 36px; }
+        #user-permissions-table input[type=checkbox] { accent-color: var(--green-600); }
+        #user-permissions-table code { color: var(--ink-2); font-size: 12px; }
     </style>
 </head>
 <body>
@@ -86,55 +24,41 @@
     {% import 'breadcrumbs.html' as brd %}
     {{ brd.render_Breadcrumbs([{"url":"", "label":"Manage User Permissions"}]) }}
 
-    <div class="mt-3">
+    <div class="container mt-2">
         {% include 'message_box.html' %}
-    </div>
 
-    <div class="container py-4">
-        <h1 class="mb-4">Manage User Permissions</h1>
+        <div class="kf-page-head">
+            <h1>User permissions</h1>
+            <p>Grant pages and features to volunteers, and revoke them. Changes reach signed-in users within about 5 minutes.</p>
+        </div>
 
-        <!-- Add New Permission Form -->
-        <div class="card mb-4">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">Assign New Permission to Users</h5>
-            </div>
-            <div class="card-body">
-                <form method="POST" action="/add-user-permission" id="assign-permission-form">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label class="form-label fw-bold">Select Role</label>
-                                <select name="role_id" id="role-select" class="form-control form-select" required>
-                                    <option value="">-- Select Role --</option>
-                                    <option value="1">Reviewer</option>
-                                    <option value="2">Approver</option>
-                                    <option value="3">Executive Approver</option>
-                                    <option value="5">Executive</option>
-                                    <option value="4">Administrator</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="col-md-5">
-                            <div class="form-group">
-                                <label class="form-label fw-bold">
-                                    Users with Selected Role
-                                    <span id="selected-users-count" class="badge bg-secondary">0</span>
-                                </label>
-                                <div id="user-select-container" class="user-select-container">
-                                    <div id="user-list">
+        <!-- Assign New Permission Form -->
+        <form method="POST" action="/add-user-permission" id="assign-permission-form" class="kf-card mb-4">
+            <div class="kf-sec">Assign a permission <span class="sub">Choose a role to select its users, adjust the selection, then pick the permission.</span></div>
+            <div class="kf-body">
+                <div class="kf-grid three">
+                    <div class="kf-field">
+                        <label for="role-select">Role <span class="req">*</span></label>
+                        <select name="role_id" id="role-select" class="form-select" required>
+                            <option value="">Select role...</option>
+                            <option value="1">Reviewer</option>
+                            <option value="2">Approver</option>
+                            <option value="3">Executive Approver</option>
+                            <option value="5">Executive</option>
+                            <option value="4">Administrator</option>
+                        </select>
+                    </div>
+                    <div class="kf-field">
+                        <label>Users with this role <span id="selected-users-count" class="kft-pill neutral ms-1">0</span></label>
+                        <div id="user-select-container" class="user-select-container">
+                            <div id="user-list">
                                         {% for user in result.all_users %}
                                             <label class="user-checkbox-item" data-role-id="{{ user.rights }}">
                                                 <input type="checkbox" name="user_ids" value="{{ user.user_id }}" class="user-checkbox">
                                                 <strong>{{ user.name }}</strong>
                                                 <small class="text-muted">({{ user.email }})</small>
-                                                <span class="badge role-badge
-                                                    {% if user.rights == 1 %}bg-info
-                                                    {% elif user.rights == 2 %}bg-success
-                                                    {% elif user.rights == 3 %}bg-warning
-                                                    {% elif user.rights == 5 %}bg-primary
-                                                    {% elif user.rights == 4 %}bg-danger
-                                                    {% else %}bg-secondary{% endif %}">
+                                                <span class="kft-pill neutral role-badge
+                                                    ">
                                                     {% if user.rights == 1 %}Reviewer
                                                     {% elif user.rights == 2 %}Approver
                                                     {% elif user.rights == 3 %}Executive Approver
@@ -144,81 +68,61 @@
                                                 </span>
                                             </label>
                                         {% endfor %}
-                                    </div>
-                                </div>
-                                <div id="role-selection-info" class="selected-role-info" style="display: none;">
-                                    <i class="fas fa-info-circle"></i>
-                                    <span id="role-info-text"></span>
-                                </div>
                             </div>
+                            <div class="user-select-empty" id="user-select-empty">Choose a role to list its users.</div>
                         </div>
-
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label class="form-label fw-bold">Select Permission</label>
-                                <select name="web_permission_id" class="form-control form-select" required>
-                                    <option value="">-- Select Permission --</option>
-                                    {% for perm in result.all_permissions %}
-                                        <option value="{{ perm.web_permission_id }}">{{ perm.title }} ({{ perm.route }})</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
+                        <div id="role-selection-info" class="selected-role-info" style="display: none;">
+                            <i class="bi bi-info-circle me-1"></i><span id="role-info-text"></span>
                         </div>
                     </div>
-
-                    <div class="row mt-3">
-                        <div class="col-12">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-plus"></i> Assign Permission to Selected Users
-                            </button>
-                            <button type="button" id="clear-selection-btn" class="btn btn-secondary">
-                                <i class="fas fa-times"></i> Clear Selection
-                            </button>
-                        </div>
+                    <div class="kf-field">
+                        <label for="web_permission_id">Permission <span class="req">*</span></label>
+                        <select name="web_permission_id" id="web_permission_id" class="form-select" required>
+                            <option value="">Select permission...</option>
+                            {% for perm in result.all_permissions %}
+                                <option value="{{ perm.web_permission_id }}">{{ perm.title }} ({{ perm.route }})</option>
+                            {% endfor %}
+                        </select>
                     </div>
-                </form>
+                </div>
             </div>
-        </div>
+            <div class="kf-foot">
+                <button type="button" id="clear-selection-btn" class="btn btn-secondary">Clear selection</button>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Assign to selected users</button>
+            </div>
+        </form>
 
         <!-- Existing User Permissions List -->
-        <div class="card">
-            <div class="card-header bg-secondary text-white">
-                <h5 class="mb-0">Assigned User Permissions</h5>
-            </div>
-            <div class="card-body">
-                <div class="bulk-actions">
-                    <button id="revoke-selected-btn" class="btn btn-danger btn-sm" disabled>
-                        <i class="fas fa-trash"></i> Revoke Selected (<span id="selected-count">0</span>)
-                    </button>
-                    <button id="select-all-permissions" class="btn btn-secondary btn-sm">
-                        <i class="fas fa-check-square"></i> Select All
-                    </button>
-                    <button id="deselect-all-permissions" class="btn btn-secondary btn-sm">
-                        <i class="fas fa-square"></i> Deselect All
-                    </button>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover text-nowrap">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="checkbox-column">
-                                    <input type="checkbox" id="select-all-checkbox">
-                                </th>
-                                <th>User</th>
-                                <th>Permission Title</th>
-                                <th>Route</th>
-                                <th>Permission Key</th>
-                                <th>Granted Date</th>
-                            </tr>
-                        </thead>
-                        <tbody id="user-permissions-table-body"></tbody>
-                    </table>
-                </div>
-                <nav aria-label="User permissions pagination">
-                    <ul class="pagination justify-content-center" id="user-permissions-pagination"></ul>
-                </nav>
-            </div>
-        </div>
+        <button type="button" id="revoke-selected-btn" class="btn btn-danger" data-grid-action="user-permissions-table" disabled>
+            <i class="bi bi-x-circle me-1"></i>Revoke selected (<span id="selected-count">0</span>)
+        </button>
+        <table id="user-permissions-table" data-grid="user-permissions" data-grid-title="Assigned permissions" data-grid-export="User_Permissions"
+               data-grid-search="Search user, permission or route" data-grid-sort="1:asc" data-grid-empty="No user permissions assigned yet">
+            <thead>
+                <tr>
+                    <th class="chk" data-sort="false" data-export="false" data-hide="false"><input type="checkbox" id="select-all-checkbox" title="Select all on this page" aria-label="Select all on this page"></th>
+                    <th>User</th>
+                    <th data-hidden>Email</th>
+                    <th data-filter data-filter-label="permissions">Permission</th>
+                    <th>Route</th>
+                    <th data-hidden>Permission key</th>
+                    <th data-type="date">Granted date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for up in result.user_permissions %}
+                <tr>
+                    <td class="chk"><input type="checkbox" class="permission-checkbox" value="{{ up.user_permission_id }}" aria-label="Select"></td>
+                    <td class="strong">{{ up.name or '' }}</td>
+                    <td>{{ up.email or '' }}</td>
+                    <td>{{ up.title or '' }}</td>
+                    <td>{{ up.route or '' }}</td>
+                    <td><code>{{ up.permission_key or '' }}</code></td>
+                    <td data-order="{{ up.granted_date or '' }}">{{ up.granted_date|format_date if up.granted_date else '' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
     <!-- Bulk Revoke Form -->
@@ -227,18 +131,6 @@
     </form>
 
     <script>
-        const userPermissionsData = {{ result.user_permissions | tojson }};
-        const itemsPerPage = 10;
-        let currentPage = 1;
-        let filteredData = userPermissionsData;
-        let selectedPermissions = new Set();
-
-        function formatDate(dateStr) {
-            if (!dateStr) return 'N/A';
-            const date = new Date(dateStr);
-            return isNaN(date) ? dateStr : date.toLocaleDateString();
-        }
-
         // Role selection handler - auto check users with selected role
         document.getElementById('role-select').addEventListener('change', function() {
             const selectedRole = this.value;
@@ -333,218 +225,55 @@
             }
         });
 
-        function renderTable(data, tableBodyId, page) {
-            const tbody = document.getElementById(tableBodyId);
-            tbody.innerHTML = '';
-            const start = (page - 1) * itemsPerPage;
-            const end = start + itemsPerPage;
-            const pageData = data.slice(start, end);
 
-            if (pageData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No user permissions assigned yet</td></tr>';
-                return;
-            }
-
-            pageData.forEach(record => {
-                const isChecked = selectedPermissions.has(record.user_permission_id);
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td class="checkbox-column">
-                        <input type="checkbox" class="permission-checkbox" value="${record.user_permission_id}" ${isChecked ? 'checked' : ''}>
-                    </td>
-                    <td>${record.name || 'N/A'} <small class="text-muted">(${record.email})</small></td>
-                    <td>${record.title || 'N/A'}</td>
-                    <td>${record.route || 'N/A'}</td>
-                    <td><code>${record.permission_key || 'N/A'}</code></td>
-                    <td>${formatDate(record.granted_date)}</td>
-                `;
-                tbody.appendChild(row);
-            });
-
-            // Add event listeners to newly created checkboxes
-            document.querySelectorAll('.permission-checkbox').forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    const permissionId = parseInt(this.value);
-                    if (this.checked) {
-                        selectedPermissions.add(permissionId);
-                    } else {
-                        selectedPermissions.delete(permissionId);
-                    }
-                    updateRevokeButtonState();
-                    updateSelectAllCheckbox();
-                });
-            });
-        }
+        // ---- assigned list: selection survives paging, sorting and filtering ----
+        // (captured before the grid starts, because rows on other pages are not in the document)
+        const allPermissionBoxes = [...document.querySelectorAll('#user-permissions-table .permission-checkbox')];
+        const selectedIds = () => allPermissionBoxes.filter((c) => c.checked).map((c) => c.value);
 
         function updateRevokeButtonState() {
-            const revokeBtn = document.getElementById('revoke-selected-btn');
-            const selectedCountSpan = document.getElementById('selected-count');
-            revokeBtn.disabled = selectedPermissions.size === 0;
-            selectedCountSpan.textContent = selectedPermissions.size;
+            const n = selectedIds().length;
+            document.getElementById('revoke-selected-btn').disabled = n === 0;
+            document.getElementById('selected-count').textContent = n;
         }
 
-        function updateSelectAllCheckbox() {
-            const selectAllCheckbox = document.getElementById('select-all-checkbox');
-            const totalCheckboxes = document.querySelectorAll('.permission-checkbox').length;
-            const checkedCheckboxes = document.querySelectorAll('.permission-checkbox:checked').length;
-
-            if (totalCheckboxes === 0) {
-                selectAllCheckbox.checked = false;
-                selectAllCheckbox.indeterminate = false;
-            } else if (checkedCheckboxes === totalCheckboxes) {
-                selectAllCheckbox.checked = true;
-                selectAllCheckbox.indeterminate = false;
-            } else if (checkedCheckboxes > 0) {
-                selectAllCheckbox.checked = false;
-                selectAllCheckbox.indeterminate = true;
-            } else {
-                selectAllCheckbox.checked = false;
-                selectAllCheckbox.indeterminate = false;
+        document.addEventListener('change', function (e) {
+            if (e.target.classList.contains('permission-checkbox')) updateRevokeButtonState();
+            if (e.target.id === 'select-all-checkbox') {
+                // only the rows on the current page
+                document.querySelectorAll('#user-permissions-table tbody .permission-checkbox').forEach((c) => { c.checked = e.target.checked; });
+                updateRevokeButtonState();
             }
-        }
-
-        // Select/Deselect all permissions
-        document.getElementById('select-all-checkbox').addEventListener('change', function() {
-            const allCheckboxes = document.querySelectorAll('.permission-checkbox');
-            allCheckboxes.forEach(checkbox => {
-                checkbox.checked = this.checked;
-                const permissionId = parseInt(checkbox.value);
-                if (this.checked) {
-                    selectedPermissions.add(permissionId);
-                } else {
-                    selectedPermissions.delete(permissionId);
-                }
-            });
-            updateRevokeButtonState();
         });
 
-        document.getElementById('select-all-permissions').addEventListener('click', function() {
-            const allCheckboxes = document.querySelectorAll('.permission-checkbox');
-            allCheckboxes.forEach(checkbox => {
-                checkbox.checked = true;
-                selectedPermissions.add(parseInt(checkbox.value));
-            });
-            updateRevokeButtonState();
-            updateSelectAllCheckbox();
-        });
-
-        document.getElementById('deselect-all-permissions').addEventListener('click', function() {
-            const allCheckboxes = document.querySelectorAll('.permission-checkbox');
-            allCheckboxes.forEach(checkbox => {
-                checkbox.checked = false;
-                selectedPermissions.delete(parseInt(checkbox.value));
-            });
-            updateRevokeButtonState();
-            updateSelectAllCheckbox();
-        });
-
-        // Revoke selected permissions
-        document.getElementById('revoke-selected-btn').addEventListener('click', function() {
-            if (selectedPermissions.size === 0) {
-                alert('Please select at least one permission to revoke');
-                return;
-            }
-
-            if (confirm(`Are you sure you want to revoke ${selectedPermissions.size} permission(s)?`)) {
-                const form = document.getElementById('bulk-revoke-form');
+        document.getElementById('revoke-selected-btn').addEventListener('click', function () {
+            const ids = selectedIds();
+            if (!ids.length) return;
+            if (confirm(`Are you sure you want to revoke ${ids.length} permission(s)?`)) {
                 const container = document.getElementById('selected-ids-container');
                 container.innerHTML = '';
-
-                selectedPermissions.forEach(permissionId => {
+                ids.forEach((id) => {
                     const input = document.createElement('input');
                     input.type = 'hidden';
                     input.name = 'user_permission_ids';
-                    input.value = permissionId;
+                    input.value = id;
                     container.appendChild(input);
                 });
-
-                form.submit();
+                document.getElementById('bulk-revoke-form').submit();
             }
         });
 
-        // Render pagination
-        function renderPagination(data, paginationId, currentPage) {
-            const pagination = document.getElementById(paginationId);
-            pagination.innerHTML = '';
-            const totalPages = Math.ceil(data.length / itemsPerPage);
-            if (totalPages <= 1) return;
-
-            const prevLi = document.createElement('li');
-            prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
-            prevLi.innerHTML = `<a class="page-link" href="#" ${currentPage === 1 ? '' : `onclick="changePage(${currentPage - 1})"`}>Previous</a>`;
-            pagination.appendChild(prevLi);
-
-            const maxVisiblePages = 5;
-            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-            if (endPage - startPage + 1 < maxVisiblePages) {
-                startPage = Math.max(1, endPage - maxVisiblePages + 1);
-            }
-
-            if (startPage > 1) {
-                const firstLi = document.createElement('li');
-                firstLi.className = 'page-item';
-                firstLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(1)">1</a>`;
-                pagination.appendChild(firstLi);
-
-                if (startPage > 2) {
-                    const ellipsisLi = document.createElement('li');
-                    ellipsisLi.className = 'page-item disabled';
-                    ellipsisLi.innerHTML = '<span class="page-link">...</span>';
-                    pagination.appendChild(ellipsisLi);
-                }
-            }
-
-            for (let i = startPage; i <= endPage; i++) {
-                const pageLi = document.createElement('li');
-                pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
-                pageLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i})">${i}</a>`;
-                pagination.appendChild(pageLi);
-            }
-
-            if (endPage < totalPages) {
-                if (endPage < totalPages - 1) {
-                    const ellipsisLi = document.createElement('li');
-                    ellipsisLi.className = 'page-item disabled';
-                    ellipsisLi.innerHTML = '<span class="page-link">...</span>';
-                    pagination.appendChild(ellipsisLi);
-                }
-
-                const lastLi = document.createElement('li');
-                lastLi.className = 'page-item';
-                lastLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${totalPages})">${totalPages}</a>`;
-                pagination.appendChild(lastLi);
-            }
-
-            const nextLi = document.createElement('li');
-            nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
-            nextLi.innerHTML = `<a class="page-link" href="#" ${currentPage === totalPages ? '' : `onclick="changePage(${currentPage + 1})"`}>Next</a>`;
-            pagination.appendChild(nextLi);
+        // Users are listed only after a role is chosen
+        function syncUserListEmpty() {
+            const anyVisible = [...document.querySelectorAll('#user-list .user-checkbox-item')].some((el) => el.style.display !== 'none');
+            document.getElementById('user-select-empty').style.display = anyVisible ? 'none' : 'block';
         }
-
-        // Change page
-        function changePage(page) {
-            currentPage = page;
-            renderTable(filteredData, 'user-permissions-table-body', currentPage);
-            renderPagination(filteredData, 'user-permissions-pagination', currentPage);
-            updateSelectAllCheckbox();
-        }
-
-        // Initial render - hide all users initially
-        function initializePage() {
-            // Initially hide all users until role is selected
-            const userCheckboxes = document.querySelectorAll('#user-list .user-checkbox');
-            userCheckboxes.forEach(checkbox => {
-                const userItem = checkbox.closest('.user-checkbox-item');
-                userItem.style.display = 'none';
-                checkbox.disabled = true;
-            });
-
-            renderTable(filteredData, 'user-permissions-table-body', currentPage);
-            renderPagination(filteredData, 'user-permissions-pagination', currentPage);
-        }
-
-        initializePage();
+        document.getElementById('role-select').addEventListener('change', syncUserListEmpty);
+        document.querySelectorAll('#user-list .user-checkbox').forEach((checkbox) => {
+            checkbox.closest('.user-checkbox-item').style.display = 'none';
+            checkbox.disabled = true;
+        });
+        syncUserListEmpty();
     </script>
 </body>
 </html>

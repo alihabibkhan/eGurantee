@@ -8,8 +8,6 @@ import traceback
 import os
 
 POSTGRES_CONNECTION = os.getenv('POSTGRES_CONNECTION')
-
-
 # ---------------------------------------------------------------------------
 # Connection pool
 # ---------------------------------------------------------------------------
@@ -308,7 +306,8 @@ def _fetch_records_once(query: str, is_print: bool, params: Optional[tuple]):
 #                 print(f"Connection closed at {time.strftime('%Y-%m-%d %H:%M:%S')}")
 
 
-def execute_command(query: str, is_print: bool = False, return_id: bool = True) -> Optional[int]:
+def execute_command(query: str, is_print: bool = False, return_id: bool = True, params: Optional[tuple] = None) -> Optional[int]:
+    # Pass user input through params (%s placeholders) so it is never pasted into the SQL text.
     connection = None
     cursor = None
     last_insert_id = None
@@ -323,7 +322,7 @@ def execute_command(query: str, is_print: bool = False, return_id: bool = True) 
         connection = get_connection()
         cursor = connection.cursor()
 
-        cursor.execute(query)
+        cursor.execute(query, params)
         connection.commit()
 
         if query.strip().lower().startswith('insert') and return_id is True:

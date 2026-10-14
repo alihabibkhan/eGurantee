@@ -30,28 +30,22 @@ def add_edit_kft_distribution(kft_distribution_id=None):
             current_user_id = get_current_user_id()
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            kft_distribution_name_escaped = escape_sql_string(kft_distribution_name)
-
             if kft_distribution_id:
-                query = f"""
+                query = """
                     UPDATE tbl_kft_distribution 
-                    SET kft_distribution_name = {kft_distribution_name_escaped},
-                        is_active = {is_active},
-                        status = {status},
-                        modified_by = {current_user_id},
-                        modified_date = '{current_time}'
-                    WHERE kft_distribution_id = {kft_distribution_id}
+                    SET kft_distribution_name = %s, is_active = %s, status = %s,
+                        modified_by = %s, modified_date = %s
+                    WHERE kft_distribution_id = %s
                 """
-                execute_command(query)
+                execute_command(query, params=(kft_distribution_name, is_active, status, current_user_id, current_time, kft_distribution_id))
             else:
-                query = f"""
+                query = """
                     INSERT INTO tbl_kft_distribution 
                     (kft_distribution_name, is_active, status, created_by, created_date, modified_by, modified_date)
-                    VALUES ({kft_distribution_name_escaped}, {is_active}, {status}, 
-                            {current_user_id}, '{current_time}', {current_user_id}, '{current_time}')
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
                     RETURNING kft_distribution_id
                 """
-                execute_command(query)
+                execute_command(query, params=(kft_distribution_name, is_active, status, current_user_id, current_time, current_user_id, current_time))
             return redirect(url_for('manage_branches') + "#kft-distributions")
 
         return render_template('add_edit_kft_distribution.html',

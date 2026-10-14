@@ -4,19 +4,7 @@
     {% include 'head.html' %}
     <title>Manage Branches</title>
     <style>
-        .table-responsive {
-            margin-bottom: 1rem;
-        }
-        .card {
-            margin-top: 1rem;
-        }
-        .action-icons a {
-            margin-right: 8px;
-            cursor: pointer;
-        }
-        .add-branch-btn {
-            margin-bottom: 1rem;
-        }
+        #branchDetailModal .table th { width: 40%; color: var(--ink-3); font-weight: 500; }
     </style>
 </head>
 <body>
@@ -24,226 +12,104 @@
     {% import 'breadcrumbs.html' as brd %}
     {{ brd.render_Breadcrumbs([{"url": "", "label": "Manage Branches"}]) }}
 
-    <div class="container mt-4">
+    {# One grid per lookup list (same columns for each) #}
+    {% macro lookup_tab(pane_id, title, add_url, add_label, rows, name_key, id_key, edit_endpoint, delete_endpoint, active) %}
+        <div class="tab-pane fade{{ ' show active' if active }}" id="{{ pane_id }}" role="tabpanel" aria-labelledby="{{ pane_id }}-tab">
+            <a href="{{ add_url }}" class="btn btn-primary" data-grid-action="{{ pane_id }}-table"><i class="bi bi-plus-lg me-1"></i>{{ add_label }}</a>
+            <table id="{{ pane_id }}-table" data-grid="{{ pane_id }}" data-grid-title="{{ title }}" data-grid-export="{{ title|replace(' ', '_') }}"
+                   data-grid-search="Search {{ title|lower }}" data-grid-sort="0:asc">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th data-filter data-filter-label="statuses" data-filter-options="Active|Inactive">Status</th>
+                        <th>Created by</th>
+                        <th data-type="date">Created date</th>
+                        <th class="act">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr>
+                        <td class="strong">{{ row[name_key] }}</td>
+                        <td>{% if row.is_active == 1 %}<span class="kft-pill ok">Active</span>{% else %}<span class="kft-pill neutral">Inactive</span>{% endif %}</td>
+                        <td>{{ row.created_by or '' }}</td>
+                        <td data-order="{{ row.created_date or '' }}">{{ row.created_date|format_date }}</td>
+                        <td>
+                            <a href="{{ url_for(edit_endpoint, **{id_key: row[id_key]}) }}" class="icon-btn" title="Edit"><i class="bi bi-pencil"></i></a>
+                            <a href="{{ url_for(delete_endpoint, **{id_key: row[id_key]}) }}" class="icon-btn bad" title="Delete" onclick="return confirm('Are you sure?')"><i class="bi bi-trash"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endmacro %}
+
+    <div class="container mt-2">
         {% include 'message_box.html' %}
 
-        <div class="card">
-            <div class="card-header">
-                <h2>Manage Branches</h2>
+        <div class="kf-page-head">
+            <h1>Manage branches</h1>
+            <p>Partner bank branches and the groupings used to assign them to councils, distributions and volunteers.</p>
+        </div>
+
+        <ul class="nav kft-tabs" id="branchTabs" role="tablist">
+            <li class="nav-item"><a class="nav-link active" id="branches-tab" data-bs-toggle="tab" data-bs-target="#branches" href="#branches" role="tab" aria-controls="branches" aria-selected="true">Branches <span class="c">{{ result.get_all_branches_info|length }}</span></a></li>
+            <li class="nav-item"><a class="nav-link" id="bank-distributions-tab" data-bs-toggle="tab" href="#bank-distributions" data-bs-target="#bank-distributions" role="tab" aria-controls="bank-distributions" aria-selected="false">Bank distributions <span class="c">{{ result.get_all_bank_distributions|length }}</span></a></li>
+            <li class="nav-item"><a class="nav-link" id="national-council-distributions-tab" data-bs-toggle="tab" href="#national-council-distributions" data-bs-target="#national-council-distributions" role="tab" aria-controls="national-council-distributions" aria-selected="false">National council distributions <span class="c">{{ result.get_all_national_council_distributions|length }}</span></a></li>
+            <li class="nav-item"><a class="nav-link" id="kft-distributions-tab" data-bs-toggle="tab" href="#kft-distributions" data-bs-target="#kft-distributions" role="tab" aria-controls="kft-distributions" aria-selected="false">KFT distributions <span class="c">{{ result.get_all_kft_distributions|length }}</span></a></li>
+            <li class="nav-item"><a class="nav-link" id="branch-roles-tab" data-bs-toggle="tab" href="#branch-roles" data-bs-target="#branch-roles" role="tab" aria-controls="branch-roles" aria-selected="false">Branch roles <span class="c">{{ result.get_all_branch_roles|length }}</span></a></li>
+        </ul>
+
+        <div class="tab-content" id="branchTabContent">
+            <!-- Branches Tab -->
+            <div class="tab-pane fade show active" id="branches" role="tabpanel" aria-labelledby="branches-tab">
+                <a href="{{ url_for('add_edit_branch') }}" class="btn btn-primary" data-grid-action="branches-table"><i class="bi bi-plus-lg me-1"></i>Add branch</a>
+                <table id="branches-table" data-grid="branches" data-grid-title="Branches" data-grid-export="Branches"
+                       data-grid-search="Search code, name or area" data-grid-sort="0:asc">
+                    <thead>
+                        <tr>
+                            <th>Branch code</th>
+                            <th data-filter data-filter-label="roles">Role</th>
+                            <th>Branch name</th>
+                            <th data-filter data-filter-label="areas">Area</th>
+                            <th data-hidden>Created by</th>
+                            <th data-type="date">Created date</th>
+                            <th class="act">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for branch in result.get_all_branches_info %}
+                        <tr>
+                            <td class="strong">{{ branch.branch_code or '' }}</td>
+                            <td>{{ branch.role or '' }}</td>
+                            <td>{{ branch.branch_name or '' }}</td>
+                            <td>{{ branch.area or '' }}</td>
+                            <td>{{ branch.createdby or '' }}</td>
+                            <td data-order="{{ branch.created_date or '' }}">{{ branch.created_date|format_date }}</td>
+                            <td>
+                                <a href="#" class="icon-btn" title="View" data-bs-toggle="modal" data-bs-target="#branchDetailModal" onclick="showBranchDetails('{{ branch.branch_id }}')"><i class="bi bi-eye"></i></a>
+                                <a href="{{ url_for('add_edit_branch', branch_id=branch.branch_id) }}" class="icon-btn" title="Edit"><i class="bi bi-pencil"></i></a>
+                                <a href="{{ url_for('delete_branch', branch_id=branch.branch_id) }}" class="icon-btn bad" title="Delete" onclick="return confirm('Are you sure?')"><i class="bi bi-trash"></i></a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-            <div class="card-body">
-                <ul class="nav nav-tabs" id="branchTabs" role="tablist">
-                    <li class="nav-item">
-                        <a class="nav-link active" id="branches-tab" data-bs-toggle="tab" data-bs-target="#branches" href="#branches" role="tab" aria-controls="branches" aria-selected="true">Branches</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" id="bank-distributions-tab" data-bs-toggle="tab" href="#bank-distributions" data-bs-target="#bank-distributions" role="tab" aria-controls="bank-distributions" aria-selected="false">Bank Distributions</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" id="national-council-distributions-tab" data-bs-toggle="tab" href="#national-council-distributions" data-bs-target="#national-council-distributions" role="tab" aria-controls="national-council-distributions" aria-selected="false">National Council Distributions</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" id="kft-distributions-tab" data-bs-toggle="tab" href="#kft-distributions" data-bs-target="#kft-distributions" role="tab" aria-controls="kft-distributions" aria-selected="false">KFT Distributions</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" id="branch-roles-tab" data-bs-toggle="tab" href="#branch-roles" data-bs-target="#branch-roles" role="tab" aria-controls="branch-roles" aria-selected="false">Branch Roles</a>
-                    </li>
-                </ul>
 
-                <div class="tab-content" id="branchTabContent">
-                    <!-- Branches Tab -->
-                    <div class="tab-pane fade show active" id="branches" role="tabpanel" aria-labelledby="branches-tab">
-                        <h3 class="mt-3">Branches</h3>
-                        <a href="{{ url_for('add_edit_branch') }}" class="btn btn-primary mb-3">Add Branch</a>
-                        <div class="table-responsive">
-                            <table class="table tbl_records text-nowrap text-center table-responsive table-responsive-sm table-responsive-md table-responsive-lg table-responsive-xl table-responsive-xxl m-auto table-bordered table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Branch Code</th>
-                                        <th>Role</th>
-                                        <th>Branch Name</th>
-                                        <th>Area</th>
-                                        <th>Created By</th>
-                                        <th>Created Date</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for branch in result.get_all_branches_info %}
-                                    <tr>
-                                        <td>{{ branch.branch_code or '' }}</td>
-                                        <td>{{ branch.role or '' }}</td>
-                                        <td>{{ branch.branch_name or '' }}</td>
-                                        <td>{{ branch.area or '' }}</td>
-                                        <td>{{ branch.createdby or '' }}</td>
-                                        <td>{{ branch.created_date|format_date }}</td>
-                                        <td>
-                                            <a href="#" class="text-decoration-none" title="View" data-bs-toggle="modal" data-bs-target="#branchDetailModal" onclick="showBranchDetails('{{ branch.branch_id }}')">
-                                                <i class="bi bi-eye"></i>
-                                            </a>
-                                            <a href="{{ url_for('add_edit_branch', branch_id=branch.branch_id) }}" class="text-decoration-none" title="Edit">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                            <a href="{{ url_for('delete_branch', branch_id=branch.branch_id) }}" class="text-decoration-none" title="Delete" onclick="return confirm('Are you sure?')">
-                                                <i class="bi bi-trash"></i>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Bank Distributions Tab -->
-                    <div class="tab-pane fade" id="bank-distributions" role="tabpanel" aria-labelledby="bank-distributions-tab">
-                        <h3 class="mt-3">Bank Distributions</h3>
-                        <a href="{{ url_for('add_edit_bank_distribution') }}" class="btn btn-primary mb-3">Add Bank Distribution</a>
-                        <div class="table-responsive">
-                            <table class="table tbl_records text-nowrap text-center table-responsive table-responsive-sm table-responsive-md table-responsive-lg table-responsive-xl table-responsive-xxl m-auto table-bordered table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Active</th>
-                                        <th>Created By</th>
-                                        <th>Created Date</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for distribution in result.get_all_bank_distributions %}
-                                    <tr>
-                                        <td>{{ distribution.bank_distribution_name }}</td>
-                                        <td>{{ 'Yes' if distribution.is_active == 1 else 'No' }}</td>
-                                        <td>{{ distribution.created_by }}</td>
-                                        <td>{{ distribution.created_date|format_date }}</td>
-                                        <td>
-                                            <a href="{{ url_for('add_edit_bank_distribution', bank_distribution_id=distribution.bank_distribution_id) }}" class="text-decoration-none" title="Edit">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                            <a href="{{ url_for('delete_bank_distribution', bank_distribution_id=distribution.bank_distribution_id) }}" class="text-decoration-none" title="Delete" onclick="return confirm('Are you sure?')">
-                                                <i class="bi bi-trash"></i>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- National Council Distributions Tab -->
-                    <div class="tab-pane fade" id="national-council-distributions" role="tabpanel" aria-labelledby="national-council-distributions-tab">
-                        <h3 class="mt-3">National Council Distributions</h3>
-                        <a href="{{ url_for('add_edit_national_council_distribution') }}" class="btn btn-primary mb-3">Add National Council Distribution</a>
-                        <div class="table-responsive">
-                            <table class="table tbl_records text-nowrap text-center table-responsive table-responsive-sm table-responsive-md table-responsive-lg table-responsive-xl table-responsive-xxl m-auto table-bordered table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Active</th>
-                                        <th>Created By</th>
-                                        <th>Created Date</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for distribution in result.get_all_national_council_distributions %}
-                                    <tr>
-                                        <td>{{ distribution.national_council_distribution_name }}</td>
-                                        <td>{{ 'Yes' if distribution.is_active == 1 else 'No' }}</td>
-                                        <td>{{ distribution.created_by }}</td>
-                                        <td>{{ distribution.created_date|format_date }}</td>
-                                        <td>
-                                            <a href="{{ url_for('add_edit_national_council_distribution', national_council_distribution_id=distribution.national_council_distribution_id) }}" class="text-decoration-none" title="Edit">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                            <a href="{{ url_for('delete_national_council_distribution', national_council_distribution_id=distribution.national_council_distribution_id) }}" class="text-decoration-none" title="Delete" onclick="return confirm('Are you sure?')">
-                                                <i class="bi bi-trash"></i>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- KFT Distributions Tab -->
-                    <div class="tab-pane fade" id="kft-distributions" role="tabpanel" aria-labelledby="kft-distributions-tab">
-                        <h3 class="mt-3">KFT Distributions</h3>
-                        <a href="{{ url_for('add_edit_kft_distribution') }}" class="btn btn-primary mb-3">Add KFT Distribution</a>
-                        <div class="table-responsive">
-                            <table class="table tbl_records text-nowrap text-center table-responsive table-responsive-sm table-responsive-md table-responsive-lg table-responsive-xl table-responsive-xxl m-auto table-bordered table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Active</th>
-                                        <th>Created By</th>
-                                        <th>Created Date</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for distribution in result.get_all_kft_distributions %}
-                                    <tr>
-                                        <td>{{ distribution.kft_distribution_name }}</td>
-                                        <td>{{ 'Yes' if distribution.is_active == 1 else 'No' }}</td>
-                                        <td>{{ distribution.created_by }}</td>
-                                        <td>{{ distribution.created_date|format_date }}</td>
-                                        <td>
-                                            <a href="{{ url_for('add_edit_kft_distribution', kft_distribution_id=distribution.kft_distribution_id) }}" class="text-decoration-none" title="Edit">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                            <a href="{{ url_for('delete_kft_distribution', kft_distribution_id=distribution.kft_distribution_id) }}" class="text-decoration-none" title="Delete" onclick="return confirm('Are you sure?')">
-                                                <i class="bi bi-trash"></i>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Branch Roles Tab -->
-                    <div class="tab-pane fade" id="branch-roles" role="tabpanel" aria-labelledby="branch-roles-tab">
-                        <h3 class="mt-3">Branch Roles</h3>
-                        <a href="{{ url_for('add_edit_branch_role') }}" class="btn btn-primary mb-3">Add Branch Role</a>
-                        <div class="table-responsive">
-                            <table class="table tbl_records text-nowrap text-center table-responsive table-responsive-sm table-responsive-md table-responsive-lg table-responsive-xl table-responsive-xxl m-auto table-bordered table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Active</th>
-                                        <th>Created By</th>
-                                        <th>Created Date</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for role in result.get_all_branch_roles %}
-                                    <tr>
-                                        <td>{{ role.branch_role_name }}</td>
-                                        <td>{{ 'Yes' if role.is_active == 1 else 'No' }}</td>
-                                        <td>{{ role.created_by }}</td>
-                                        <td>{{ role.created_date|format_date }}</td>
-                                        <td>
-                                            <a href="{{ url_for('add_edit_branch_role', branch_role_id=role.branch_role_id) }}" class="text-decoration-none" title="Edit">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                            <a href="{{ url_for('delete_branch_role', branch_role_id=role.branch_role_id) }}" class="text-decoration-none" title="Delete" onclick="return confirm('Are you sure?')">
-                                                <i class="bi bi-trash"></i>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            {{ lookup_tab('bank-distributions', 'Bank distributions', url_for('add_edit_bank_distribution'), 'Add bank distribution',
+                          result.get_all_bank_distributions, 'bank_distribution_name', 'bank_distribution_id',
+                          'add_edit_bank_distribution', 'delete_bank_distribution', false) }}
+            {{ lookup_tab('national-council-distributions', 'National council distributions', url_for('add_edit_national_council_distribution'), 'Add national council distribution',
+                          result.get_all_national_council_distributions, 'national_council_distribution_name', 'national_council_distribution_id',
+                          'add_edit_national_council_distribution', 'delete_national_council_distribution', false) }}
+            {{ lookup_tab('kft-distributions', 'KFT distributions', url_for('add_edit_kft_distribution'), 'Add KFT distribution',
+                          result.get_all_kft_distributions, 'kft_distribution_name', 'kft_distribution_id',
+                          'add_edit_kft_distribution', 'delete_kft_distribution', false) }}
+            {{ lookup_tab('branch-roles', 'Branch roles', url_for('add_edit_branch_role'), 'Add branch role',
+                          result.get_all_branch_roles, 'branch_role_name', 'branch_role_id',
+                          'add_edit_branch_role', 'delete_branch_role', false) }}
         </div>
     </div>
 
@@ -256,7 +122,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <table class="table table-bordered">
+                    <table class="table table-sm">
                         <tbody id="branch-detail-body"></tbody>
                     </table>
                 </div>
@@ -271,13 +137,6 @@
         // Data from Flask with fallback
         const branchData = {{ result.get_all_branches_info | tojson | safe }} || [];
 
-        // Validate data
-        if (!Array.isArray(branchData)) {
-            console.error('Invalid branch data:', branchData);
-            const tbody = document.querySelector('#branches tbody');
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Error loading data</td></tr>';
-        }
-
         // Format date
         function formatDate(dateStr) {
             if (!dateStr) return 'N/A';
@@ -287,13 +146,11 @@
 
         // Show branch details in modal
         function showBranchDetails(branchId) {
-            // Find the record by branch_id
             const record = branchData.find(r => String(r.branch_id) === String(branchId));
             if (!record) {
                 console.error('Branch not found for ID:', branchId);
                 return;
             }
-
             const tbody = document.getElementById('branch-detail-body');
             tbody.innerHTML = '';
             const fields = [
@@ -312,17 +169,14 @@
                 { key: 'createdby', label: 'Created By' },
                 { key: 'created_date', label: 'Created Date', format: formatDate }
             ];
-
             fields.forEach(field => {
-                if (field.key !== 'branch_id') { // Exclude primary key
-                    const row = document.createElement('tr');
-                    const value = field.format ? field.format(record[field.key]) : (record[field.key] || 'N/A');
-                    row.innerHTML = `
-                        <th>${field.label}</th>
-                        <td>${value}</td>
-                    `;
-                    tbody.appendChild(row);
-                }
+                const row = document.createElement('tr');
+                const th = document.createElement('th');
+                const td = document.createElement('td');
+                th.textContent = field.label;
+                td.textContent = field.format ? field.format(record[field.key]) : (record[field.key] || 'N/A');
+                row.append(th, td);
+                tbody.appendChild(row);
             });
         }
 

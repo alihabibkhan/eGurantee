@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exception Report</title>
+    {% include 'head.html' %}
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        .ex-range { display: flex; gap: 6px; }
+        .ex-range .form-control { min-width: 0; }
+        .ex-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+        .ex-seg button { border: 0; background: transparent; color: var(--ink-2); font-size: 13px; padding: 7px 12px; white-space: nowrap; }
+        .ex-seg button + button { border-left: 1px solid var(--line); }
+        .ex-seg button.on { background: var(--c1); color: #fff; font-weight: 600; }
+        [data-theme="dark"] .ex-seg button.on { color: #0E1411; }
+        .ex-statusbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+        .ex-statusbar .form-check { margin: 0; font-size: 13px; color: var(--ink-2); }
+
+        .ex-kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+        @media (max-width: 1100px) { .ex-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+        @media (max-width: 640px) { .ex-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        .ex-kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow-1); position: relative; overflow: hidden; min-width: 0; }
+        .ex-kpi::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent, var(--c1)); }
+        .ex-kpi .lbl { font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; color: var(--ink-3); }
+        .ex-kpi .val { font-size: 24px; font-weight: 700; color: var(--ink); margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
+        .ex-kpi .sub { font-size: 12px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ex-kpi .sub b { color: var(--ink-2); font-weight: 600; }
+
+        .ex-charts { display: grid; grid-template-columns: 1.6fr 1fr; gap: 12px; margin-bottom: 12px; }
+        .ex-charts.two { grid-template-columns: 1fr 1fr; margin-bottom: 16px; }
+        @media (max-width: 900px) { .ex-charts, .ex-charts.two { grid-template-columns: 1fr; } }
+        .ex-panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow-1); padding: 14px 16px; min-width: 0; }
+        .ex-panel h3 { font-size: 14px; font-weight: 600; margin: 0 0 2px; color: var(--ink); }
+        .ex-panel .hint { font-size: 12px; color: var(--ink-3); margin-bottom: 10px; }
+        .ex-chart { position: relative; height: 240px; }
+        .ex-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--ink-3); font-size: 13px; }
+
+        .ex-note { display: block; max-width: 280px; overflow: hidden; text-overflow: ellipsis; color: var(--ink-2); }
+        .ex-dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 18px; margin: 0; }
+        .ex-dl dt { font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; color: var(--ink-3); }
+        .ex-dl dd { margin: 2px 0 0; color: var(--ink); overflow-wrap: anywhere; }
+        .ex-dl .full { grid-column: 1 / -1; }
+        .ex-notes { white-space: pre-wrap; background: var(--surface-2); border: 1px solid var(--line-2); border-radius: 8px; padding: 10px 12px; }
+    </style>
+</head>
+<body>
+    {% include 'navbar.html' %}
+
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url":"", "label":'Exception Report'}]) }}
+
+    <div class="container mt-2">
+        {% include 'message_box.html' %}
+
+        <div class="kf-page-head">
+            <h1>Exception report</h1>
+            <p>Applications Agreed or Disagreed with an exception status, meaning the KFT matrix was breached and the decision maker overrode it.</p>
+        </div>
+
+        <div class="ex-statusbar">
+            <div class="ex-seg" id="ex-status" role="group" aria-label="Status">
+                <button type="button" class="on" data-v="">All exceptions</button>
+                <button type="button" data-v="9">Agreed w/ exception</button>
+                <button type="button" data-v="10">Disagreed w/ exception</button>
+            </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="ex-include-rec">
+                <label class="form-check-label" for="ex-include-rec">Include "Recommended … (With Exception)"</label>
+            </div>
+        </div>
+
+        <!-- KPI tiles: follow the rows shown in the grid (filters + search) -->
+        <div class="ex-kpis">
+            <div class="ex-kpi" style="--accent: var(--c1)"><div class="lbl">Exception decisions</div><div class="val" id="k-total">–</div><div class="sub" id="k-share-wrap"><b id="k-share">–</b> of final decisions</div></div>
+            <div class="ex-kpi" style="--accent: var(--c1)"><div class="lbl">Agreed w/ exception</div><div class="val" id="k-agreed">–</div><div class="sub">PKR <b id="k-agreed-amt">–</b> approved</div></div>
+            <div class="ex-kpi" style="--accent: var(--c5)"><div class="lbl">Disagreed w/ exception</div><div class="val" id="k-dis">–</div><div class="sub">PKR <b id="k-dis-amt">–</b> requested</div></div>
+            <div class="ex-kpi" style="--accent: var(--c2)"><div class="lbl">Avg approved limit</div><div class="val" id="k-avg">–</div><div class="sub">vs <b id="k-req">–</b> avg requested</div></div>
+            <div class="ex-kpi" style="--accent: var(--c4)"><div class="lbl">Branches involved</div><div class="val" id="k-br">–</div><div class="sub">top: <b id="k-topbr">–</b></div></div>
+        </div>
+
+        <div class="ex-charts">
+            <div class="ex-panel"><h3>Exceptions by month</h3><div class="hint">By decision date</div><div class="ex-chart"><canvas id="c-trend" aria-label="Exceptions by month"></canvas></div></div>
+            <div class="ex-panel"><h3>Outcome split</h3><div class="hint">Share of exception decisions</div><div class="ex-chart"><canvas id="c-split" aria-label="Outcome split"></canvas></div></div>
+        </div>
+        <div class="ex-charts two">
+            <div class="ex-panel"><h3>By decision maker</h3><div class="hint">Who agreed / disagreed with an exception</div><div class="ex-chart" id="c-user-box"><canvas id="c-user" aria-label="By decision maker"></canvas></div></div>
+            <div class="ex-panel"><h3>By region</h3><div class="hint">Count of exception decisions</div><div class="ex-chart" id="c-region-box"><canvas id="c-region" aria-label="By region"></canvas></div></div>
+        </div>
+
+        <!-- Server-side filters (shown in the grid's "Filters" panel) -->
+        <div id="ex-filters">
+            <div class="kf-field">
+                <label for="f-date-from">Decision date</label>
+                <div class="ex-range">
+                    <input type="date" class="form-control" id="f-date-from" aria-label="From">
+                    <input type="date" class="form-control" id="f-date-to" aria-label="To">
+                </div>
+            </div>
+            <div class="kf-field">
+                <label for="f-decided-by">Decided by</label>
+                <select class="form-select" id="f-decided-by">
+                    <option value="">All users</option>
+                    {% for id, name in result.deciders %}<option value="{{ id }}">{{ name }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="kf-field">
+                <label for="f-reviewed-by">Reviewed by</label>
+                <select class="form-select" id="f-reviewed-by">
+                    <option value="">All users</option>
+                    {% for id, name in result.reviewers %}<option value="{{ id }}">{{ name }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="kf-field">
+                <label for="f-region">Region</label>
+                <select class="form-select" id="f-region">
+                    <option value="">All regions</option>
+                    {% for id, name in result.regions %}<option value="{{ id }}">{{ name }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="kf-field">
+                <label for="f-branch">Branch</label>
+                <select class="form-select" id="f-branch">
+                    <option value="">All branches</option>
+                    {% for id, name in result.branches %}<option value="{{ id }}">{{ name }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="kf-field">
+                <label for="f-product">Loan product</label>
+                <select class="form-select" id="f-product">
+                    <option value="">All products</option>
+                    {% for p in result.products %}<option value="{{ p }}">{{ p }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="kf-field">
+                <label for="f-limit-min">KFT approved limit (PKR)</label>
+                <div class="ex-range">
+                    <input type="number" class="form-control" id="f-limit-min" placeholder="Min" min="0">
+                    <input type="number" class="form-control" id="f-limit-max" placeholder="Max" min="0">
+                </div>
+            </div>
+            <div class="kf-field">
+                <label for="f-email">Letter email</label>
+                <select class="form-select" id="f-email">
+                    <option value="">Any</option>
+                    <option value="sent">Sent</option>
+                    <option value="not_sent">Not sent</option>
+                </select>
+            </div>
+            <div class="dg-panel-actions">
+                <button type="button" class="btn btn-primary" id="ex-search"><i class="bi bi-funnel me-1"></i>Apply filters</button>
+                <button type="button" class="btn btn-link text-decoration-none" id="ex-reset">Reset</button>
+            </div>
+        </div>
+
+        <div id="ex-grid" class="mb-4"></div>
+    </div>
+
+    <!-- Read-only application details -->
+    <div class="modal fade" id="ex-view" tabindex="-1" aria-labelledby="ex-view-title" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="ex-view-title">Application</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="ex-view-body"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const esc = KFTGrid.escape;
+        const STATUS = {
+            '9':  { label: 'Agreed (With Exception)', short: 'Agreed w/ exception', pill: 'ok' },
+            '10': { label: 'Disagreed (With Exception)', short: 'Disagreed w/ exception', pill: 'bad' },
+            '7':  { label: 'Recommended for Agreement (With Exception)', short: 'Rec. agreement w/ exc.', pill: 'warn' },
+            '8':  { label: 'Recommended for Disagreement (With Exception)', short: 'Rec. disagreement w/ exc.', pill: 'warn' }
+        };
+        const n = (v) => (v === null || v === undefined || v === '' || isNaN(v)) ? 0 : Number(v);
+        const fmt = (v) => n(v).toLocaleString('en-US', { maximumFractionDigits: 0 });
+        const fmtK = (v) => { v = n(v); return v >= 1e6 ? (v / 1e6).toFixed(1) + 'M' : v >= 1e3 ? Math.round(v / 1e3).toLocaleString('en-US') + 'K' : fmt(v); };
+        const fmtDate = (v) => { const d = v ? new Date(v) : null; return d && !isNaN(d) ? d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ''; };
+        const statusPill = (s) => STATUS[s] ? `<span class="kft-pill ${STATUS[s].pill}" title="${esc(STATUS[s].label)}">${esc(STATUS[s].short)}</span>` : esc(s);
+        const cnicDigits = (v) => String(v || '').replace(/\D/g, '') || String(v || '');
+        const cnicFmt = (v) => { const d = String(v || '').replace(/\D/g, ''); return d.length === 13 ? `${d.slice(0, 5)}-${d.slice(5, 12)}-${d.slice(12)}` : String(v || ''); };
+        const isAgreed = (r) => r.status === '9';
+        const isDisagreed = (r) => r.status === '10';
+
+        let records = [];
+        let totalDecisions = 0;
+        let ready = false;   // the grid calls onView while it is built, before the chart helpers below exist
+
+        const columns = [
+            { key: 'application_no', label: 'Application no.', className: 'strong' },
+            { key: 'borrower_name', label: 'Borrower' },
+            { key: 'cnic', label: 'CNIC', value: (r) => cnicDigits(r.cnic), render: (r) => esc(cnicFmt(r.cnic)), exportValue: (r) => cnicFmt(r.cnic) },
+            { key: 'branch', label: 'Branch', value: (r) => r.branch || r.branch_name_raw || '' },
+            { key: 'region', label: 'Region' },
+            { key: 'product', label: 'Product' },
+            { key: 'requested_amount', label: 'Requested', type: 'money', sum: true },
+            { key: 'approved_limit', label: 'KFT approved limit', type: 'money', sum: true },
+            { key: 'status', label: 'Status', value: (r) => (STATUS[r.status] || {}).label || r.status, render: (r) => statusPill(r.status) },
+            { key: 'decided_by', label: 'Decided by' },
+            { key: 'decision_date', label: 'Decision date', type: 'date', render: (r) => esc(fmtDate(r.decision_date)), exportValue: (r) => fmtDate(r.decision_date) },
+            { key: 'reviewed_by', label: 'Reviewed by' },
+            { key: 'exec_approved_by', label: 'Executive approval', hidden: true,
+              value: (r) => r.exec_approval_pending == 1 ? 'Awaiting executive' : (r.exec_approved_by || ''),
+              render: (r) => r.exec_approval_pending == 1 ? '<span class="kft-pill gold">Awaiting executive</span>' : esc(r.exec_approved_by || '') },
+            { key: 'email_status', label: 'Letter email', hidden: true, value: (r) => r.email_status == 2 ? 'Sent' : 'Not sent',
+              render: (r) => r.email_status == 2 ? '<span class="kft-pill ok">Sent</span>' : '<span class="kft-pill neutral">Not sent</span>' },
+            { key: 'notes', label: 'Exception note', render: (r) => r.notes ? `<span class="ex-note" title="${esc(r.notes)}">${esc(r.notes)}</span>` : '' },
+            { key: 'gender', label: 'Gender', hidden: true },
+            { key: 'application_date', label: 'Application date', hidden: true },
+            { key: 'view', label: '', act: true, sortable: false, export: false,
+              render: (r) => `<button type="button" class="icon-btn" title="View application" data-view="${esc(r.pre_disb_temp_id)}"><i class="bi bi-eye"></i></button>` }
+        ];
+
+        const grid = KFTGrid.create(document.getElementById('ex-grid'), {
+            columns, storageKey: 'exception-report', exportName: 'Exception_Report', pageSize: 25,
+            title: 'Applications', panel: document.getElementById('ex-filters'), sort: { key: 'decision_date', dir: 'desc' },
+            searchPlaceholder: 'Search application no., borrower name or CNIC…',
+            emptyText: 'No exception decisions match these filters',
+            onView: (rows) => { if (ready) paintSummary(rows); }
+        });
+        document.getElementById('ex-filters').hidden = true;
+
+        // CNICs are stored as plain digits: a CNIC typed with dashes (12345-1234567-1) is searched as digits
+        grid.el.addEventListener('input', (e) => {
+            if (!e.target.matches('.dg-search input')) return;
+            if (/^\s*\d[\d-]*-[\d-]*\s*$/.test(e.target.value)) e.target.value = e.target.value.replace(/[^\d]/g, '');
+        }, true);
+
+        // ---- KPI tiles + charts follow the rows visible in the grid ----
+        const charts = {};
+        const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+        const sum = (rows, key) => rows.reduce((s, r) => s + n(r[key]), 0);
+        const countBy = (rows, keyFn) => rows.reduce((m, r) => { const k = keyFn(r) || 'Unknown'; m[k] = (m[k] || 0) + 1; return m; }, {});
+        const set = (id, v) => { document.getElementById(id).textContent = v; };
+
+        function paintSummary(rows) {
+            const finals = rows.filter((r) => isAgreed(r) || isDisagreed(r));
+            const agreed = rows.filter(isAgreed), dis = rows.filter(isDisagreed);
+            set('k-total', fmt(rows.length));
+            set('k-share', totalDecisions ? (finals.length / totalDecisions * 100).toFixed(1) + '%' : '–');
+            document.getElementById('k-share-wrap').title = `${finals.length} of ${totalDecisions} final decisions (Agreed / Disagreed) in the same period, area and product`;
+            set('k-agreed', fmt(agreed.length));
+            set('k-agreed-amt', fmtK(sum(agreed, 'approved_limit')));
+            set('k-dis', fmt(dis.length));
+            set('k-dis-amt', fmtK(sum(dis, 'requested_amount')));
+            set('k-avg', agreed.length ? fmtK(sum(agreed, 'approved_limit') / agreed.length) : '–');
+            set('k-req', rows.length ? fmtK(sum(rows, 'requested_amount') / rows.length) : '–');
+            const br = Object.entries(countBy(rows, (r) => r.branch || r.branch_name_raw)).sort((a, b) => b[1] - a[1]);
+            set('k-br', fmt(br.length));
+            set('k-topbr', br.length ? br[0][0] : '–');
+            drawCharts(rows);
+        }
+
+        function drawCharts(rows) {
+            if (!window.Chart) return;
+            Chart.defaults.font.family = 'Inter, sans-serif';
+            Chart.defaults.font.size = 12;
+            Chart.defaults.color = css('--ink-3');
+            const gridColor = { color: css('--grid') }, noGrid = { display: false };
+            const legend = { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10 } };
+            const series = [
+                { label: 'Agreed w/ exception', test: isAgreed, color: css('--c1') },
+                { label: 'Disagreed w/ exception', test: isDisagreed, color: css('--c5') },
+                { label: 'Recommended w/ exception', test: (r) => r.status === '7' || r.status === '8', color: css('--c2') }
+            ].filter((s) => rows.some(s.test) || s.test({ status: '9' }) || s.test({ status: '10' }));
+            const draw = (id, config) => { if (charts[id]) charts[id].destroy(); charts[id] = new Chart(document.getElementById(id), config); };
+
+            // Monthly trend (oldest → newest)
+            const monthKey = (r) => r.decision_date ? r.decision_date.slice(0, 7) : null;
+            const months = [...new Set(rows.map(monthKey).filter(Boolean))].sort();
+            const monthLabel = (m) => new Date(m + '-01T00:00:00').toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+            draw('c-trend', { type: 'bar',
+                data: { labels: months.map(monthLabel), datasets: series.map((s) => ({ label: s.label, data: months.map((m) => rows.filter((r) => s.test(r) && monthKey(r) === m).length), backgroundColor: s.color, borderRadius: 4, stack: 's' })) },
+                options: { maintainAspectRatio: false, plugins: { legend }, scales: { x: { grid: noGrid, stacked: true }, y: { grid: gridColor, stacked: true, beginAtZero: true, ticks: { precision: 0 } } } } });
+
+            draw('c-split', { type: 'doughnut',
+                data: { labels: series.map((s) => s.label), datasets: [{ data: series.map((s) => rows.filter(s.test).length), backgroundColor: series.map((s) => s.color), borderColor: css('--surface'), borderWidth: 3 }] },
+                options: { maintainAspectRatio: false, cutout: '68%', plugins: { legend } } });
+
+            const hbar = (id, keyFn) => {
+                const counts = Object.entries(countBy(rows, keyFn)).sort((a, b) => b[1] - a[1]).slice(0, 12);
+                const labels = counts.map(([k]) => k);
+                // grow the chart with the number of bars so labels stay readable
+                document.getElementById(id + '-box').style.height = Math.max(240, labels.length * 30 + 70) + 'px';
+                draw(id, { type: 'bar',
+                    data: { labels, datasets: series.map((s) => ({ label: s.label, data: labels.map((l) => rows.filter((r) => s.test(r) && (keyFn(r) || 'Unknown') === l).length), backgroundColor: s.color, borderRadius: 4, stack: 's' })) },
+                    options: { indexAxis: 'y', maintainAspectRatio: false, plugins: { legend }, scales: { x: { grid: gridColor, stacked: true, beginAtZero: true, ticks: { precision: 0 } }, y: { grid: noGrid, stacked: true } } } });
+            };
+            hbar('c-user', (r) => r.decided_by);
+            hbar('c-region', (r) => r.region);
+        }
+        window.addEventListener('kft-theme-change', () => grid.refresh());
+
+        // ---- Filters ----
+        const val = (id) => document.getElementById(id).value;
+        const selText = (id) => { const s = document.getElementById(id); return s.options[s.selectedIndex].text; };
+        let statusFilter = '';
+
+        function currentFilters() {
+            return {
+                status: statusFilter, include_recommended: document.getElementById('ex-include-rec').checked,
+                date_from: val('f-date-from'), date_to: val('f-date-to'),
+                decided_by: val('f-decided-by'), reviewed_by: val('f-reviewed-by'),
+                region: val('f-region'), branch: val('f-branch'), product: val('f-product'),
+                limit_min: val('f-limit-min'), limit_max: val('f-limit-max'), email: val('f-email')
+            };
+        }
+
+        function filterChips() {
+            const chips = [];
+            const add = (label, clear) => chips.push({ label, remove: () => { clear(); applyFilters(); } });
+            const clearIds = (...ids) => () => ids.forEach((id) => { document.getElementById(id).value = ''; });
+            const range = (label, a, b, f = (x) => x) => { const x = val(a), y = val(b); if (x || y) add(`${label}: ${x ? f(x) : '…'} – ${y ? f(y) : '…'}`, clearIds(a, b)); };
+            range('Decision date', 'f-date-from', 'f-date-to', fmtDate);
+            [['f-decided-by', 'Decided by'], ['f-reviewed-by', 'Reviewed by'], ['f-region', 'Region'], ['f-branch', 'Branch'], ['f-product', 'Product'], ['f-email', 'Letter email']]
+                .forEach(([id, label]) => { if (val(id)) add(`${label}: ${selText(id)}`, clearIds(id)); });
+            range('Approved limit', 'f-limit-min', 'f-limit-max', fmt);
+            return chips;
+        }
+
+        function applyFilters() {
+            const btn = document.getElementById('ex-search');
+            btn.disabled = true;
+            grid.setLoading(true);
+            fetch('{{ url_for("exception_report_data") }}', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(currentFilters())
+            })
+                .then((r) => r.json())
+                .then((data) => {
+                    if (!data.success) throw new Error(data.error || 'Unknown error');
+                    records = data.records;
+                    totalDecisions = data.total_decisions || 0;
+                    grid.setRows(records);
+                    grid.setChips(filterChips());
+                    document.getElementById('ex-filters').hidden = true;
+                })
+                .catch((e) => notify('Could not load the report: ' + e.message))
+                .finally(() => { btn.disabled = false; grid.setLoading(false); });
+        }
+
+        function notify(message) {
+            const el = document.createElement('div');
+            el.className = 'alert alert-warning alert-dismissible fade show position-fixed';
+            el.style.cssText = 'top:76px;right:20px;z-index:1080;max-width:420px';
+            el.innerHTML = `${esc(message)}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 5000);
+        }
+
+        document.querySelectorAll('#ex-status button').forEach((b) => b.addEventListener('click', () => {
+            document.querySelectorAll('#ex-status button').forEach((x) => x.classList.toggle('on', x === b));
+            statusFilter = b.dataset.v;
+            applyFilters();
+        }));
+        document.getElementById('ex-include-rec').addEventListener('change', applyFilters);
+        document.getElementById('ex-search').addEventListener('click', applyFilters);
+        document.getElementById('ex-reset').addEventListener('click', () => {
+            document.querySelectorAll('#ex-filters input').forEach((i) => { i.value = ''; });
+            document.querySelectorAll('#ex-filters select').forEach((s) => { s.selectedIndex = 0; });
+        });
+
+        // ---- Read-only details ----
+        document.getElementById('ex-grid').addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-view]');
+            if (!btn) return;
+            const r = records.find((x) => String(x.pre_disb_temp_id) === btn.dataset.view);
+            if (!r) return;
+            const item = (label, value, full) => `<div${full ? ' class="full"' : ''}><dt>${esc(label)}</dt><dd>${value || '<span class="text-muted">—</span>'}</dd></div>`;
+            document.getElementById('ex-view-title').textContent = `Application ${r.application_no || ''}`;
+            document.getElementById('ex-view-body').innerHTML = `<dl class="ex-dl">
+                ${item('Status', statusPill(r.status))}
+                ${item('Decision date', esc(fmtDate(r.decision_date)))}
+                ${item('Borrower', esc(r.borrower_name))}
+                ${item('Father / husband name', esc(r.father_husband_name))}
+                ${item('CNIC', esc(cnicFmt(r.cnic)))}
+                ${item('Gender', esc(r.gender))}
+                ${item('Branch', esc(r.branch || r.branch_name_raw))}
+                ${item('Region', esc(r.region))}
+                ${item('Loan product', esc(r.product))}
+                ${item('Purpose of loan', esc(r.purpose))}
+                ${item('Loan cycle', esc(r.loan_cycle))}
+                ${item('Tenor (months)', esc(r.tenor))}
+                ${item('Requested amount', r.requested_amount ? 'PKR ' + fmt(r.requested_amount) : '')}
+                ${item('KFT approved limit', r.approved_limit ? 'PKR ' + fmt(r.approved_limit) : '')}
+                ${item('Decided by', esc(r.decided_by))}
+                ${item('Reviewed by', esc(r.reviewed_by) + (r.reviewed_date ? ` <span class="text-muted">· ${esc(fmtDate(r.reviewed_date))}</span>` : ''))}
+                ${item('Executive approval', r.exec_approval_pending == 1 ? '<span class="kft-pill gold">Awaiting executive</span>' : esc(r.exec_approved_by ? `${r.exec_approved_by} · ${fmtDate(r.exec_approved_date)}` : ''))}
+                ${item('Letter email', r.email_status == 2 ? '<span class="kft-pill ok">Sent</span>' : '<span class="kft-pill neutral">Not sent</span>')}
+                ${item('Exception note', r.notes ? `<div class="ex-notes">${esc(r.notes)}</div>` : '', true)}
+            </dl>`;
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('ex-view')).show();
+        });
+
+        ready = true;
+        applyFilters();
+    </script>
+</body>
+</html>

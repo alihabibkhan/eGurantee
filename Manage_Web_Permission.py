@@ -55,40 +55,28 @@ def add_edit_web_permission(permission_id=None):
             current_user_id = get_current_user_id()
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            # Escape strings safely
-            category_esc = escape_sql_string(category)
-            title_esc = escape_sql_string(title)
-            route_esc = escape_sql_string(route)
-            permission_key_esc = escape_sql_string(permission_key)
-            description_esc = escape_sql_string(description)
-
+            # Values are passed as parameters (never pasted into the SQL) to prevent SQL injection
             if permission_id:
                 # Update
-                query = f"""
-                    UPDATE tbl_web_permissions 
-                    SET category = {category_esc},
-                        title = {title_esc},
-                        route = {route_esc},
-                        permission_key = {permission_key_esc},
-                        description = {description_esc},
-                        status = {status},
-                        modified_by = {current_user_id},
-                        modified_date = '{current_time}'
-                    WHERE web_permission_id = {permission_id}
+                query = """
+                    UPDATE tbl_web_permissions
+                    SET category = %s, title = %s, route = %s, permission_key = %s, description = %s,
+                        status = %s, modified_by = %s, modified_date = %s
+                    WHERE web_permission_id = %s
                 """
-                execute_command(query)
+                execute_command(query, params=(category, title, route, permission_key, description, status,
+                                               current_user_id, current_time, permission_id))
             else:
                 # Insert
-                query = f"""
-                    INSERT INTO tbl_web_permissions 
-                    (category, title, route, permission_key, description, status, 
+                query = """
+                    INSERT INTO tbl_web_permissions
+                    (category, title, route, permission_key, description, status,
                      created_by, created_date, modified_by, modified_date)
-                    VALUES ({category_esc}, {title_esc}, {route_esc}, {permission_key_esc}, {description_esc}, 
-                            {status}, {current_user_id}, '{current_time}', 
-                            {current_user_id}, '{current_time}')
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING web_permission_id
                 """
-                execute_command(query)
+                execute_command(query, params=(category, title, route, permission_key, description, status,
+                                               current_user_id, current_time, current_user_id, current_time))
 
             return redirect(url_for('manage_web_permissions'))
 

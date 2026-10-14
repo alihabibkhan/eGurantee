@@ -7,33 +7,48 @@
 <body>
     {% include 'navbar.html' %}
     {% import 'breadcrumbs.html' as brd %}
-    {{ brd.render_Breadcrumbs([{"url": 'manage_loan_metrics', "label": "Manage Loan Metrics"}, {"url": "", "label": 'Edit Experience Range' if result.experience_range else 'Add Experience Range' }]) }}
+    {{ brd.render_Breadcrumbs([{"url": "manage_loan_metrics", "label": "Manage Loan Metrics"}, {"url": "", "label": 'Edit Experience Range' if result.experience_range else 'Add Experience Range' }]) }}
+    {% set rec = result.experience_range %}
 
-    <div class="container mt-4">
+    <div class="container mt-2">
         {% include 'message_box.html' %}
 
-        <div class="card">
-            <div class="card-header">
-                <h2>{{ 'Edit Experience Range' if result.experience_range else 'Add Experience Range' }}</h2>
-            </div>
-            <div class="card-body">
-                <form method="POST">
-                    <div class="form-group mb-3">
-                        <label for="label">Label</label>
-                        <input type="text" name="label" class="form-control" value="{{ result.experience_range.label if result.experience_range else '' }}" required>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="min_years">Min Years</label>
-                        <input type="number" name="min_years" class="form-control" value="{{ result.experience_range.min_years if result.experience_range else '' }}" required>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="max_years">Max Years</label>
-                        <input type="number" name="max_years" class="form-control" value="{{ result.experience_range.max_years if result.experience_range else '' }}" required>
-                    </div>
+        <div class="kf-page-head">
+            <h1>{{ 'Edit experience range' if rec else 'Add experience range' }}</h1>
+            <p>Business experience bands used by the loan matrix.</p>
+        </div>
 
-                    <button type="submit" class="btn btn-primary">{{ 'Update Experience Range' if result.experience_range else 'Add Experience Range' }}</button>
-                </form>
-            </div>
+        <div class="kf-form-layout">
+            <form method="POST" class="kf-card">
+                <div class="kf-sec">Details</div>
+                <div class="kf-body">
+                    <div class="kf-grid">
+                        <div class="kf-field full">
+                            <label for="label">Label <span class="req">*</span></label>
+                            <input type="text" id="label" name="label" class="form-control" value="{{ rec.label if rec else '' }}" required>
+                        </div>
+                        <div class="kf-field">
+                            <label for="min_years">Min years <span class="req">*</span></label>
+                            <input type="number" id="min_years" name="min_years" class="form-control" value="{{ rec.min_years if rec else '' }}" required>
+                        </div>
+                        <div class="kf-field">
+                            <label for="max_years">Max years <span class="req">*</span></label>
+                            <input type="number" id="max_years" name="max_years" class="form-control" value="{{ rec.max_years if rec else '' }}" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kf-foot">
+                    <a href="{{ url_for('manage_loan_metrics') }}#experience-ranges" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">{{ 'Update experience range' if rec else 'Save experience range' }}</button>
+                </div>
+            </form>
+
+            <aside class="kf-card kf-help">
+                <h4>Experience ranges</h4>
+                <p>An applicant's years of business experience are matched to one of these ranges when the KFT loan matrix is checked.</p>
+                <p>Keep the ranges from overlapping, so every number of years falls into exactly one range.</p>
+            </aside>
         </div>
     </div>
 </body>

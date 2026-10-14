@@ -8,60 +8,85 @@
     {% include 'navbar.html' %}
     {% import 'breadcrumbs.html' as brd %}
     {{ brd.render_Breadcrumbs([{"url": 'manage_bank_details', "label": "Manage Bank Details"}, {"url": "", "label": 'Edit Bank Details' if result.bank_details else 'Add Bank Details' }]) }}
+    {% set rec = result.bank_details %}
 
-    <div class="container mt-4">
+    <div class="container mt-2">
         {% include 'message_box.html' %}
 
-        <div class="card">
-            <div class="card-header">
-                <h2>{{ 'Edit Bank Details' if result.bank_details else 'Add Bank Details' }}</h2>
-            </div>
-            <div class="card-body">
-                <form method="POST">
-                     <div class="form-group mb-3">
-                        <label for="bank_code">Bank Name</label>
-                        <input type="text" name="bank_name" class="form-control" value="{{ result.bank_details.bank_name if result.bank_details else '' }}" required>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="bank_code">Bank Code</label>
-                        <input type="text" name="bank_code" class="form-control" value="{{ result.bank_details.bank_code if result.bank_details else '' }}" required>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="branch_of_account">Branch</label>
-                        <input type="text" name="branch_of_account" class="form-control" value="{{ result.bank_details.branch_of_account if result.bank_details else '' }}" required>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="currency">Currency</label>
-                        <input type="text" name="currency" class="form-control" value="{{ result.bank_details.currency if result.bank_details else '' }}" required>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="IBAN">IBAN</label>
-                        <input type="text" name="IBAN" class="form-control" value="{{ result.bank_details.iban if result.bank_details else '' }}" required>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="account_title">Account Title</label>
-                        <input type="text" name="account_title" class="form-control" value="{{ result.bank_details.account_title if result.bank_details else '' }}" required>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="date_account_opened">Date Account Opened</label>
-                        <input type="date" name="date_account_opened" class="form-control" value="{{ result.bank_details.date_account_opened | date_format if result.bank_details and result.bank_details.date_account_opened else '' }}">
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="date_account_closed">Date Account Closed</label>
-                        <input type="date" name="date_account_closed" class="form-control" value="{{ result.bank_details.date_account_closed | date_format if result.bank_details and result.bank_details.date_account_closed else '' }}">
-                    </div>
+        <div class="kf-page-head">
+            <h1>{{ 'Edit bank details' if rec else 'Add bank details' }}</h1>
+            <p>A KFT bank account: bank, branch, IBAN and the dates it was open.</p>
+        </div>
 
-                    <div class="form-group mb-3">
-                        <label for="status">Status</label>
-                        <select name="status" id="status" class="form-control form-select">
-                            <option value="1" {% if result.bank_details and result.bank_details.status|string == '1'  %} selected {% endif %}>Active</option>
-                            <option value="2" {% if result.bank_details and result.bank_details.status|string == '2'  %} selected {% endif %}>In-Active</option>
-                        </select>
+        <div class="kf-form-layout">
+            <form method="POST" class="kf-card">
+                <div class="kf-sec">Bank account</div>
+                <div class="kf-body">
+                    <div class="kf-grid">
+                        <div class="kf-field">
+                            <label for="bank_name">Bank name <span class="req">*</span></label>
+                            <input type="text" id="bank_name" name="bank_name" class="form-control" value="{{ rec.bank_name if rec else '' }}" required>
+                        </div>
+                        <div class="kf-field">
+                            <label for="bank_code">Bank code <span class="req">*</span></label>
+                            <input type="text" id="bank_code" name="bank_code" class="form-control" value="{{ rec.bank_code if rec else '' }}" required>
+                        </div>
+                        <div class="kf-field">
+                            <label for="branch_of_account">Branch <span class="req">*</span></label>
+                            <input type="text" id="branch_of_account" name="branch_of_account" class="form-control" value="{{ rec.branch_of_account if rec else '' }}" required>
+                        </div>
+                        <div class="kf-field">
+                            <label for="currency">Currency <span class="req">*</span></label>
+                            <input type="text" id="currency" name="currency" class="form-control" value="{{ rec.currency if rec else '' }}" required>
+                        </div>
+                        <div class="kf-field full">
+                            <label for="account_title">Account title <span class="req">*</span></label>
+                            <input type="text" id="account_title" name="account_title" class="form-control" value="{{ rec.account_title if rec else '' }}" required>
+                        </div>
+                        <div class="kf-field full">
+                            <label for="IBAN">IBAN <span class="req">*</span></label>
+                            <input type="text" id="IBAN" name="IBAN" class="form-control" value="{{ rec.iban if rec else '' }}" required>
+                        </div>
                     </div>
+                </div>
 
-                    <button type="submit" class="btn btn-primary">{{ 'Update Bank Details' if result.bank_details else 'Add Bank Details' }}</button>
-                </form>
-            </div>
+                <div class="kf-sec">Account dates &amp; status</div>
+                <div class="kf-body">
+                    <div class="kf-grid">
+                        <div class="kf-field">
+                            <label for="date_account_opened">Date account opened</label>
+                            <input type="date" id="date_account_opened" name="date_account_opened" class="form-control"
+                                   value="{{ rec.date_account_opened | date_format if rec and rec.date_account_opened else '' }}">
+                        </div>
+                        <div class="kf-field">
+                            <label for="date_account_closed">Date account closed</label>
+                            <input type="date" id="date_account_closed" name="date_account_closed" class="form-control"
+                                   value="{{ rec.date_account_closed | date_format if rec and rec.date_account_closed else '' }}">
+                            <span class="hint">Leave empty while the account is open</span>
+                        </div>
+                        <div class="kf-switch-row full">
+                            <div><div class="t">Active</div><div class="d">Switch off when the account is no longer in use.</div></div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="status" name="status" value="1"
+                                       {{ 'checked' if not rec or rec.status|string == '1' }} aria-label="Active">
+                                <input type="hidden" name="status" value="2">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kf-foot">
+                    <a href="{{ url_for('manage_bank_details') }}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">{{ 'Update bank details' if rec else 'Save bank details' }}</button>
+                </div>
+            </form>
+
+            <aside class="kf-card kf-help">
+                <h4>Closing an account</h4>
+                <p>Don't delete an account that has been used. Enter the date it was closed and switch Active off, so its history is kept.</p>
+                <h4>IBAN</h4>
+                <p>Copy the IBAN exactly as shown on the bank's documents.</p>
+            </aside>
         </div>
     </div>
 </body>

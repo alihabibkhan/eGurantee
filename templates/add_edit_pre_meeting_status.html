@@ -8,23 +8,39 @@
     {% include 'navbar.html' %}
     {% import 'breadcrumbs.html' as brd %}
     {{ brd.render_Breadcrumbs([{"url": "manage_meeting_setup", "label": "Manage Meeting Setup"}, {"url": "", "label": 'Edit Meeting Status' if result.pre_ms_details else 'Add Meeting Status' }]) }}
+    {% set rec = result.pre_ms_details %}
 
-    <div class="container mt-4">
+    <div class="container mt-2">
         {% include 'message_box.html' %}
 
-        <div class="card">
-            <div class="card-header">
-                <h2>{{ 'Edit Meeting Status' if result.pre_ms_details else 'Add Meeting Status' }}</h2>
-            </div>
-            <div class="card-body">
-                <form method="POST">
-                    <div class="form-group mb-3">
-                        <label for="pre_ms_name">Name</label>
-                        <input type="text" name="pre_ms_name" class="form-control" value="{{ result.pre_ms_details.pre_ms_name if result.pre_ms_details else '' }}" required>
+        <div class="kf-page-head">
+            <h1>{{ 'Edit meeting status' if rec else 'Add meeting status' }}</h1>
+            <p>Statuses a meeting can have before it takes place.</p>
+        </div>
+
+        <div class="kf-form-layout">
+            <form method="POST" class="kf-card">
+                <div class="kf-sec">Details</div>
+                <div class="kf-body">
+                    <div class="kf-grid">
+                        <div class="kf-field">
+                            <label for="pre_ms_name">Name <span class="req">*</span></label>
+                            <input type="text" id="pre_ms_name" name="pre_ms_name" class="form-control" value="{{ rec.pre_ms_name if rec else '' }}" required>
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-primary">{{ 'Update Meeting Status' if result.pre_ms_details else 'Add Meeting Status' }}</button>
-                </form>
-            </div>
+                </div>
+
+                <div class="kf-foot">
+                    <a href="{{ url_for('manage_meeting_setup') }}#pre-meeting-status" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">{{ 'Update meeting status' if rec else 'Save meeting status' }}</button>
+                </div>
+            </form>
+
+            <aside class="kf-card kf-help">
+                <h4>Meeting setup</h4>
+                <p>Statuses a meeting can have before it takes place.</p>
+                <p>The list is managed on the <a href="{{ url_for('manage_meeting_setup') }}#pre-meeting-status">Meeting Setup</a> page.</p>
+            </aside>
         </div>
     </div>
 </body>

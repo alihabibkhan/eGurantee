@@ -22,6 +22,8 @@ def fund_projection_report():
 @application.route('/save_fund_projection', methods=['POST'])
 def save_fund_projection():
     try:
+        if not is_login():
+            return jsonify({'status': 'error', 'message': 'Unauthorized'}), 401
         data = request.get_json()
 
         # Extract data from JSON
@@ -48,29 +50,21 @@ def save_fund_projection():
         actual_collateral_balance_req = data.get('actual_collateral_balance_req', 'NULL').replace(',', '') or 'NULL'
         surplus_shortfall_req = data.get('surplus_shortfall_req', 'NULL').replace(',', '') or 'NULL'
 
-        # Construct SQL query using f-string
-        query = f"""
-        INSERT INTO tbl_fund_projection_reports (
-            bank_id, account_balance, actual_data_date, report_date, actual_portfolio,
-            ten_percent_lien, total_lien_amount, actual_collateral_balance, surplus_shortfall,
-            projected_disbursement, seasonal_affects, new_product_affects,
-            total_projected_disbursement, projected_recoveries, projected_monthly_change,
-            actual_portfolio_opening, add_projected_monthly_change, projected_portfolio_closing,
-            cushion_ten_percent, projected_collateral_balance, actual_collateral_balance_req,
-            surplus_shortfall_req
-        ) VALUES (
-            {bank_id}, {account_balance}, '{actual_data_date}', '{report_date}', {actual_portfolio},
-            {ten_percent_lien}, {total_lien_amount}, {actual_collateral_balance}, {surplus_shortfall},
-            {projected_disbursement}, {seasonal_affects}, {new_product_affects},
-            {total_projected_disbursement}, {projected_recoveries}, {projected_monthly_change},
-            {actual_portfolio_opening}, {add_projected_monthly_change}, {projected_portfolio_closing},
-            {cushion_ten_percent}, {projected_collateral_balance}, {actual_collateral_balance_req},
-            {surplus_shortfall_req}
-        )
-        """
+        cols = ['bank_id', 'account_balance', 'actual_data_date', 'report_date', 'actual_portfolio',
+                'ten_percent_lien', 'total_lien_amount', 'actual_collateral_balance', 'surplus_shortfall',
+                'projected_disbursement', 'seasonal_affects', 'new_product_affects',
+                'total_projected_disbursement', 'projected_recoveries', 'projected_monthly_change',
+                'actual_portfolio_opening', 'add_projected_monthly_change', 'projected_portfolio_closing',
+                'cushion_ten_percent', 'projected_collateral_balance', 'actual_collateral_balance_req',
+                'surplus_shortfall_req']
+        local_values = locals()
+        # 'NULL' placeholders above become real NULLs; values are passed as parameters (no SQL injection)
+        values = tuple(None if local_values[c] in ('NULL', '') else local_values[c] for c in cols)
+        query = ("INSERT INTO tbl_fund_projection_reports (" + ", ".join(cols) + ") VALUES ("
+                 + ", ".join(["%s"] * len(cols)) + ")")
 
         # Execute the query using execute_command
-        execute_command(query)
+        execute_command(query, params=values)
 
         return jsonify({'status': 'success', 'message': 'Fund projection report saved successfully'}), 200
 
@@ -82,20 +76,21 @@ def save_fund_projection():
 @application.route('/get_report_dates', methods=['GET'])
 def get_report_dates():
     try:
+        if not is_login():
+            return jsonify({'status': 'error', 'message': 'Unauthorized'}), 401
         bank_id = request.args.get('bank_id')
         print('bank_id:- ', bank_id)
         if not bank_id:
             return jsonify({'status': 'error', 'message': 'Bank ID is required'}), 400
 
-        query = f"""
+        query = """
         SELECT DISTINCT created_at
         FROM tbl_fund_projection_reports
-        WHERE bank_id = {bank_id}
+        WHERE bank_id = %s
         ORDER BY created_at DESC
         """
 
-        # Assuming execute_command returns a list of records
-        result = fetch_records(query)
+        result = fetch_records(query, params=(bank_id,))
         print(result)
         dates = [row['created_at'] for row in result] if result else []
 
@@ -110,6 +105,8 @@ def get_report_dates():
 @application.route('/get_report_data', methods=['GET'])
 def get_report_data():
     try:
+        if not is_login():
+            return jsonify({'status': 'error', 'message': 'Unauthorized'}), 401
         bank_id = request.args.get('bank_id')
         report_date = request.args.get('report_date')
         if not bank_id or not report_date:
@@ -123,16 +120,15 @@ def get_report_data():
         report_date = formatted_report_date
         print('report_date:- ', report_date)
 
-        query = f"""
+        query = """
             SELECT *
             FROM tbl_fund_projection_reports
-            WHERE bank_id = '{bank_id}'
-              AND date_trunc('second', created_at) = '{report_date}'::timestamp
+            WHERE bank_id = %s
+              AND date_trunc('second', created_at) = %s::timestamp
             LIMIT 1;
         """
 
-        # Assuming fetch_records returns a list of dictionaries
-        result = fetch_records(query, is_print=True)
+        result = fetch_records(query, is_print=True, params=(bank_id, report_date))
         print(result)
         if not result:
             return jsonify({'status': 'error', 'message': 'No report found for the selected date'}), 404
@@ -514,7 +510,7 @@ def api_image_zip_runs():
 
 
 def get_pre_disb_processor_runs(start_date, end_date):
-    query = f"""
+    query = """
         SELECT 
             id, started_at, finished_at, status, duration_seconds,
             emails_found, files_processed, new_records_count,
@@ -522,11 +518,11 @@ def get_pre_disb_processor_runs(start_date, end_date):
             summary_path, anomalies_path, error_message,
             created_at
         FROM monitoring.pre_disb_email_processor_runs
-        WHERE started_at >= '{start_date}' AND started_at <= '{end_date + " 23:59:59"}'
+        WHERE started_at >= %s AND started_at <= %s
         ORDER BY started_at DESC
     """
     # Use your DB helper (psycopg2 / pymysql / etc.)
-    records = fetch_records(query)
+    records = fetch_records(query, params=(str(start_date), str(end_date) + ' 23:59:59'))
     return records  # list of dicts
 
 
@@ -575,21 +571,21 @@ def api_auto_approval_log():
 
 
 def get_image_zip_processor_runs(start_date, end_date):
-    query = f"""
+    query = """
         SELECT 
             id, started_at, finished_at, status, duration_seconds,
             emails_found, zips_processed, images_processed,
             images_skipped, error_message
         FROM monitoring.cron_job_runs   -- or your image zip table
-        WHERE started_at >= '{str(start_date)}' AND started_at <= '{str(end_date) + " 23:59:59"}'
+        WHERE started_at >= %s AND started_at <= %s
         ORDER BY started_at DESC
     """
-    records = fetch_records(query)
+    records = fetch_records(query, params=(str(start_date), str(end_date) + ' 23:59:59'))
     return records
 
 
 def get_post_disb_email_processor_runs(start_date, end_date):
-    query = f"""
+    query = """
         SELECT 
             id,
             job_name,
@@ -606,16 +602,16 @@ def get_post_disb_email_processor_runs(start_date, end_date):
             summary_path,
             anomalies_path
         FROM monitoring.post_disb_email_processor_runs
-        WHERE started_at >= '{str(start_date)}' 
-          AND started_at <= '{str(end_date) + " 23:59:59"}'
+        WHERE started_at >= %s 
+          AND started_at <= %s
         ORDER BY started_at DESC
     """
-    records = fetch_records(query)
+    records = fetch_records(query, params=(str(start_date), str(end_date) + ' 23:59:59'))
     return records
 
 
 def get_auto_approval_log(start_date, end_date):
-    query = f"""
+    query = """
         SELECT 
             log_id,
             record_id,
@@ -633,9 +629,9 @@ def get_auto_approval_log(start_date, end_date):
             remarks,
             created_date
         FROM tbl_auto_approval_log
-        WHERE created_date >= '{str(start_date)}' 
-          AND created_date <= '{str(end_date) + " 23:59:59"}'
+        WHERE created_date >= %s 
+          AND created_date <= %s
         ORDER BY created_date DESC
     """
-    records = fetch_records(query)
+    records = fetch_records(query, params=(str(start_date), str(end_date) + ' 23:59:59'))
     return records

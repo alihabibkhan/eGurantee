@@ -44,24 +44,20 @@ def add_edit_occupation(occupation_id=None):
             current_timestamp = str(datetime.now())
 
             if occupation_id:
-                update_query = f"""
-                    UPDATE tbl_occupations 
-                    SET name = '{name}', status = '{str(1)}', 
-                        modified_by = '{current_user_id}', modified_date = '{current_timestamp}'
-                    WHERE occupation_id = '{occupation_id}'
+                update_query = """
+                    UPDATE tbl_occupations
+                    SET name = %s, status = '1', modified_by = %s, modified_date = %s
+                    WHERE occupation_id = %s
                 """
-                execute_command(update_query)
+                execute_command(update_query, params=(name, current_user_id, current_timestamp, occupation_id))
                 flash('Occupation updated successfully.', 'success')
             else:
-                insert_query = f"""
+                insert_query = """
                     INSERT INTO tbl_occupations (
                         name, status, created_by, created_date, modified_by, modified_date
-                    ) VALUES (
-                        '{name}', '{str(1)}', '{current_user_id}', '{current_timestamp}', 
-                        '{current_user_id}', '{current_timestamp}'
-                    )
+                    ) VALUES (%s, '1', %s, %s, %s, %s)
                 """
-                execute_command(insert_query)
+                execute_command(insert_query, params=(name, current_user_id, current_timestamp, current_user_id, current_timestamp))
                 flash('Occupation added successfully.', 'success')
 
             return redirect(url_for('manage_loan_metrics') + "#occupations")
@@ -86,12 +82,12 @@ def delete_occupation():
 
         occupation_id = request.args.get('occupation_id')
         if occupation_id:
-            delete_query = f"""
-                UPDATE tbl_occupations 
+            delete_query = """
+                UPDATE tbl_occupations
                 SET is_active = '0', status = '0'
-                WHERE occupation_id = '{occupation_id}'
+                WHERE occupation_id = %s
             """
-            execute_command(delete_query)
+            execute_command(delete_query, params=(occupation_id,))
             flash('Occupation deleted successfully.', 'success')
         else:
             flash('Invalid occupation ID.', 'danger')

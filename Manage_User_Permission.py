@@ -67,27 +67,29 @@ def add_user_permission():
 
         for user_id in user_ids:
             # Check if already exists
-            check_query = f"""
-                SELECT 1 FROM tbl_user_permissions 
-                WHERE user_id = {user_id} AND web_permission_id = {web_permission_id}
+            check_query = """
+                SELECT 1 FROM tbl_user_permissions
+                WHERE user_id = %s AND web_permission_id = %s
             """
-            if fetch_records(check_query):
+            if fetch_records(check_query, params=(user_id, web_permission_id)):
                 # Already exists → just activate it
-                query = f"""
-                    UPDATE tbl_user_permissions 
-                    SET status = 1, granted_by = {current_user_id}, granted_date = '{current_time}'
-                    WHERE user_id = {user_id} AND web_permission_id = {web_permission_id}
+                query = """
+                    UPDATE tbl_user_permissions
+                    SET status = 1, granted_by = %s, granted_date = %s
+                    WHERE user_id = %s AND web_permission_id = %s
                 """
+                params = (current_user_id, current_time, user_id, web_permission_id)
             else:
                 # Insert new
-                query = f"""
-                    INSERT INTO tbl_user_permissions 
+                query = """
+                    INSERT INTO tbl_user_permissions
                     (user_id, web_permission_id, granted_by, granted_date, status)
-                    VALUES ({user_id}, {web_permission_id}, {current_user_id}, '{current_time}', 1)
+                    VALUES (%s, %s, %s, %s, 1)
                 """
+                params = (user_id, web_permission_id, current_user_id, current_time)
 
             try:
-                execute_command(query)
+                execute_command(query, params=params)
                 success_count += 1
             except Exception as e:
                 print(f"Error assigning permission to user {user_id}: {str(e)}")
@@ -119,13 +121,13 @@ def revoke_user_permissions():
 
         success_count = 0
         for user_permission_id in user_permission_ids:
-            query = f"""
-                UPDATE tbl_user_permissions 
+            query = """
+                UPDATE tbl_user_permissions
                 SET status = 0
-                WHERE user_permission_id = {user_permission_id}
+                WHERE user_permission_id = %s
             """
             try:
-                execute_command(query)
+                execute_command(query, params=(user_permission_id,))
                 success_count += 1
             except Exception as e:
                 print(f"Error revoking permission {user_permission_id}: {str(e)}")

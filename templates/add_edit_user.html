@@ -6,276 +6,202 @@
     {% include 'head.html' %}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <style>
-        .card {
-            max-width: 1200px;
-            margin: 50px auto;
-            border: none;
-            border-radius: 12px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-        .card-header {
-            background-color: #fff;
-            border-bottom: 1px solid #dee2e6;
-            border-radius: 12px 12px 0 0;
-            text-align: center;
-            padding: 20px;
-        }
-        .card-body {
-            padding: 0;
-        }
-        .tab-content {
-            padding: 30px;
-            background-color: #fff;
-        }
-        .btn-dark {
-            background-color: #212529;
-            border-color: #212529;
-            padding: 10px 20px;
-            border-radius: 6px;
-            font-weight: bold;
-        }
-        .btn-dark:hover {
-            background-color: #343a40;
-            border-color: #343a40;
-        }
-
-        .btn-warning {
-            background-color: #ffc107;
-            border-color: #ffc107;
-            color: #212529;
-        }
-        .btn-warning:hover {
-            background-color: #e0a800;
-            border-color: #e0a800;
-        }
-        .btn-danger {
-            background-color: #dc3545;
-            border-color: #dc3545;
-        }
-        .btn-danger:hover {
-            background-color: #c82333;
-            border-color: #c82333;
-        }
-        .form-control, .form-select {
-            border-radius: 6px;
-        }
-        .input-group-text {
-            border-radius: 6px 0 0 6px;
-        }
-        .current-sign-img {
-            max-width: 150px;
-            border-radius: 6px;
-            margin-top: 10px;
-        }
-        .form-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-        .form-row .mb-3 {
-            flex: 1 1 45%;
-            min-width: 200px;
-        }
-        .nav-tabs .nav-link {
-            border-radius: 6px 6px 0 0;
-            font-weight: 500;
-        }
-        .nav-tabs .nav-link.active {
-            background-color: #fff;
-            border-color: #dee2e6 #dee2e6 #fff;
-        }
-        .table-responsive {
-            overflow-x: auto;
-        }
-        .table {
-            margin-bottom: 0;
-        }
-        .table th {
-            background-color: #f1f3f5;
-            color: #212529;
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 0.85rem;
-            padding: 15px;
-        }
-        .table td {
-            vertical-align: middle;
-            padding: 15px;
-            font-size: 0.95rem;
-            color: #343a40;
-        }
-        .table tr:hover {
-            background-color: #f8f9fa;
-        }
-        .btn-sm {
-            padding: 6px 12px;
-            font-size: 0.85rem;
-        }
+        .u-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 16px; overflow-x: auto; }
+        .u-tabs .nav-link { background: none; border: 0; border-bottom: 2px solid transparent; border-radius: 0; padding: 11px 12px;
+                            font-weight: 500; color: var(--ink-3); font-size: 13.5px; white-space: nowrap; }
+        .u-tabs .nav-link.active { color: var(--green-600); border-color: var(--green-600); font-weight: 600; background: none; }
+        .u-list { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow-1); padding: 16px 18px; margin-bottom: 2rem; }
+        .u-list .table th { background: var(--surface-2); color: var(--ink-3); font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: .5px; padding: 10px 14px; }
+        .u-list .table td { vertical-align: middle; padding: 11px 14px; font-size: 13px; color: var(--ink); }
+        .current-sign-img { max-width: 150px; border-radius: 6px; margin-top: 6px; border: 1px solid var(--line); background: #fff; }
+        .select2-container { width: 100% !important; }
+        .select2-container--default .select2-selection--multiple { border-color: var(--line); border-radius: 8px; min-height: 36px; background: var(--surface); }
+        .select2-container--default .select2-selection--multiple .select2-selection__choice { background: var(--green-50); border-color: var(--green-100); color: var(--ink); }
+        .select2-dropdown { background: var(--surface); color: var(--ink); border-color: var(--line); }
     </style>
 </head>
 <body>
     {% include 'navbar.html' %}
     {% import 'breadcrumbs.html' as brd %}
     {{ brd.render_Breadcrumbs([{"url": 'manage_users', "label": "Manage Volunteer"}, {"url": "", "label": 'Edit Volunteer ' + '(' + result.user.name + ')' if result.user_id else 'Add Volunteer' }]) }}
+    {% set u = result.user %}
 
-    <div class="container">
+    <div class="container mt-2">
         {% include 'message_box.html' %}
 
-        <div class="card">
-            <div class="card-body">
-                <ul class="nav nav-tabs nav-tabs-solid nav-justified" id="userTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="user-info-tab" data-bs-toggle="tab" data-bs-target="#user-info" type="button" role="tab" aria-controls="user-info" aria-selected="true">Volunteer Info</button>
-                    </li>
-                    {% if result.user_id %}
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="user-privileges-tab" data-bs-toggle="tab" data-bs-target="#user-privileges" type="button" role="tab" aria-controls="user-privileges" aria-selected="false">Volunteer Roles & Responsibilities</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="user-service-terms-tab" data-bs-toggle="tab" data-bs-target="#user-service-terms" type="button" role="tab" aria-controls="user-service-terms" aria-selected="false">Volunteer Service Terms</button>
-                    </li>
-                    {% endif %}
-                </ul>
-                <div class="tab-content" id="userTabsContent">
-                    <!-- User Info Tab -->
-                    <div class="tab-pane fade show active" id="user-info" role="tabpanel" aria-labelledby="user-info-tab">
-                        <form method="POST" action="{{ url_for('add_edit_user', user_id=result.user_id) if result.user_id else url_for('add_edit_user') }}" enctype="multipart/form-data">
-                            <div class="form-row">
-                                <div class="mb-3">
-                                    <label class="form-label">Name</label>
-                                    <input type="text" class="form-control" name="name" value="{{ result.user.name if result.user else '' }}" required>
+        <div class="kf-page-head">
+            <h1>{{ 'Edit volunteer' if result.user_id else 'Add volunteer' }}{% if result.user_id %} <span class="text-muted fw-normal" style="font-size:20px">· {{ u.name }}</span>{% endif %}</h1>
+            <p>Account, access rights and assigned branches of a KFT volunteer.</p>
+        </div>
+
+        <ul class="nav u-tabs" id="userTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="user-info-tab" data-bs-toggle="tab" data-bs-target="#user-info" type="button" role="tab" aria-controls="user-info" aria-selected="true">Volunteer info</button>
+            </li>
+            {% if result.user_id %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="user-privileges-tab" data-bs-toggle="tab" data-bs-target="#user-privileges" type="button" role="tab" aria-controls="user-privileges" aria-selected="false">Roles &amp; responsibilities</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="user-service-terms-tab" data-bs-toggle="tab" data-bs-target="#user-service-terms" type="button" role="tab" aria-controls="user-service-terms" aria-selected="false">Service terms</button>
+            </li>
+            {% endif %}
+        </ul>
+
+        <div class="tab-content" id="userTabsContent">
+            <!-- User Info Tab -->
+            <div class="tab-pane fade show active" id="user-info" role="tabpanel" aria-labelledby="user-info-tab">
+                <div class="kf-form-layout">
+                    <form method="POST" class="kf-card" action="{{ url_for('add_edit_user', user_id=result.user_id) if result.user_id else url_for('add_edit_user') }}" enctype="multipart/form-data">
+                        <div class="kf-sec">Personal details</div>
+                        <div class="kf-body">
+                            <div class="kf-grid">
+                                <div class="kf-field">
+                                    <label for="name">Name <span class="req">*</span></label>
+                                    <input type="text" class="form-control" id="name" name="name" value="{{ u.name if u else '' }}" required>
                                 </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Email</label>
+                                <div class="kf-field">
+                                    <label for="email">Email <span class="req">*</span></label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                                        <input type="email" class="form-control" name="email" value="{{ result.user.email if result.user else '' }}" required>
+                                        <input type="email" class="form-control" id="email" name="email" value="{{ u.email if u else '' }}" required>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="mb-3">
-                                    <label class="form-label">Rights</label>
-                                    <select class="form-select" name="rights" id="rights" required>
-                                        <option value="" disabled {{ 'selected' if not result.user else '' }}>[Select...]</option>
-                                        <option value="1" {{ 'selected' if result.user and result.user.rights == 1 else '' }}>Reviewer</option>
-                                        <option value="2" {{ 'selected' if result.user and result.user.rights == 2 else '' }}>Approver</option>
-                                        <option value="3" {{ 'selected' if result.user and result.user.rights == 3 else '' }}>Executive Approver</option>
-                                        <option value="5" {{ 'selected' if result.user and result.user.rights == 5 else '' }}>Executive</option>
-                                        <option value="4" {{ 'selected' if result.user and result.user.rights == 4 else '' }}>Administrator</option>
+                                <div class="kf-field">
+                                    <label for="gender">Gender</label>
+                                    <select class="form-select" id="gender" name="gender">
+                                        <option value="" {{ 'selected' if not u or not u.gender else '' }}>Select...</option>
+                                        <option value="Male" {{ 'selected' if u and u.gender == 'Male' else '' }}>Male</option>
+                                        <option value="Female" {{ 'selected' if u and u.gender == 'Female' else '' }}>Female</option>
+                                        <option value="Other" {{ 'selected' if u and u.gender == 'Other' else '' }}>Other</option>
                                     </select>
                                 </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Gender</label>
-                                    <select class="form-select" name="gender">
-                                        <option value="" {{ 'selected' if not result.user or not result.user.gender else '' }}>[Select...]</option>
-                                        <option value="Male" {{ 'selected' if result.user and result.user.gender == 'Male' else '' }}>Male</option>
-                                        <option value="Female" {{ 'selected' if result.user and result.user.gender == 'Female' else '' }}>Female</option>
-                                        <option value="Other" {{ 'selected' if result.user and result.user.gender == 'Other' else '' }}>Other</option>
-                                    </select>
+                                <div class="kf-field">
+                                    <label for="dob">Date of birth</label>
+                                    <input type="date" class="form-control" id="dob" name="dob" value="{{ u.dob if u else '' }}">
+                                </div>
+                                <div class="kf-field">
+                                    <label for="phone">Phone</label>
+                                    <input type="tel" class="form-control" id="phone" name="phone" value="{{ u.phone if u else '' }}" placeholder="e.g., +1234567890">
+                                </div>
+                                <div class="kf-field">
+                                    <label for="country_of_residence">Country of residence</label>
+                                    <input type="text" class="form-control" id="country_of_residence" name="country_of_residence" value="{{ u.country_of_residence if u else '' }}">
                                 </div>
                             </div>
-                            <div class="form-row">
-                                <div class="mb-3">
-                                    <label class="form-label">Date of Birth</label>
-                                    <input type="date" class="form-control" name="dob" value="{{ result.user.dob if result.user else '' }}">
+                        </div>
+
+                        <div class="kf-sec">Volunteering</div>
+                        <div class="kf-body">
+                            <div class="kf-grid">
+                                <div class="kf-field">
+                                    <label for="volunteer_id">Volunteer ID</label>
+                                    <input type="text" class="form-control" id="volunteer_id" name="volunteer_id" value="{{ u.volunteer_id if u else 'Auto-generated' }}" readonly>
                                 </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Phone</label>
-                                    <input type="tel" class="form-control" name="phone" value="{{ result.user.phone if result.user else '' }}" placeholder="e.g., +1234567890">
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="mb-3">
-                                    <label class="form-label">Country of Residence</label>
-                                    <input type="text" class="form-control" name="country_of_residence" value="{{ result.user.country_of_residence if result.user else '' }}">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Date of Joining</label>
-                                    <input type="date" class="form-control" name="date_of_joining" value="{{ result.user.date_of_joining if result.user else '' }}">
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="mb-3">
-                                    <label class="form-label">Orientation Completed On</label>
-                                    <input type="date" class="form-control" name="orientation_completed_on" value="{{ result.user.orientation_completed_on if result.user else '' }}">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Manager</label>
+                                <div class="kf-field">
+                                    <label for="manager_id">Manager</label>
                                     <select class="form-select" name="manager_id" id="manager_id">
-                                        <option value="" {{ 'selected' if not result.user or not result.user.manager_id else '' }}>[Select...]</option>
+                                        <option value="" {{ 'selected' if not u or not u.manager_id else '' }}>Select...</option>
                                         {% for user in result.get_all_user_data %}
                                             {% if user['user_id'] != result.user_id %}
-                                                <option value="{{ user['volunteer_id'] }}" {{ 'selected' if result.user and result.user.manager_id|int == user['volunteer_id']|int else '' }}>{{ user['volunteer_id'] }} - {{ user['name'] }}</option>
+                                                <option value="{{ user['volunteer_id'] }}" {{ 'selected' if u and u.manager_id|int == user['volunteer_id']|int else '' }}>{{ user['volunteer_id'] }} - {{ user['name'] }}</option>
                                             {% endif %}
                                         {% endfor %}
                                     </select>
                                 </div>
+                                <div class="kf-field">
+                                    <label for="date_of_joining">Date of joining</label>
+                                    <input type="date" class="form-control" id="date_of_joining" name="date_of_joining" value="{{ u.date_of_joining if u else '' }}">
+                                </div>
+                                <div class="kf-field">
+                                    <label for="orientation_completed_on">Orientation completed on</label>
+                                    <input type="date" class="form-control" id="orientation_completed_on" name="orientation_completed_on" value="{{ u.orientation_completed_on if u else '' }}">
+                                </div>
+                                <div class="kf-field">
+                                    <label for="ddl_active">Active <span class="req">*</span></label>
+                                    <select class="form-select" name="active" id="ddl_active" required>
+                                        <option value="1" {{ 'selected' if u and u.active == 1 else '' }}>Yes</option>
+                                        <option value="0" {{ 'selected' if u and u.active == 0 else '' }}>No</option>
+                                        <option value="2" {{ 'selected' if u and u.active == 2 else '' }}>On Leave</option>
+                                    </select>
+                                </div>
+                                <div class="kf-field div-dor-and-reason {{ 'd-none' if u and u.active == '1' else '' }}">
+                                    <label for="date_of_retirement">Date of retirement</label>
+                                    <input type="date" class="form-control" id="date_of_retirement" name="date_of_retirement" value="{{ u.date_of_retirement or '' }}" {{ 'required' if u and u.active == '0' else '' }}>
+                                </div>
+                                <div class="kf-field full div-dor-and-reason {{ 'd-none' if u and u.active == '1' else '' }}">
+                                    <label for="reason">Reason</label>
+                                    <textarea class="form-control" id="reason" name="reason" rows="2" {{ 'required' if u and u.active == '0' else '' }}>{{ u.reason or '' }}</textarea>
+                                </div>
                             </div>
-                            <div class="form-row">
-                                <div class="mb-3">
-                                    <label class="form-label">Assigned Branch Role</label>
-                                    <select class="form-select" name="assigned_branch" multiple>
+                        </div>
+
+                        <div class="kf-sec">Access</div>
+                        <div class="kf-body">
+                            <div class="kf-grid">
+                                <div class="kf-field">
+                                    <label for="rights">Rights <span class="req">*</span></label>
+                                    <select class="form-select" name="rights" id="rights" required>
+                                        <option value="" disabled {{ 'selected' if not u else '' }}>Select...</option>
+                                        <option value="1" {{ 'selected' if u and u.rights == 1 else '' }}>Reviewer</option>
+                                        <option value="2" {{ 'selected' if u and u.rights == 2 else '' }}>Approver</option>
+                                        <option value="3" {{ 'selected' if u and u.rights == 3 else '' }}>Executive Approver</option>
+                                        <option value="5" {{ 'selected' if u and u.rights == 5 else '' }}>Executive</option>
+                                        <option value="4" {{ 'selected' if u and u.rights == 4 else '' }}>Administrator</option>
+                                    </select>
+                                </div>
+                                <div class="kf-field">
+                                    <label for="assigned_branch">Assigned branch roles</label>
+                                    <select class="form-select" id="assigned_branch" name="assigned_branch" multiple>
                                         {% for role in result.get_all_branch_roles %}
                                             <option value="{{ role['branch_role_id'] }}"
-                                                {% if result.user and role['branch_role_id']|string in (result.user.assigned_branch or [])|map('string') %}
+                                                {% if u and role['branch_role_id']|string in (u.assigned_branch or [])|map('string') %}
                                                     selected
                                                 {% endif %}
                                             >{{ role['branch_role_name'] }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Volunteer ID</label>
-                                    <input type="text" class="form-control" name="volunteer_id" value="{{ result.user.volunteer_id if result.user else 'Auto-generated' }}" readonly>
+                                <div class="kf-switch-row full">
+                                    <div><div class="t">Signature</div><div class="d">This volunteer signs approval letters with the scanned signature below.</div></div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="signature" name="signature" value="1"
+                                               {{ 'checked' if not u or u.signature|string != '0' }} aria-label="Signature">
+                                        <input type="hidden" name="signature" value="0">
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="mb-3">
-                                    <label class="form-label">Signature</label>
-                                    <select class="form-select" name="signature" required>
-                                        <option value="1" {{ 'selected' if result.user and result.user.signature|string == '1' else '' }}>Yes</option>
-                                        <option value="0" {{ 'selected' if result.user and result.user.signature|string == '0'  else '' }}>No</option>
-
-                                    </select>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Scan Sign</label>
-                                    <input type="file" class="form-control" name="scan_sign" accept="image/*">
-                                    {% if result.user and result.user.scan_sign %}
-                                        <small class="form-text text-muted">Current signature:</small><br>
+                                <div class="kf-field full">
+                                    <label for="scan_sign">Scanned signature</label>
+                                    <input type="file" class="form-control" id="scan_sign" name="scan_sign" accept="image/*">
+                                    {% if u and u.scan_sign %}
+                                        <span class="hint">Current signature:</span>
                                         <img src="{{ url_for('get_user_signature', user_id=result.user_id) }}" alt="Current Signature" class="current-sign-img">
                                     {% endif %}
                                 </div>
                             </div>
-                            <div class="form-row">
-                                <div class="mb-3">
-                                    <label class="form-label">Active</label>
-                                    <select class="form-select" name="active" id="ddl_active" required>
-                                        <option value="1" {{ 'selected' if result.user and result.user.active == 1 else '' }}>Yes</option>
-                                        <option value="0" {{ 'selected' if result.user and result.user.active == 0 else '' }}>No</option>
-                                        <option value="2" {{ 'selected' if result.user and result.user.active == 2 else '' }}>On Leave</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="form-row div-dor-and-reason {{ 'd-none' if result.user and result.user.active == '1' else '' }}">
-                                <div class="mb-3">
-                                    <label class="form-label">Date of Retirement</label>
-                                    <input type="date" class="form-control" id="date_of_retirement" name="date_of_retirement" value="{{ result.user.date_of_retirement or '' }}" {{ 'required' if result.user and result.user.active == '0' else '' }}>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Reason</label>
-                                    <textarea class="form-control" id="reason" name="reason" {{ 'required' if result.user and result.user.active == '0' else '' }}>{{ result.user.reason or '' }}</textarea>
-                                </div>
-                            </div>
-                            <div class="d-grid">
-                                <button type="submit" class="btn btn-dark">{{ 'Update User' if result.user_id else 'Add User' }}</button>
-                            </div>
-                        </form>
-                    </div>
+                        </div>
+
+                        <div class="kf-foot">
+                            <a href="{{ url_for('manage_users') }}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">{{ 'Update volunteer' if result.user_id else 'Save volunteer' }}</button>
+                        </div>
+                    </form>
+
+                    <aside class="kf-card kf-help">
+                        <h4>Rights</h4>
+                        <ul>
+                            <li><b>Reviewer</b> and <b>Approver</b> work on applications of their assigned branch roles.</li>
+                            <li><b>Executive</b> sees applications awaiting executive approval for their assigned branches.</li>
+                            <li><b>Administrator</b> has access to everything.</li>
+                        </ul>
+                        <h4>Leaving</h4>
+                        <p>When Active is set to No or On Leave, enter the date and the reason.</p>
+                    </aside>
+                </div>
+            </div>
                     <!-- User Roles & Responsibilities Tab -->
                     {% if result.user_id %}
-                    <div class="tab-pane fade" id="user-privileges" role="tabpanel" aria-labelledby="user-privileges-tab">
+                    <div class="tab-pane fade u-list" id="user-privileges" role="tabpanel" aria-labelledby="user-privileges-tab">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="mb-0">User Roles & Responsibilities</h5>
                             <a href="{{ url_for('add_edit_user_privilege', user_id=result.user_id) }}" class="btn btn-primary">Add New User Privilege</a>
@@ -321,7 +247,7 @@
                         </div>
                     </div>
                     <!-- User Service Terms Tab -->
-                    <div class="tab-pane fade" id="user-service-terms" role="tabpanel" aria-labelledby="user-service-terms-tab">
+                    <div class="tab-pane fade u-list" id="user-service-terms" role="tabpanel" aria-labelledby="user-service-terms-tab">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="mb-0">User Service Terms</h5>
                             <a href="{{ url_for('add_edit_user_service_term', user_id=result.user_id) }}" class="btn btn-primary">Add New User Service Term</a>
@@ -367,8 +293,6 @@
                         </div>
                     </div>
                     {% endif %}
-                </div>
-            </div>
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>

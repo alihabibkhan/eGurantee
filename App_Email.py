@@ -7,6 +7,8 @@ def send_email():
     try:
         # if not is_login() and not (is_admin() or is_executive_approver() or is_approver()):
         #     return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        if not is_login():
+            return jsonify({'success': False, 'error': 'Unauthorized'}), 401
         data = request.get_json()
         pre_disb_temp_id = data.get('app_no')
         recipient_email = data.get('recipient_email')
@@ -18,27 +20,29 @@ def send_email():
         if str(session.get('rights')) in ['1', '2'] and requires_executive_approval(pre_disb_temp_id):
             return jsonify({'success': False, 'error': 'This product requires Executive approval before the email can be sent'}), 403
 
-        query = f"""
+        # Values are passed as parameters (never pasted into the SQL) to prevent SQL injection;
+        # literal % is written %% in a parameterized query.
+        query = """
             SELECT DISTINCT "Borrower_Name", "Application_No", "Loan_Amount", "ApplicationDate", 
             "Father_Husband_Name", "CNIC", "approved_date", 
             KFT_Approved_Loan_Limit, "Collage_Univeristy", "Student_Name", "LoanProductCode", b.branch_name, b.branch_manager
             FROM tbl_pre_disbursement_temp
-            LEFT JOIN tbl_branches b on "Branch_Name" LIKE CONCAT('%', b."branch_code", '%') AND b."live_branch" = '1'
-            WHERE "pre_disb_temp_id" = '{str(pre_disb_temp_id)}' AND "status" IN ('2', '9')
+            LEFT JOIN tbl_branches b on "Branch_Name" LIKE CONCAT('%%', b."branch_code", '%%') AND b."live_branch" = '1'
+            WHERE CAST("pre_disb_temp_id" AS VARCHAR) = %s AND "status" IN ('2', '9')
         """
-        record = fetch_records(query)
+        record = fetch_records(query, params=(str(pre_disb_temp_id),))
 
         print(record)
 
         if not record:
             return jsonify({'success': False, 'error': 'Approved record not found'}), 404
 
-        query = f"""
+        query = """
                     UPDATE tbl_pre_disbursement_temp
                     SET email_status = 2
-                    WHERE pre_disb_temp_id = '{str(pre_disb_temp_id)}';
+                    WHERE CAST(pre_disb_temp_id AS VARCHAR) = %s;
                 """
-        execute_command(query, is_print=True)
+        execute_command(query, is_print=True, params=(str(pre_disb_temp_id),))
 
         # Convert image to base64
         image_path = os.path.join(application.root_path, 'static', 'images', 'hbl_logo-removebg-preview.png')
@@ -46,20 +50,15 @@ def send_email():
             base64_image = base64.b64encode(image_file.read()).decode('utf-8')
         logo_base64 = f'data:image/png;base64,{base64_image}'
 
-        sql_part = ''
-
-        if not user_id:
-            sql_part = f" AND u.user_id = '{get_current_user_id()}'"
-        else:
-            sql_part = f" AND u.user_id = '{str(user_id)}'"
+        sign_user_id = str(user_id) if user_id else str(get_current_user_id())
 
         # Convert User sign to base64
-        query = f"""
+        query = """
                     SELECT u.name, u.email, u.signature, u.scan_sign 
                     FROM tbl_users u 
-                    WHERE u.active = '1' {sql_part}
+                    WHERE u.active = '1' AND CAST(u.user_id AS VARCHAR) = %s
                 """
-        user = fetch_records(query)
+        user = fetch_records(query, params=(sign_user_id,))
 
         # Convert scan_sign BLOB to base64 for display if it exists
         sign_base64 = None

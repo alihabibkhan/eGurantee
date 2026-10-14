@@ -5,148 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Awaiting Services</title>
     {% include 'head.html' %}
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
-        body {
-            background-color: #f8f9fa;
-        }
-        .table-responsive {
-            margin-bottom: 1rem;
-        }
-        .pagination .page-item.active .page-link {
-            background-color: #0d9488;
-            border-color: #0d9488;
-        }
-        .pagination .page-item.disabled .page-link {
-            cursor: not-allowed;
-            opacity: 0.65;
-        }
-        .modal-body .row {
-            margin-bottom: 0.5rem;
-        }
-        .modal-body label {
-            font-weight: bold;
-            color: #1e3a8a;
-        }
-        .group-heading {
-            margin-top: 1rem;
-            margin-bottom: 0.5rem;
-        }
-        .table-sm textarea {
-            width: 100%;
-        }
-        .letter-iframe {
-            width: 100%;
-            height: 700px;
-            border: none;
-            display: block;
-        }
-        .letter-iframe.loading {
-            background: #f8f9fa url('data:image/svg+xml,%3csvg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"%3e%3cpath opacity=".5" fill="%231e3a8a" d="M20 3.333A16.667 16.667 0 1036.667 20 16.68 16.68 0 0020 3.333zm0 30A13.333 13.333 0 1133.333 20 13.34 13.34 0 0120 33.333z"/%3e%3cpath fill="%231e3a8a" d="M26.667 12.667h-4l-6 10h4z"/%3e%3c/svg%3e') no-repeat center;
-        }
-        .letter-error, #ongoing-error {
-            color: #dc3545;
-            text-align: center;
-            padding: 20px;
-        }
-        .action-buttons .btn {
-            margin-right: 0.25rem;
-        }
-        #emailModal .form-group {
-            margin-bottom: 1rem;
-        }
-        .card {
-            margin-top: 1rem;
-            background-color: #ffffff;
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-        }
-        .card-header {
-            background-color: #1e3a8a;
-            color: #ffffff;
-        }
-        .modal-content {
-            background-color: #ffffff;
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-        }
-        .modal-header {
-            background-color: #1e3a8a;
-            color: #ffffff;
-        }
-        .modal-title, .card-header h5 {
-            color: #ffffff;
-        }
-        .badge-approved {
-            background-color: #34d399;
-            color: #ffffff;
-            margin-left: 5px;
-        }
-        .badge-rejected {
-            background-color: #dc3545;
-            color: #ffffff;
-            margin-left: 5px;
-        }
-        .table-light {
-            background-color: #f8f9fa;
-        }
-        .table tbody tr:nth-child(odd) {
-            background-color: #e6fff7;
-        }
-        .table tbody tr:nth-child(even) {
-            background-color: #ffffff;
-        }
-        .btn-primary {
-            background-color: #0d9488;
-            border-color: #0d9488;
-            color: white;
-        }
-        .btn-primary:hover {
-            background-color: #0b8278;
-            border-color: #0b8278;
-        }
-        .btn-secondary {
-            background-color: #6c757d;
-            border-color: #6c757d;
-        }
-        .btn-secondary:hover {
-            background-color: #5a6268;
-            border-color: #5a6268;
-        }
-        .btn-info {
-            background-color: #2bcdc3;
-            border-color: #2bcdc3;
-        }
-        .btn-info:hover {
-            background-color: #26b7ae;
-            border-color: #26b7ae;
-        }
-        .btn-success {
-            background-color: #34d399;
-            border-color: #34d399;
-        }
-        .btn-success:hover {
-            background-color: #2ab88a;
-            border-color: #2ab88a;
-        }
-        .form-control, .form-select {
-            border-color: #1e3a8a;
-            color: #1e3a8a;
-        }
-        .form-control:focus, .form-select:focus {
-            border-color: #0d9488;
-            box-shadow: 0 0 0 0.2rem rgba(13, 148, 136, 0.25);
-        }
-        .bi, .fas {
-            color: #1e3a8a;
-        }
-        h1.text-muted {
-            color: #1e3a8a !important;
-        }
-        .bucket-row { font-weight: bold; }
-        .sub-row { padding-left: 20px; }
-        .reviewer-enterprise { background-color: #ffe6cc; }
-        .reviewer-student { background-color: #cceeff; }
-        .approver-enterprise { background-color: #e6e6fa; }
-        .approver-student { background-color: #ffcccc; }
-        .total { background-color: #f2e6ff; font-weight: bold; }
+        .aw-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+        .aw-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 14px; margin-bottom: 14px; }
+        .aw-bar .form-select { width: auto; min-width: 160px; }
+        .aw-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+        .aw-seg button { border: 0; background: transparent; color: var(--ink-2); font-size: 13px; padding: 6px 12px; white-space: nowrap; }
+        .aw-seg button + button { border-left: 1px solid var(--line); }
+        .aw-seg button.on { background: var(--c1); color: #fff; font-weight: 600; }
+        [data-theme="dark"] .aw-seg button.on { color: #0E1411; }
+        .aw-sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+        .aw-box { background: var(--surface); border: 1px solid var(--line); border-top: 3px solid var(--sc); border-radius: 10px; box-shadow: var(--shadow-1); padding: 14px 16px 8px; }
+        .aw-box.pending { --sc: var(--gold-600); } .aw-box.agreed { --sc: var(--ok); } .aw-box.disagreed { --sc: var(--bad); }
+        .aw-box-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; cursor: pointer; }
+        .aw-box-head .l { font-size: 11px; font-weight: 700; color: var(--ink-3); text-transform: uppercase; letter-spacing: .5px; }
+        .aw-box-head .v { font-size: 30px; font-weight: 700; letter-spacing: -.5px; font-variant-numeric: tabular-nums; line-height: 1.1; color: var(--ink); }
+        .aw-box-head .p { font-size: 11.5px; color: var(--ink-3); }
+        .aw-box-head:hover .v { color: var(--green-600); }
+        .aw-rows { margin-top: 8px; border-top: 1px solid var(--line-2); }
+        .aw-row { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 0; border: 0; border-bottom: 1px solid var(--line-2); background: none; font: inherit; color: var(--ink-2); font-size: 13px; text-align: left; }
+        .aw-row:last-child { border-bottom: 0; }
+        .aw-row:hover { color: var(--green-700); }
+        .aw-row:hover .n { text-decoration: underline; }
+        .aw-row .t { flex: 1; min-width: 0; }
+        .aw-row .x { font-size: 11px; color: var(--gold-600); font-weight: 600; white-space: nowrap; }
+        .aw-row .n { font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; min-width: 34px; text-align: right; }
+        .aw-tbl td.c { cursor: pointer; }
+        .aw-tbl td.c:hover { color: var(--green-700); text-decoration: underline; }
+        .aw-tbl td.z { color: var(--ink-3); }
+        .aw-tbl td.tot, .aw-tbl th.tot { font-weight: 700; }
+        .aw-tbl tfoot td { font-weight: 700; }
+        .aw-tbl tr.grp td:first-child { font-weight: 600; cursor: pointer; }
+        .aw-tbl tr.br td { font-size: 12.5px; background: var(--surface-2); }
+        .aw-tbl tr.br td:first-child { padding-left: 36px; color: var(--ink-2); }
+        .aw-tbl .car { display: inline-block; width: 16px; color: var(--ink-3); transition: transform .15s; }
+        .aw-tbl tr.open .car { transform: rotate(90deg); }
+        .aw-tbl .old { font-size: 11px; font-weight: 600; margin-left: 6px; }
+        .aw-tbl .old.a2 { color: var(--warn); } .aw-tbl .old.a3 { color: var(--bad); }
+        .aw-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--sc); margin-right: 6px; }
+        .aw-state { text-align: center; padding: 40px 12px !important; color: var(--ink-3); }
+        #aw-drawer { --bs-offcanvas-width: min(560px, 100vw); background: var(--surface); color: var(--ink); }
+        #aw-drawer .offcanvas-header { border-bottom: 1px solid var(--line); align-items: flex-start; }
+        #aw-drawer .offcanvas-header p { font-size: 12.5px; color: var(--ink-3); margin: 0; }
+        #aw-drawer .offcanvas-body { padding: 0; }
+        #aw-drawer .aw-dsearch { padding: 12px 20px; border-bottom: 1px solid var(--line-2); }
+        #aw-drawer .aw-foot { padding: 12px 20px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; background: var(--surface-2); }
+        .aw-item { padding: 12px 20px; border-bottom: 1px solid var(--line-2); display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; font-size: 13px; }
+        .aw-item .a { font-weight: 600; color: var(--ink); }
+        .aw-item .b { color: var(--ink-3); font-size: 12px; }
+        .aw-item .r { text-align: right; white-space: nowrap; }
+        .aw-item .s { grid-column: 1 / -1; margin-top: 4px; display: flex; gap: 6px; flex-wrap: wrap; }
+        .aw-item.mine { box-shadow: inset 3px 0 0 var(--gold-600); }
+        .aw-age { font-weight: 700; font-variant-numeric: tabular-nums; }
+        .aw-age.a2 { color: var(--warn); } .aw-age.a3 { color: var(--bad); }
+        .aw-more { padding: 14px 20px; text-align: center; color: var(--ink-3); }
+        @media (max-width: 900px) { .aw-sum { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
@@ -155,165 +69,274 @@
     {% import 'breadcrumbs.html' as brd %}
     {{ brd.render_Breadcrumbs([{"url": 'awaiting_service', "label": 'Awaiting Services'}]) }}
 
-    <div class="mt-3">{% include 'message_box.html' %}</div>
-    <div class="container py-4">
-        <h1 class="mb-3 text-muted">Awaiting Services</h1>
+    <div class="container mt-2">
+        {% include 'message_box.html' %}
 
-        <!-- Data Table Card for Pending Applications -->
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Pending Applications</h5>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover">
-                        <thead class="table-light">
-                            <tr>
-                                <th>NC Distribution</th>
-                                {% for dist in distributions %}
-                                <th>{{ dist }}</th>
-                                {% endfor %}
-                                <th>Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Reviewer Bucket -->
-                            <tr class="bucket-row">
-                                <td>Reviewer Bucket</td>
-                                <td colspan="{{ distributions|length + 1 }}"></td>
-                            </tr>
-                            <tr class="sub-row reviewer-enterprise">
-                                <td>Enterprise</td>
-                                {% for dist in distributions %}
-                                <td>{{ data_pending.get((dist, 'Enterprise', 'Reviewer'), 0) }}</td>
-                                {% endfor %}
-                                <td class="total">
-                                    {% set ns = namespace(total=0) %}
-                                    {% for dist in distributions %}
-                                        {% set  ns.total =  ns.total + data_pending.get((dist, 'Enterprise', 'Reviewer'), 0) %}
-                                    {% endfor %}
-                                    {{  ns.total }}
-                                </td>
-                            </tr>
-                            <tr class="sub-row reviewer-student">
-                                <td>Student</td>
-                                {% for dist in distributions %}
-                                <td>{{ data_pending.get((dist, 'Student', 'Reviewer'), 0) }}</td>
-                                {% endfor %}
-                                <td class="total">
-                                    {% set ns = namespace(total=0) %}
-                                    {% for dist in distributions %}
-                                        {% set  ns.total =  ns.total + data_pending.get((dist, 'Student', 'Reviewer'), 0) %}
-                                    {% endfor %}
-                                    {{  ns.total }}
-                                </td>
-                            </tr>
-                            <!-- Approver Bucket -->
-                            <tr class="bucket-row">
-                                <td>Approver Bucket</td>
-                                <td colspan="{{ distributions|length + 1 }}"></td>
-                            </tr>
-                            <tr class="sub-row approver-enterprise">
-                                <td>Enterprise</td>
-                                {% for dist in distributions %}
-                                <td>{{ data_pending.get((dist, 'Enterprise', 'Approver'), 0) }}</td>
-                                {% endfor %}
-                                <td class="total">
-                                    {% set ns = namespace(total=0) %}
-                                    {% for dist in distributions %}
-                                        {% set  ns.total =  ns.total + data_pending.get((dist, 'Enterprise', 'Approver'), 0) %}
-                                    {% endfor %}
-                                    {{  ns.total }}
-                                </td>
-                            </tr>
-                            <tr class="sub-row approver-student">
-                                <td>Student</td>
-                                {% for dist in distributions %}
-                                <td>{{ data_pending.get((dist, 'Student', 'Approver'), 0) }}</td>
-                                {% endfor %}
-                                <td class="total">
-                                    {% set ns = namespace(total=0) %}
-                                    {% for dist in distributions %}
-                                        {% set ns.total =  ns.total + data_pending.get((dist, 'Student', 'Approver'), 0) %}
-                                    {% endfor %}
-                                    {{  ns.total }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        <div class="kf-page-head aw-head">
+            <div><h1>Awaiting services</h1></div>
+            <button type="button" class="btn btn-secondary" id="aw-export" title="Export all applications in the current filters"><i class="bi bi-download me-1"></i>Export</button>
         </div>
 
-        <!-- Data Table Card for Agreed Cases -->
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"># of Agreed Cases this Month</h5>
+        <div class="kf-card aw-bar">
+            <select class="form-select" id="aw-prod" aria-label="Product"><option value="">All products</option></select>
+            <select class="form-select" id="aw-nc" aria-label="National council"><option value="">All councils</option></select>
+            <select class="form-select" id="aw-br" aria-label="Branch"><option value="">All branches</option></select>
+            <div class="aw-seg" id="aw-exc" role="group" aria-label="Exception">
+                <button type="button" class="on" data-v="">All</button><button type="button" data-v="1">With exception</button><button type="button" data-v="0">Without</button>
             </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover">
-                        <thead class="table-light">
-                            <tr>
-                                {% for dist in distributions %}
-                                <th>{{ dist }}</th>
-                                {% endfor %}
-                                <th>Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                {% for dist in distributions %}
-                                <td>{{ data_agreed.get((dist,), 0) }}</td>
-                                {% endfor %}
-                                <td class="total">
-                                    {% set ns = namespace(total=0) %}
-                                        {% for dist in distributions %}
-                                            {% set ns.total = ns.total + data_agreed.get((dist,), 0) %}
-                                        {% endfor %}
-                                    {{ ns.total }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            <span class="flex-grow-1"></span>
+            <select class="form-select" id="aw-period" title="Applies to Agreed and Disagreed" aria-label="Decision period">
+                <option value="m">Decided this month</option><option value="lm">Decided last month</option><option value="q">Decided this quarter</option><option value="y">Decided this year</option><option value="all">Decided any time</option>
+            </select>
+            <button type="button" class="btn btn-link" id="aw-reset">Reset</button>
         </div>
 
-        <!-- Data Table Card for Rejected Cases -->
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"># of Disagreed Cases this Month</h5>
+        <div class="aw-sum" id="aw-sum"></div>
+
+        <div class="dg aw-tbl mb-4">
+            <div class="dg-toolbar">
+                <b style="font-size:14px">Breakdown</b>
+                <span style="font-size:12px;color:var(--ink-3)">Click any number to see the applications</span>
+                <span class="flex-grow-1"></span>
+                <div class="aw-seg" id="aw-group"><button type="button" class="on" data-g="nc">By national council</button><button type="button" data-g="prod">By product</button></div>
             </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover">
-                        <thead class="table-light">
-                            <tr>
-                                {% for dist in distributions %}
-                                <th>{{ dist }}</th>
-                                {% endfor %}
-                                <th>Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                {% for dist in distributions %}
-                                <td>{{ data_rejected.get((dist,), 0) }}</td>
-                                {% endfor %}
-                                <td class="total">
-                                    {% set ns = namespace(total=0) %}
-                                    {% for dist in distributions %}
-                                        {% set ns.total = ns.total + data_rejected.get((dist,), 0) %}
-                                    {% endfor %}
-                                    {{ ns.total }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            <div class="dg-scroll" style="max-height:none"><table class="dgt" id="aw-tbl"><thead></thead><tbody><tr><td class="aw-state">Loading…</td></tr></tbody><tfoot></tfoot></table></div>
         </div>
     </div>
+
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="aw-drawer" aria-labelledby="aw-d-title">
+        <div class="offcanvas-header">
+            <div><h5 class="offcanvas-title mb-0" id="aw-d-title">Applications</h5><p id="aw-d-sub"></p></div>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="aw-dsearch"><div class="dg-search" style="max-width:none"><i class="bi bi-search"></i><input class="form-control" id="aw-q" placeholder="Search application no, borrower or CNIC"></div></div>
+        <div class="offcanvas-body" id="aw-d-list"></div>
+        <div class="aw-foot"><button type="button" class="btn btn-secondary btn-sm" id="aw-d-export"><i class="bi bi-download me-1"></i>Export these</button></div>
+    </div>
+
+    <script>
+    (function () {
+        const MINE = {{ viewer.mine | tojson }};
+        const DAY = 864e5;
+        // 'X' = a final decision held for executive approval (exec_approval_pending = 1)
+        const ST = {
+            '1':  { label: 'Under review', stage: 'pending', exc: 0, pill: 'info' },
+            '5':  { label: 'Recommended for agreement', stage: 'pending', exc: 0, pill: 'ok' },
+            '7':  { label: 'Recommended for agreement', stage: 'pending', exc: 1, pill: 'ok' },
+            '6':  { label: 'Recommended for disagreement', stage: 'pending', exc: 0, pill: 'bad' },
+            '8':  { label: 'Recommended for disagreement', stage: 'pending', exc: 1, pill: 'bad' },
+            'X':  { label: 'Waiting executive approval', stage: 'pending', exc: null, pill: 'warn' },
+            '2':  { label: 'Agreed', stage: 'agreed', exc: 0, pill: 'ok' },
+            '9':  { label: 'Agreed', stage: 'agreed', exc: 1, pill: 'ok' },
+            '3':  { label: 'Disagreed', stage: 'disagreed', exc: 0, pill: 'bad' },
+            '10': { label: 'Disagreed', stage: 'disagreed', exc: 1, pill: 'bad' },
+        };
+        // Summary card lines (with / without exception combined for pending; the exception share is a note)
+        const LINES = {
+            pending: [['Under review', ['1']], ['Recommended for agreement', ['5', '7']], ['Recommended for disagreement', ['6', '8']], ['Waiting executive approval', ['X']]],
+            agreed: [['Without exception', ['2']], ['With exception', ['9']]],
+            disagreed: [['Without exception', ['3']], ['With exception', ['10']]],
+        };
+        const STAGES = ['pending', 'agreed', 'disagreed'];
+        const STAGE_NAME = { pending: 'Pending', agreed: 'Agreed', disagreed: 'Disagreed' };
+        const PERIOD_NAME = { m: 'this month', lm: 'last month', q: 'this quarter', y: 'this year', all: 'any time' };
+        const state = { prod: '', nc: '', br: '', exc: '', period: 'm', group: 'nc', open: {}, drawer: null, q: '', limit: 40 };
+        let ROWS = [], TODAY = new Date();
+
+        const $ = (id) => document.getElementById(id);
+        const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const fmtN = (n) => Number(n).toLocaleString('en-US');
+        const fmtD = (d) => d ? d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '–';
+        const isoD = (d) => d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` : '';
+        const toDate = (s) => s ? new Date(s) : null;
+        const fmtCnic = (c) => { const d = String(c || '').replace(/\D/g, ''); return d.length === 13 ? `${d.slice(0, 5)}-${d.slice(5, 12)}-${d.slice(12)}` : (c || ''); };
+        const ageCls = (a) => a > 14 ? 'a3' : a > 7 ? 'a2' : '';
+        const uniq = (arr) => [...new Set(arr)].sort((a, b) => a.localeCompare(b));
+        const stage = (r) => ST[r.code].stage;
+        const statusText = (r) => r.code === 'X'
+            ? `Waiting executive approval (${ST[r.status].label}${r.exc ? ' with exception' : ''})`
+            : ST[r.code].label + (r.exc ? ' (with exception)' : '');
+
+        function prepare(r) {
+            const code = r.exec_pending ? 'X' : r.status;
+            const decided = toDate(r.decision_date), reviewed = toDate(r.reviewed_date), uploaded = toDate(r.uploaded_date);
+            // waiting since = when the application reached its current stage
+            const since = code === '1' ? uploaded : code === 'X' ? (decided || reviewed || uploaded) : (reviewed || uploaded);
+            return Object.assign(r, {
+                code, exc: ['7', '8', '9', '10'].includes(r.status) ? 1 : 0, decided, uploaded, since,
+                wait: since ? Math.max(0, Math.floor((TODAY - since) / DAY)) : null,
+                mine: MINE.includes(code),
+                text: [r.app_no, r.borrower, r.cnic, fmtCnic(r.cnic)].join(' ').toLowerCase(),
+            });
+        }
+
+        function inPeriod(d) {
+            if (state.period === 'all') return true;
+            if (!d) return false;
+            const y = TODAY.getFullYear(), m = TODAY.getMonth();
+            if (state.period === 'm') return d.getFullYear() === y && d.getMonth() === m;
+            if (state.period === 'lm') { const p = new Date(y, m - 1, 1); return d.getFullYear() === p.getFullYear() && d.getMonth() === p.getMonth(); }
+            if (state.period === 'q') return d.getFullYear() === y && Math.floor(d.getMonth() / 3) === Math.floor(m / 3);
+            return d.getFullYear() === y;
+        }
+        function filtered() {
+            return ROWS.filter((r) => (!state.prod || r.product === state.prod) && (!state.nc || r.council === state.nc)
+                && (!state.br || r.branch === state.br) && (state.exc === '' || String(r.exc) === state.exc)
+                && (stage(r) === 'pending' || inPeriod(r.decided)));
+        }
+        function fillSelect(sel, values, first) {
+            const cur = sel.value;
+            sel.innerHTML = `<option value="">${first}</option>` + values.map((v) => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
+            sel.value = values.includes(cur) ? cur : '';
+        }
+        function syncFilters() {
+            fillSelect($('aw-prod'), uniq(ROWS.map((r) => r.product)), 'All products'); state.prod = $('aw-prod').value;
+            fillSelect($('aw-nc'), uniq(ROWS.map((r) => r.council)), 'All councils'); state.nc = $('aw-nc').value;
+            fillSelect($('aw-br'), uniq(ROWS.filter((r) => !state.nc || r.council === state.nc).map((r) => r.branch)), 'All branches'); state.br = $('aw-br').value;
+        }
+
+        function renderSummary() {
+            const all = filtered();
+            $('aw-sum').innerHTML = STAGES.map((stg) => {
+                const set = all.filter((r) => stage(r) === stg);
+                const waits = set.map((r) => r.wait).filter((w) => w !== null);
+                const sub = stg === 'pending' ? (waits.length ? `oldest waiting ${Math.max(...waits)} days` : 'nothing waiting') : `decided ${PERIOD_NAME[state.period]}`;
+                const lines = LINES[stg].map(([t, codes]) => {
+                    const s = set.filter((r) => codes.includes(r.code));
+                    const exc = stg === 'pending' && codes[0] !== '1' ? s.filter((r) => r.exc === 1).length : 0;
+                    return `<button type="button" class="aw-row" data-codes="${codes.join(',')}" data-title="${t}" data-stage="${stg}"><span class="t">${t}</span>`
+                        + (exc ? `<span class="x">${fmtN(exc)} with exception</span>` : '') + `<span class="n">${fmtN(s.length)}</span></button>`;
+                }).join('');
+                return `<div class="aw-box ${stg}"><div class="aw-box-head" data-stage="${stg}" role="button" tabindex="0"><div><div class="l">${STAGE_NAME[stg]}</div><div class="p">${sub}</div></div>`
+                    + `<div class="v">${fmtN(set.length)}</div></div><div class="aw-rows">${lines}</div></div>`;
+            }).join('');
+            $('aw-sum').querySelectorAll('.aw-row').forEach((b) => b.addEventListener('click', () =>
+                openDrawer({ stage: b.dataset.stage, codes: b.dataset.codes.split(','), title: `${STAGE_NAME[b.dataset.stage]} · ${b.dataset.title}` })));
+            $('aw-sum').querySelectorAll('.aw-box-head').forEach((b) => b.addEventListener('click', () =>
+                openDrawer({ stage: b.dataset.stage, title: `${STAGE_NAME[b.dataset.stage]} applications` })));
+        }
+
+        function renderTable() {
+            const all = filtered();
+            const byNc = state.group === 'nc';
+            $('aw-tbl').querySelector('thead').innerHTML = `<tr><th>${byNc ? 'National council' : 'Product'}</th>`
+                + `<th class="num"><span class="aw-dot" style="--sc:var(--gold-600)"></span>Pending</th><th class="num"><span class="aw-dot" style="--sc:var(--ok)"></span>Agreed</th>`
+                + `<th class="num"><span class="aw-dot" style="--sc:var(--bad)"></span>Disagreed</th><th class="num tot">Total</th></tr>`;
+            const filters = [];
+            const line = (title, set, f, cls, foot) => {
+                const i = filters.push(f) - 1;
+                const cells = STAGES.map((stg) => {
+                    const s = set.filter((r) => stage(r) === stg);
+                    const waits = stg === 'pending' ? s.map((r) => r.wait).filter((w) => w !== null) : [];
+                    const old = waits.length ? Math.max(...waits) : 0;
+                    const tag = old > 7 && !foot ? `<span class="old ${ageCls(old)}" title="Oldest waiting (days)">${old}d</span>` : '';
+                    return `<td class="num ${s.length && !foot ? 'c' : s.length ? '' : 'z'}" data-stage="${stg}" data-i="${i}">${s.length ? fmtN(s.length) : '–'}${tag}</td>`;
+                }).join('');
+                return `<tr class="${cls}"><td data-i="${i}">${title}</td>${cells}<td class="num tot${foot ? '' : ' c'}" data-stage="" data-i="${i}">${fmtN(set.length)}</td></tr>`;
+            };
+            let html = '';
+            if (byNc) {
+                uniq(ROWS.map((r) => r.council)).filter((n) => !state.nc || n === state.nc).forEach((nc) => {
+                    const set = all.filter((r) => r.council === nc);
+                    const open = state.open[nc] || !!state.nc;
+                    html += line(`<span class="car">›</span>${esc(nc)}`, set, { nc }, 'grp' + (open ? ' open' : ''));
+                    if (open) uniq(ROWS.filter((r) => r.council === nc).map((r) => r.branch)).filter((b) => !state.br || b === state.br)
+                        .forEach((br) => { html += line(esc(br), set.filter((r) => r.branch === br), { nc, br }, 'br'); });
+                });
+            } else {
+                uniq(ROWS.map((r) => r.product)).filter((p) => !state.prod || p === state.prod)
+                    .forEach((p) => { html += line(esc(p), all.filter((r) => r.product === p), { prod: p }, ''); });
+            }
+            $('aw-tbl').querySelector('tbody').innerHTML = html || '<tr><td class="aw-state" colspan="5">No applications.</td></tr>';
+            $('aw-tbl').querySelector('tfoot').innerHTML = line('Total', all, {}, '', true);
+            $('aw-tbl').querySelectorAll('tbody td.c').forEach((td) => td.addEventListener('click', () => {
+                const f = filters[+td.dataset.i];
+                openDrawer({ stage: td.dataset.stage, f, title: `${td.dataset.stage ? STAGE_NAME[td.dataset.stage] : 'All'} · ${f.br || f.nc || f.prod}` });
+            }));
+            $('aw-tbl').querySelectorAll('tbody tr.grp td:first-child').forEach((td) => td.addEventListener('click', () => {
+                const nc = filters[+td.dataset.i].nc; state.open[nc] = !state.open[nc]; renderTable();
+            }));
+        }
+
+        // ---------- drawer: the applications behind a number
+        const drawer = bootstrap.Offcanvas.getOrCreateInstance($('aw-drawer'));
+        function drawerRows() {
+            const d = state.drawer, q = state.q.trim().toLowerCase();
+            return filtered().filter((r) => (!d.stage || stage(r) === d.stage) && (!d.codes || d.codes.includes(r.code))
+                && (!d.f || ((!d.f.nc || r.council === d.f.nc) && (!d.f.br || r.branch === d.f.br) && (!d.f.prod || r.product === d.f.prod)))
+                && (!q || r.text.includes(q)))
+                .sort((a, b) => (b.mine - a.mine) || (stage(a) === 'pending' && stage(b) === 'pending' ? (b.wait ?? -1) - (a.wait ?? -1) : (b.decided || 0) - (a.decided || 0)));
+        }
+        function openDrawer(d) { state.drawer = d; state.q = ''; state.limit = 40; $('aw-q').value = ''; renderDrawer(); drawer.show(); }
+        function renderDrawer() {
+            const d = state.drawer; if (!d) return;
+            const list = drawerRows();
+            $('aw-d-title').textContent = d.title;
+            $('aw-d-sub').textContent = `${fmtN(list.length)} application${list.length === 1 ? '' : 's'}` + (d.stage && d.stage !== 'pending' ? ` · decided ${PERIOD_NAME[state.period]}` : '')
+                + (list.some((r) => r.mine && stage(r) === 'pending') ? ' · gold bar = waiting for your action' : '');
+            $('aw-d-list').innerHTML = list.slice(0, state.limit).map((r) => {
+                const s = ST[r.code], pend = stage(r) === 'pending';
+                const right = pend ? (r.wait !== null ? `<span class="aw-age ${ageCls(r.wait)}">${r.wait} days</span>` : '–') : fmtD(r.decided);
+                const note = pend
+                    ? (r.code === 'X' ? `decided by ${esc(r.decided_by || '–')}` : r.code === '1' ? 'with reviewer' : `recommended by ${esc(r.reviewed_by || '–')}`)
+                    : `by ${esc(r.decided_by || '–')}`;
+                const held = r.code === 'X' ? `<span class="kft-pill neutral">Decision: ${ST[r.status].label}</span>` : '';
+                return `<div class="aw-item${pend && r.mine ? ' mine' : ''}"><div class="a">${esc(r.app_no)} · ${esc(r.borrower)}</div><div class="r">${right}</div>`
+                    + `<div class="b">${esc(r.branch)}, ${esc(r.council)} · ${esc(r.product)}${r.amount != null ? ' · PKR ' + fmtN(r.amount) : ''} · ${esc(fmtCnic(r.cnic))}</div><div class="r b">${note}</div>`
+                    + `<div class="s"><span class="kft-pill ${s.pill}">${s.label}</span>${held}${r.exc ? '<span class="kft-pill gold">Exception</span>' : ''}</div></div>`;
+            }).join('')
+                + (list.length > state.limit ? `<div class="aw-more"><button type="button" class="btn btn-secondary btn-sm" id="aw-more">Show ${Math.min(40, list.length - state.limit)} more</button></div>` : '')
+                + (list.length ? '' : '<div class="aw-more">No applications.</div>');
+            const more = $('aw-more'); if (more) more.addEventListener('click', () => { state.limit += 40; renderDrawer(); });
+        }
+        $('aw-q').addEventListener('input', (e) => { state.q = e.target.value; state.limit = 40; renderDrawer(); });
+
+        function exportRows(rows, name) {
+            if (typeof XLSX === 'undefined') return;
+            const data = rows.map((r) => ({
+                'Application No': r.app_no, 'Borrower': r.borrower, 'CNIC': fmtCnic(r.cnic), 'Branch': r.branch, 'National council': r.council,
+                'Product': r.product, 'Requested amount': r.amount, 'Stage': STAGE_NAME[stage(r)], 'Status': statusText(r),
+                'Waiting since': stage(r) === 'pending' ? isoD(r.since) : '', 'Days waiting': stage(r) === 'pending' ? r.wait : '',
+                'Decided by': stage(r) === 'pending' ? '' : (r.decided_by || ''), 'Decision date': stage(r) === 'pending' ? '' : isoD(r.decided),
+            }));
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), 'Applications');
+            XLSX.writeFile(wb, `Awaiting_Services_${name}_${isoD(TODAY)}.xlsx`);
+        }
+        $('aw-export').addEventListener('click', () => exportRows(filtered(), 'All'));
+        $('aw-d-export').addEventListener('click', () => state.drawer && exportRows(drawerRows(), state.drawer.title.replace(/[^\w]+/g, '_')));
+
+        function render() { renderSummary(); renderTable(); if (state.drawer) renderDrawer(); }
+
+        $('aw-prod').addEventListener('change', (e) => { state.prod = e.target.value; render(); });
+        $('aw-nc').addEventListener('change', (e) => { state.nc = e.target.value; state.br = ''; $('aw-br').value = ''; syncFilters(); render(); });
+        $('aw-br').addEventListener('change', (e) => { state.br = e.target.value; render(); });
+        $('aw-period').addEventListener('change', (e) => { state.period = e.target.value; render(); });
+        const seg = (id, fn) => $(id).addEventListener('click', (e) => {
+            const b = e.target.closest('button'); if (!b) return;
+            $(id).querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); fn(b);
+        });
+        seg('aw-exc', (b) => { state.exc = b.dataset.v; render(); });
+        seg('aw-group', (b) => { state.group = b.dataset.g; renderTable(); });
+        $('aw-reset').addEventListener('click', () => {
+            Object.assign(state, { prod: '', nc: '', br: '', exc: '', period: 'm' });
+            ['aw-prod', 'aw-nc', 'aw-br'].forEach((id) => $(id).value = '');
+            $('aw-period').value = 'm';
+            $('aw-exc').querySelectorAll('button').forEach((b, i) => b.classList.toggle('on', i === 0));
+            syncFilters(); render();
+        });
+        $('aw-drawer').addEventListener('hidden.bs.offcanvas', () => { state.drawer = null; });
+
+        fetch('{{ url_for("awaiting_service_data") }}', { credentials: 'same-origin' })
+            .then((r) => r.json())
+            .then((res) => {
+                if (!res.success) throw new Error(res.error || 'Could not load applications');
+                if (res.today) { const [y, m, d] = res.today.split('-').map(Number); TODAY = new Date(y, m - 1, d, 23, 59, 59); }
+                ROWS = res.rows.map(prepare);
+                syncFilters(); render();
+            })
+            .catch((e) => { $('aw-tbl').querySelector('tbody').innerHTML = `<tr><td class="aw-state">${esc(e.message)}</td></tr>`; });
+    })();
+    </script>
 </body>
 </html>

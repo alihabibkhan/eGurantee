@@ -6,158 +6,171 @@
     <title>Manage Pre-Disbursement</title>
     {% include 'head.html' %}
     <style>
-        .table-responsive {
-            margin-bottom: 1rem;
+        /* Loan Application Analysis + review pop-up (approved design). Colours come from kft-theme.css. */
+        .lpa-head { margin-bottom: 4px; }
+        .lpa-head p { color: var(--ink-3); margin: 2px 0 0; }
+        .filter-card { margin: 16px 0 14px; }
+        .filter-card .form-group { margin-bottom: 0; }
+        .lpa-table-card .card-body { padding: 0; }
+        .lpa-table-card .table-responsive { margin: 0; }
+        .lpa-table-card table td, .lpa-table-card table th { padding: 10px 14px; }
+        .lpa-table-card #temp-pagination { margin: 14px 0; }
+        .table-sm textarea { width: 100%; }
+        .letter-iframe { width: 100%; height: 700px; border: none; display: block; background: #fff; }
+        .letter-iframe.loading { background: var(--surface-2); }
+        .letter-error, #ongoing-error { color: var(--bad); text-align: center; padding: 20px; }
+        .action-buttons .btn { margin-right: 0.25rem; }
+        #emailModal .form-group { margin-bottom: 1rem; }
+        #ongoingLoanModal .modal-body { position: relative; min-height: 120px; }
+        #ongoingLoanModal .loading { position: absolute; inset: 0; background: var(--surface); z-index: 10; }
+        #ongoingLoanModal .table { margin-top: 1rem; }
+        .badge-approved { margin-left: 5px; }
+        .badge-rejected { margin-left: 5px; }
+
+        /* ---- review pop-up ---- */
+        .rv-dialog { max-width: min(1320px, 96vw); }
+        .rv { height: min(90vh, 920px); display: grid; grid-template-rows: auto auto 1fr; overflow: hidden; background: var(--bg); }
+        .rv-head { background: var(--surface); border-bottom: 1px solid var(--line); padding: 14px 20px; display: flex; gap: 16px; align-items: flex-start; }
+        .rv-head .rv-title { flex: 1; min-width: 0; }
+        .rv-crumb { font-size: 12px; color: var(--ink-3); }
+        .rv-head .modal-title { font-size: 18px; font-weight: 700; margin: 0; font-family: var(--font); }
+        .rv-meta { font-size: 12.5px; color: var(--ink-3); margin-top: 2px; }
+        .rv-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+        .rv-strip { background: var(--surface); border-bottom: 1px solid var(--line); display: grid; grid-template-columns: repeat(6, 1fr); }
+        .rv-strip > div { padding: 9px 20px; border-right: 1px solid var(--line-2); min-width: 0; }
+        .rv-strip > div:last-child { border-right: 0; }
+        .rv-strip .k { font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .4px; font-weight: 600; }
+        .rv-strip .v { font-size: 15px; font-weight: 700; margin-top: 1px; overflow-wrap: anywhere; }
+        .rv-body { display: grid; grid-template-columns: minmax(0, 1fr) 400px; min-height: 0; }
+        .rv-main { display: flex; flex-direction: column; min-height: 0; min-width: 0; border-right: 1px solid var(--line); }
+        .rv-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); padding: 0 16px; overflow-x: auto; background: var(--surface); flex: none; }
+        .rv-tabs button { background: none; border: 0; border-bottom: 2px solid transparent; padding: 11px 10px; font-weight: 500; color: var(--ink-3);
+                          font-size: 13px; white-space: nowrap; display: flex; align-items: center; gap: 7px; }
+        .rv-tabs button.on { color: var(--green-600); border-color: var(--green-600); font-weight: 600; }
+        .rv-tabs .c { font-size: 11px; border-radius: 999px; padding: 0 7px; font-weight: 600; }
+        .rv-tabs .c.gold { background: var(--gold-100); color: var(--gold-600); }
+        .rv-pane { overflow-y: auto; overflow-x: hidden; padding: 16px 20px 24px; flex: 1; min-width: 0; }
+        .rv-tab { display: none; }
+        .rv-tab.on { display: block; }
+        /* the existing section headings, restyled for tabs */
+        #temp-modal-body h4.bg-primary { background: none !important; color: var(--ink-3) !important; font-family: var(--font); font-size: 11.5px !important;
+            text-transform: uppercase; letter-spacing: .7px; padding: 0 !important; margin: 18px 0 8px !important; border: 0 !important; font-weight: 600 !important; }
+        #temp-modal-body .rv-tab > div:first-child h4.bg-primary { margin-top: 0 !important; }
+        #temp-modal-body h5.bg-info, #temp-modal-body h5.bg-success { background: var(--surface-2) !important; color: var(--ink-2) !important; border: 1px solid var(--line) !important;
+            border-bottom: 0 !important; font-size: 12.5px !important; padding: 8px 12px !important; border-radius: 8px 8px 0 0 !important; margin: 0 !important; font-family: var(--font); }
+        #temp-modal-body .row { margin-bottom: 0; }
+        #temp-modal-body .table { background: var(--surface); border: 1px solid var(--line); margin-bottom: 12px; }
+        #temp-modal-body .table-sm > tbody > tr > th, #temp-modal-body .table-sm > tr > th { color: var(--ink-3); font-weight: 500; font-size: 12.5px; width: 42%; background: var(--surface); }
+        #temp-modal-body .table-sm > tbody > tr > td, #temp-modal-body .table-sm > tr > td { font-weight: 600; font-size: 13px; }
+        #temp-modal-body .table-sm th, #temp-modal-body .table-sm td { padding: 7px 12px; }
+        #imageGallery .card { transition: transform 0.2s; cursor: pointer; }
+        #imageGallery .card:hover { transform: scale(1.02); box-shadow: var(--shadow-2); }
+        #imageGallery .card-img-top { height: 180px; object-fit: cover; }
+        #viewImagesBtn { display: none !important; }   /* documents now load from the Documents tab */
+        .rv-docs-empty { color: var(--ink-3); font-size: 13px; padding: 24px 0; text-align: center; }
+        /* Turnaround as step cards */
+        .rv-tat { display: grid; grid-template-columns: repeat(6, 1fr); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+        .rv-tat > div { padding: 14px; border-right: 1px solid var(--line-2); min-width: 0; }
+        .rv-tat > div:last-child { border-right: 0; background: var(--green-50); }
+        .rv-tat .k { font-size: 11.5px; color: var(--ink-3); }
+        .rv-tat .d { font-weight: 600; margin-top: 2px; font-size: 13px; min-height: 20px; }
+        .rv-tat .n { font-size: 20px; font-weight: 700; margin-top: 6px; }
+        .rv-tat .n small { font-size: 12px; color: var(--ink-3); font-weight: 500; }
+        /* KFT matrix as three check cards */
+        #rv-matrix.on { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: 12px; align-items: start; }
+        #rv-matrix > div:first-child { grid-column: 1 / -1; }
+        #rv-matrix > .row { margin: 0; }
+        #rv-matrix > .row > .col-md-12 { padding: 0; width: 100%; }
+        #rv-matrix .rv-check { background: var(--surface); border: 1px solid var(--line); border-top: 3px solid var(--ok); border-radius: 10px; overflow: hidden; }
+        #rv-matrix .rv-check.fail { border-top-color: var(--bad); }
+        #rv-matrix .rv-check.info { border-top-color: var(--line); }
+        #temp-modal-body #rv-matrix .rv-check h5 { display: flex !important; justify-content: space-between; align-items: center; gap: 8px; background: var(--surface) !important;
+            border: 0 !important; border-bottom: 1px solid var(--line-2) !important; border-radius: 0 !important; color: var(--ink) !important; font-weight: 600 !important; }
+        #temp-modal-body #rv-matrix .rv-check .table { border: 0; margin: 0; }
+        #temp-modal-body #rv-matrix .rv-check .table th { white-space: normal; width: auto; }
+        #temp-modal-body #rv-matrix .rv-check .table td { text-align: right; white-space: nowrap; }
+        @media (max-width: 1200px) { #rv-matrix.on { grid-template-columns: 1fr; } .rv-tat { grid-template-columns: repeat(3, 1fr); } }
+        /* decision panel */
+        .rv-side { background: var(--surface); display: flex; flex-direction: column; min-height: 0; }
+        .rv-side-scroll { overflow-y: auto; padding: 16px 18px; flex: 1; }
+        .rv-decision { display: grid; gap: 14px; }
+        .rv-side-title { font-size: 11.5px; font-weight: 700; color: var(--ink-2); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+        .rv-callout { display: flex; gap: 10px; padding: 10px 12px; border-radius: 8px; font-size: 12.5px; align-items: flex-start; }
+        .rv-callout.ok { background: var(--ok-bg); color: var(--ok); }
+        .rv-callout.warn { background: var(--warn-bg); color: var(--warn); }
+        .rv-hint { font-size: 12px; color: var(--ink-3); display: flex; gap: 6px; margin-top: 6px; }
+        .rv-terms { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; font-size: 12.5px; }
+        .rv-terms .k { color: var(--ink-3); } .rv-terms .v { font-weight: 600; }
+        .rv-trail { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; font-size: 12.5px; }
+        .rv-trail li { display: flex; justify-content: space-between; gap: 10px; }
+        .rv-trail li span:first-child { color: var(--ink-3); }
+        .rv-trail li span:last-child { text-align: right; font-weight: 600; }
+        .rv-actions { border-top: 1px solid var(--line); padding: 12px 18px; display: flex; gap: 8px; justify-content: flex-end; background: var(--surface-2); }
+        .rv-actions #temp-save-btn { flex: 1; }
+        /* keep the Review button visible when the grid scrolls sideways */
+        #lpa-table td:last-child, #lpa-table th:last-child { position: sticky; right: 0; background: var(--surface); box-shadow: -6px 0 8px -6px rgba(0, 0, 0, .18); z-index: 1; }
+        #lpa-table thead th:last-child { z-index: 3; background: var(--surface-2); }
+        /* required fields for the loan matrix (top of the decision panel) */
+        .rv-req { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--gold-100); border-left: 3px solid var(--gold-600); border-radius: 8px; background: var(--surface-2); }
+        .rv-req .rv-side-title { margin-bottom: 0; }
+        .rv-req .rv-side-title span { text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--ink-3); }
+        .rv-req .form-label { margin-bottom: 4px; }
+        .rv-req .rv-hint { margin-top: 4px; }
+        .rv-tabs button.rv-tab-m { display: none; }
+        /* tablet and phone: the decision panel becomes its own tab; the action bar stays pinned at the bottom */
+        @media (max-width: 1000px) {
+            .rv { height: 94vh; grid-template-columns: minmax(0, 1fr); }
+            .rv-body { display: flex; flex-direction: column; min-width: 0; }
+            .rv-main { border-right: 0; flex: 1; }
+            .rv-tabs button.rv-tab-m { display: flex; }
+            .rv-side { flex: none; border-top: 1px solid var(--line); }
+            .rv-side-scroll { display: none; }
+            .rv.dec-on .rv-pane { display: none; }
+            .rv.dec-on .rv-main { flex: none; }
+            .rv.dec-on .rv-side { flex: 1; border-top: 0; }
+            .rv.dec-on .rv-side-scroll { display: block; }
+            .rv-strip { grid-template-columns: repeat(3, 1fr); }
+            .rv-tat { grid-template-columns: repeat(2, 1fr); }
+            .rv-tat > div { border-bottom: 1px solid var(--line-2); }
         }
-        .pagination .page-item.active .page-link {
-            background-color: #0d9488; /* Teal from dashboard */
-            border-color: #0d9488;
-        }
-        .pagination .page-item.disabled .page-link {
-            cursor: not-allowed;
-            opacity: 0.65;
-        }
-        .modal-body .row {
-            margin-bottom: 0.5rem;
-        }
-        .modal-body label {
-            font-weight: bold;
-            color: #1e3a8a; /* Deep blue for labels */
-        }
-        .group-heading {
-            margin-top: 1rem;
-            margin-bottom: 0.5rem;
-        }
-        .table-sm textarea {
-            width: 100%;
-        }
-        .letter-iframe {
-            width: 100%;
-            height: 700px;
-            border: none;
-            display: block;
-        }
-        .letter-iframe.loading {
-            background: #f8f9fa url('data:image/svg+xml,%3csvg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"%3e%3cpath opacity=".5" fill="%231e3a8a" d="M20 3.333A16.667 16.667 0 1036.667 20 16.68 16.68 0 0020 3.333zm0 30A13.333 13.333 0 1133.333 20 13.34 13.34 0 0120 33.333z"/%3e%3cpath fill="%231e3a8a" d="M26.667 12.667h-4l-6 10h4z"/%3e%3c/svg%3e') no-repeat center; /* Deep blue spinner */
-        }
-        .letter-error, #ongoing-error {
-            color: #dc3545; /* Red for errors, consistent with dashboard */
-            text-align: center;
-            padding: 20px;
-        }
-        .action-buttons .btn {
-            margin-right: 0.25rem;
-        }
-        #emailModal .form-group {
-            margin-bottom: 1rem;
-        }
-        .card {
-            margin-top: 1rem;
-            background-color: #ffffff; /* White card background */
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1); /* Shadow from dashboard */
-        }
-        .card-header {
-            background-color: #162E2A; /* Deep olive green header */
-            color: #ffffff; /* White text */
-        }
-        .modal-content {
-            background-color: #ffffff; /* White modal background */
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1); /* Shadow from dashboard */
-        }
-        .modal-header {
-            background-color: #1e3a8a; /* Deep blue modal header */
-            color: #ffffff; /* White text */
-        }
-        .modal-title, .card-header h5 {
-            color: #ffffff; /* White text for headers */
-        }
-        #ongoingLoanModal .modal-body {
-            position: relative;
-        }
-        #ongoingLoanModal .loading {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: #f8f9fa url('data:image/svg+xml,%3csvg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"%3e%3cpath opacity=".5" fill="%231e3a8a" d="M20 3.333A16.667 16.667 0 1036.667 20 16.68 16.68 0 0020 3.333zm0 30A13.333 13.333 0 1133.333 20 13.34 13.34 0 0120 33.333z"/%3e%3cpath fill="%231e3a8a" d="M26.667 12.667h-4l-6 10h4z"/%3e%3c/svg%3e') no-repeat center; /* Deep blue spinner */
-            width: 100%;
-            height: 100%;
-            z-index: 1000;
-        }
-        #ongoingLoanModal .table {
-            margin-top: 1rem;
-        }
-        .filter-card {
-            margin-bottom: 1rem;
-        }
-        .filter-card .form-group {
-            margin-bottom: 0;
-        }
-        .badge-approved {
-            background-color: #34d399; /* Green from dashboard */
-            color: #ffffff;
-            margin-left: 5px;
-        }
-        .badge-rejected {
-            background-color: #dc3545; /* Red for rejected */
-            color: #ffffff;
-            margin-left: 5px;
-        }
-        .table-light {
-            background-color: #f8f9fa; /* Light gray for table header */
-        }
-        .table tbody tr:nth-child(odd) {
-            background-color: #e6fff7; /* Pale green for odd rows */
-        }
-        .table tbody tr:nth-child(even) {
-            background-color: #ffffff; /* White for even rows */
-        }
-        .btn-primary {
-            background-color: #0d9488; /* Teal from dashboard */
-            border-color: #0d9488;
-            color: white;
-        }
-        .btn-primary:hover {
-            background-color: #0b8278; /* Darker teal on hover */
-            border-color: #0b8278;
-        }
-        .btn-secondary {
-            background-color: #6c757d; /* Bootstrap secondary gray */
-            border-color: #6c757d;
-        }
-        .btn-secondary:hover {
-            background-color: #5a6268; /* Darker gray on hover */
-            border-color: #5a6268;
-        }
-        .btn-info {
-            background-color: #2bcdc3; /* Lighter teal for info buttons */
-            border-color: #2bcdc3;
-        }
-        .btn-info:hover {
-            background-color: #26b7ae; /* Darker teal on hover */
-            border-color: #26b7ae;
-        }
-        .btn-success {
-            background-color: #34d399; /* Green from dashboard */
-            border-color: #34d399;
-        }
-        .btn-success:hover {
-            background-color: #2ab88a; /* Darker green on hover */
-            border-color: #2ab88a;
-        }
-        .form-control, .form-select {
-            border-color: #1e3a8a; /* Deep blue for input borders */
-            color: #1e3a8a; /* Deep blue for input text */
-        }
-        .form-control:focus, .form-select:focus {
-            border-color: #0d9488; /* Teal on focus */
-            box-shadow: 0 0 0 0.2rem rgba(13, 148, 136, 0.25); /* Teal shadow */
-        }
-        .bi, .fas {
-            color: #1e3a8a; /* Deep blue for icons */
-        }
-        h1.text-muted {
-            color: #162E2A !important; /* Deep olive green for main heading */
+        /* phone: full-screen pop-up, compact header and figures */
+        @media (max-width: 640px) {
+            #tempModal .modal-dialog.rv-dialog { margin: 0; max-width: 100%; min-height: 100%; }
+            .rv { height: 100vh; height: 100dvh; border: 0; border-radius: 0; }
+            .rv-head { padding: 10px 14px; gap: 10px; }
+            .rv-crumb { display: none; }
+            .rv-head .modal-title { font-size: 15.5px; }
+            .rv-meta { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .rv-pills { margin-top: 6px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+            .rv-strip { display: flex; overflow-x: auto; scrollbar-width: none; }
+            .rv-strip > div { padding: 7px 14px; flex: none; }
+            .rv-strip .v { font-size: 13.5px; white-space: nowrap; }
+            .rv-tabs { padding: 0 8px; }
+            .rv-tabs button { padding: 11px 8px; }
+            .rv-pane { padding: 12px 12px 20px; }
+            .rv-side-scroll { padding: 14px; }
+            #temp-modal-body .table-sm > tbody > tr > th, #temp-modal-body .table-sm > tr > th { width: 45%; }
+            #temp-modal-body .table-sm th, #temp-modal-body .table-sm td { padding: 7px 10px; overflow-wrap: anywhere; }
+            #temp-modal-body .rv-tab > .row > .col-md-12, #temp-modal-body .rv-tab > div > .col-md-12 { overflow-x: auto; }
+            .rv-actions { padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); }
+            .rv-actions .rv-close { display: none; }
+            .rv-actions .btn { min-height: 42px; }
+            /* application list: each row becomes a card, Review always visible */
+            .lpa-grid .dg-search { max-width: none; min-width: 0; flex: 1 1 100%; }
+            .lpa-grid .dg-toolbar .form-select { flex: 1 1 40%; }
+            .lpa-grid .dg-toolbar .spacer, #lpa-density { display: none; }
+            .lpa-grid .dg-scroll { max-height: none; }
+            #lpa-table, #lpa-table tbody { display: block; }
+            #lpa-table thead { display: none; }
+            #lpa-table tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 14px; padding: 12px 14px; border-bottom: 1px solid var(--line); background: var(--surface); }
+            #lpa-table tbody td { display: block; padding: 0; border: 0; white-space: normal; text-align: left; overflow-wrap: anywhere; }
+            #lpa-table tbody td::before { content: attr(data-label); display: block; font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .3px; }
+            #lpa-table tbody td[data-k="_action"], #lpa-table tbody td[data-k="status"], #lpa-table tbody td.empty { grid-column: 1 / -1; }
+            #lpa-table tbody td[data-k="_action"]::before, #lpa-table tbody td.empty::before { content: none; }
+            #lpa-table td:last-child { position: static; box-shadow: none; }
+            #lpa-table td[data-k="_action"] > div { justify-content: flex-start !important; flex-wrap: wrap; }
+            #lpa-table td[data-k="_action"] .view-btn { flex: 1; min-height: 38px; }
+            .lpa-grid .dg-foot { flex-wrap: wrap; justify-content: center; }
         }
     </style>
     <style>
@@ -207,28 +220,26 @@
 
     <div class="mt-3">{% include 'message_box.html' %}</div>
     <div class="container py-4">
-        <h1 class="mb-3 text-muted">Manage Pre-Disbursement</h1>
+        <div class="lpa-head"><h1 class="mb-0">Loan Application Analysis</h1><p>Review, recommend and decide on pre-disbursement applications for your branches.</p></div>
 
-        <!-- Filter Card -->
-        <div class="card filter-card">
-            <div class="card-header">
-                <h5 class="mb-0">Filters</h5>
-            </div>
-            <div class="card-body">
-                <div class="row g-3 align-items-center">
-                    <!-- New Search Filter -->
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label for="search-filter" class="form-label">Search Application</label>
-                            <input type="text" class="form-control form-control-sm" id="search-filter"
-                                   placeholder="Application No..." onkeyup="applyFilters()">
-                        </div>
-                    </div>
-
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label for="status-filter" class="form-label">Status</label>
-                            <select class="form-select form-select-sm" id="status-filter" onchange="applyFilters()">
+        <!-- Applications grid (approved design: status tabs, search, branch + amount filters, sortable columns) -->
+        <div class="dg lpa-grid mt-3">
+            <div class="dg-tabs" id="lpa-tabs" role="tablist" aria-label="Status"></div>
+            <div class="dg-toolbar">
+                <div class="dg-search"><i class="bi bi-search"></i>
+                    <input type="text" class="form-control" id="search-filter" placeholder="Search application no or borrower" oninput="applyFilters()" autocomplete="off">
+                </div>
+                <select class="form-select" id="branch-filter" onchange="applyFilters()" aria-label="Branch">
+                    <option value="all">All branches</option>
+                </select>
+                <select class="form-select" id="loan-amount-filter" onchange="applyFilters()" aria-label="Loan amount">
+                    <option value="all">All amounts</option>
+                    <option value="below-50k">Below 50,000</option>
+                    <option value="50k-100k">50,000 - 100,000</option>
+                    <option value="above-100k">Above 100,000</option>
+                </select>
+                <!-- The role-based status options below drive the tabs above (kept as a hidden select for existing code). -->
+                <select class="d-none" id="status-filter" onchange="applyFilters()" aria-hidden="true" tabindex="-1">
                                 <option value="all">All</option>
                                 <!-- Your existing options remain the same -->
                                 {% if result.is_reviewer or result.is_executive_approver or result.is_admin %}
@@ -249,95 +260,84 @@
                                 {% if result.is_approver or result.is_executive_approver or result.is_admin %}
                                     <option value="awaiting-exec" {{ 'selected' if result.is_executive else '' }}>Awaiting Executive Approval</option>
                                 {% endif %}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label for="loan-amount-filter" class="form-label">Loan Amount</label>
-                            <select class="form-select form-select-sm" id="loan-amount-filter" onchange="applyFilters()">
-                                <option value="all">All</option>
-                                <option value="below-50k">Below 50,000</option>
-                                <option value="50k-100k">50,000 - 100,000</option>
-                                <option value="above-100k">Above 100,000</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="col-md-3 d-flex align-items-end">
-                        <button type="button" class="btn btn-primary btn-sm w-100" onclick="applyFilters()" style="margin-top: 30px;">
-                            Apply Filters
-                        </button>
-                    </div>
+                </select>
+                <span class="spacer"></span>
+                <div class="dg-seg" id="lpa-density" role="group" aria-label="Row density">
+                    <button type="button" class="on" data-d="">Comfortable</button><button type="button" data-d="compact">Compact</button>
                 </div>
+                <div class="dg-menu-wrap">
+                    <button type="button" class="btn btn-secondary" id="lpa-cols-btn"><i class="bi bi-layout-three-columns me-1"></i>Columns</button>
+                    <div class="dg-menu" id="lpa-cols-menu"><div class="mh">Show columns</div></div>
+                </div>
+            </div>
+            <div class="dg-chips" id="lpa-chips"></div>
+            <div class="dg-scroll">
+                <table class="dgt tbl_records" id="lpa-table">
+                    <thead id="lpa-thead"></thead>
+                    <tbody id="temp-table-body"></tbody>
+                </table>
+            </div>
+            <div class="dg-foot">
+                <div class="d-flex align-items-center gap-2">Rows per page
+                    <select class="form-select" id="lpa-size" aria-label="Rows per page"><option>10</option><option>25</option><option>50</option><option>100</option></select>
+                </div>
+                <span id="lpa-info"></span>
+                <nav aria-label="Pagination"><ul class="pagination" id="temp-pagination"></ul></nav>
             </div>
         </div>
 
-        <!-- Data Table Card -->
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Pre Disbursement</h5>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover tbl_records text-nowrap text-center  table-responsive table-responsive-sm table-responsive-md table-responsive-lg table-responsive-xl table-responsive-xxl m-auto">
-                        <thead class="table-light">
-                            <tr>
-                                <th scope="col">Branch</th>
-                                <th scope="col">Role</th>
-                                <th scope="col">Application No</th>
-                                <th scope="col">Borrower Name</th>
-                                <th scope="col">Loan Amount</th>
-                                <th scope="col">Application Date</th>
-                                <th scope="col">Approved By</th>
-                                <th scope="col">Approved Date</th>
-                                <th scope="col">Status</th>
-                                <th scope="col">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="temp-table-body"></tbody>
-                    </table>
-                </div>
-                <nav aria-label="Temp pagination">
-                    <ul class="pagination justify-content-center" id="temp-pagination"></ul>
-                </nav>
-            </div>
-        </div>
-
-        <!-- Temp Modal -->
+        <!-- Temp Modal: review pop-up (approved design). Element ids are unchanged so all existing code keeps working. -->
         <div class="modal fade" id="tempModal" tabindex="-1" aria-labelledby="tempModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-xl">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="tempModalLabel">View Pre Disbursement Record</h5>
+            <div class="modal-dialog modal-dialog-centered rv-dialog">
+                <div class="modal-content rv">
+                    <div class="rv-head">
+                        <div class="rv-title">
+                            <div class="rv-crumb">Loan Application Analysis &middot; Review</div>
+                            <h5 class="modal-title" id="tempModalLabel">View Pre Disbursement Record</h5>
+                            <div class="rv-meta" id="rv-meta"></div>
+                            <div class="rv-pills" id="rv-pills"></div>
+                        </div>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body" id="temp-modal-body"></div>
-
-                    <!-- New Images Gallery Section -->
-                    <div class="modal-body border-top" id="imagesSection" style="display: none;">
-                        <h5 class="mb-3">Application Images</h5>
-                        <div id="imageGallery" class="row g-3"></div>
-                        <div id="noImagesMessage" class="alert alert-info mt-3" style="display: none;">
-                            No images found for this application.
+                    <div class="rv-strip" id="rv-strip"></div>
+                    <div class="rv-body">
+                        <div class="rv-main">
+                            <div class="rv-tabs" id="rv-tabs" role="tablist">
+                                <button type="button" data-pane="rv-applicant" class="on">Applicant</button>
+                                <button type="button" data-pane="rv-business">Business &amp; family</button>
+                                <button type="button" data-pane="rv-history">Loan history</button>
+                                <button type="button" data-pane="rv-matrix">KFT matrix <span class="c gold d-none" id="rv-matrix-badge">exception</span></button>
+                                <button type="button" data-pane="rv-tat">Turnaround</button>
+                                <button type="button" data-pane="rv-docs">Documents</button>
+                                <button type="button" data-pane="rv-dec" class="rv-tab-m">Decision</button>
+                            </div>
+                            <div class="rv-pane" id="temp-modal-body">
+                                <div class="rv-tab on" id="rv-applicant"></div>
+                                <div class="rv-tab" id="rv-business"></div>
+                                <div class="rv-tab" id="rv-history"></div>
+                                <div class="rv-tab" id="rv-matrix"></div>
+                                <div class="rv-tab" id="rv-tat"></div>
+                                <div class="rv-tab" id="rv-docs">
+                                    <div id="imagesSection" style="display: none;">
+                                        <div id="imageGallery" class="row g-3"></div>
+                                        <div id="noImagesMessage" class="rv-docs-empty" style="display: none;">No images found for this application.</div>
+                                        <div id="imagesLoading" class="text-center py-4" style="display: none;">
+                                            <div class="spinner-border text-success" role="status"></div>
+                                            <p class="mt-2 text-muted">Loading images...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div id="imagesLoading" class="text-center py-4" style="display: none;">
-                            <div class="spinner-border text-primary" role="status"></div>
-                            <p class="mt-2">Loading images...</p>
-                        </div>
-                    </div>
-
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button class="btn btn-primary btn-send-email" data-email="" data-pre-id="" data-pre-email-status=""><i class="bi bi-envelope text-white"></i></button>
-
-                         <!-- New View Images Button -->
-                        <button type="button" class="btn btn-primary" id="viewImagesBtn" style="display: none;">
-                            <i class="bi bi-images text-white"></i> View Images
-                        </button>
-
-                        <button type="button" class="btn btn-primary" id="temp-save-btn">Save</button>
+                        <aside class="rv-side">
+                            <div class="rv-side-scroll" id="rv-decision"></div>
+                            <div class="rv-actions">
+                                <button type="button" class="btn btn-secondary rv-close" data-bs-dismiss="modal">Close</button>
+                                <button class="btn btn-secondary btn-send-email" data-email="" data-pre-id="" data-pre-email-status=""><i class="bi bi-envelope me-1"></i>Approval letter</button>
+                                <button type="button" class="btn btn-primary" id="viewImagesBtn" style="display: none;"><i class="bi bi-images"></i> View Images</button>
+                                <button type="button" class="btn btn-primary" id="temp-save-btn">Save</button>
+                            </div>
+                        </aside>
                     </div>
                 </div>
             </div>
@@ -453,7 +453,7 @@
 
         const loanMetrics = {{ result.get_all_loan_metrics | tojson }};
         console.log(loanMetrics)
-        const itemsPerPage = 10;
+        let itemsPerPage = 10;
 
         // Pagination state
         let tempCurrentPage = 1;
@@ -545,66 +545,189 @@
           return formatted.replace(', ', '/').replace(' ', '/');
         }
 
-        // === NEW: Global search filter ===
-        function applyFilters() {
+        // ---- Applications grid (approved design) ----
+        const LPA_COLS = [
+            { key: 'branch', label: 'Branch' },
+            { key: 'role', label: 'Role' },
+            { key: 'Application_No', label: 'Application No' },
+            { key: 'Borrower_Name', label: 'Borrower Name' },
+            { key: 'Loan_Amount', label: 'Loan Amount', num: true },
+            { key: 'ApplicationDate', label: 'Application Date', date: true },
+            { key: 'approved_by', label: 'Approved By' },
+            { key: 'approved_date', label: 'Approved Date', date: true },
+            { key: 'status', label: 'Status' },
+            { key: '_action', label: '', fixed: true }
+        ];
+        const lpaState = { sort: null, dir: 1, hidden: new Set(), branchesBuilt: false };
+        try { JSON.parse(localStorage.getItem('kft-lpa-hidden') || '[]').forEach((k) => lpaState.hidden.add(k)); } catch (e) {}
+
+        function lpaAmount(v) { const n = parseFloat(String(v ?? '').replace(/,/g, '')); return isNaN(n) ? null : n; }
+        function lpaDateValue(v) {
+            if (v === null || v === undefined || v === '') return 0;
+            if (!isNaN(Number(v))) return (Number(v) - 25569) * 86400000;   // Excel serial date -> ms
+            const t = Date.parse(v); return isNaN(t) ? 0 : t;
+        }
+        function lpaSortValue(record, col) {
+            if (col.num) return lpaAmount(record[col.key]) ?? -Infinity;
+            if (col.date) return lpaDateValue(record[col.key]);
+            if (col.key === 'status') return statusMap[record.status] || '';
+            return String(record[col.key] ?? '').toLowerCase();
+        }
+
+        function lpaStatusMatches(record, status) {
+            if (status === 'awaiting-exec') return isAwaitingExecutiveApproval(record);
+            if (status === 'all') return true;
+            return record.status === status;
+        }
+        // Search, branch and amount filters (the status tab is applied separately so tab counts stay meaningful)
+        function lpaBaseMatches(record) {
             const searchTerm = document.getElementById('search-filter').value.toLowerCase().trim();
-            const statusFilter = document.getElementById('status-filter').value;
-            const loanAmountFilter = document.getElementById('loan-amount-filter').value;
+            const branch = document.getElementById('branch-filter').value;
+            const amountFilter = document.getElementById('loan-amount-filter').value;
+            if (searchTerm) {
+                const appNo = (record.Application_No || '').toString().toLowerCase();
+                const borrower = (record['Borrower_Name'] || '').toString().toLowerCase();
+                if (!appNo.includes(searchTerm) && !borrower.includes(searchTerm)) return false;
+            }
+            if (branch !== 'all' && (record.branch || '(No branch)') !== branch) return false;
+            const loanAmount = parseFloat(record.Loan_Amount) || 0;
+            if (amountFilter === 'below-50k' && !(loanAmount < 50000)) return false;
+            if (amountFilter === '50k-100k' && !(loanAmount >= 50000 && loanAmount <= 100000)) return false;
+            if (amountFilter === 'above-100k' && !(loanAmount > 100000)) return false;
+            return true;
+        }
 
-            filteredData = tempData.filter(record => {
-                let searchMatch = true;
-                let statusMatch = true;
-                let amountMatch = true;
+        function lpaBuildBranches() {
+            if (lpaState.branchesBuilt) return;
+            const sel = document.getElementById('branch-filter');
+            [...new Set(tempData.map((r) => r.branch || '(No branch)'))].sort().forEach((b) => sel.add(new Option(b, b)));
+            lpaState.branchesBuilt = true;
+        }
 
-                // Search filter
-                if (searchTerm) {
-                    const appNo = (record.Application_No || '').toString().toLowerCase();
-                    const borrower = (record['Borrower_Name'] || '').toString().toLowerCase();
-                    searchMatch = appNo.includes(searchTerm) || borrower.includes(searchTerm);
-                }
+        function lpaBuildTabs(base) {
+            const sel = document.getElementById('status-filter');
+            document.getElementById('lpa-tabs').innerHTML = [...sel.options].map((o) => {
+                const n = base.filter((r) => lpaStatusMatches(r, o.value)).length;
+                const label = o.value === 'all' ? 'All' : o.text;
+                const gold = o.value === 'awaiting-exec' && n > 0 ? ' gold' : '';
+                return `<button type="button" role="tab" data-status="${rvEsc(o.value)}" class="${o.value === sel.value ? 'on' : ''}" aria-selected="${o.value === sel.value}">${rvEsc(label)} <span class="c${gold}">${n.toLocaleString('en-US')}</span></button>`;
+            }).join('');
+        }
 
-                // Status filter
-                if (statusFilter === 'awaiting-exec') {
-                    statusMatch = isAwaitingExecutiveApproval(record);
-                } else if (statusFilter !== 'all') {
-                    statusMatch = record.status === statusFilter;
-                }
+        function lpaRenderChips() {
+            const chips = [];
+            const q = document.getElementById('search-filter').value.trim();
+            const b = document.getElementById('branch-filter').value;
+            const amt = document.getElementById('loan-amount-filter');
+            if (q) chips.push(['search-filter', `Search: "${q}"`]);
+            if (b !== 'all') chips.push(['branch-filter', `Branch: ${b}`]);
+            if (amt.value !== 'all') chips.push(['loan-amount-filter', `Amount: ${amt.options[amt.selectedIndex].text}`]);
+            document.getElementById('lpa-chips').innerHTML = chips.map(([id, t]) =>
+                `<span class="dg-chip">${rvEsc(t)}<button type="button" data-clear="${id}" title="Remove filter" aria-label="Remove filter">&times;</button></span>`).join('')
+                + (chips.length > 1 ? '<button type="button" class="btn btn-link btn-sm p-0 ms-1" data-clear="all">Clear all</button>' : '');
+        }
 
-                // Loan amount filter
-                const loanAmount = parseFloat(record.Loan_Amount) || 0;
-                if (loanAmountFilter === 'below-50k') {
-                    amountMatch = loanAmount < 50000;
-                } else if (loanAmountFilter === '50k-100k') {
-                    amountMatch = loanAmount >= 50000 && loanAmount <= 100000;
-                } else if (loanAmountFilter === 'above-100k') {
-                    amountMatch = loanAmount > 100000;
-                }
+        function lpaRenderHead() {
+            document.getElementById('lpa-thead').innerHTML = '<tr>' + LPA_COLS.filter((c) => c.fixed || !lpaState.hidden.has(c.key)).map((c) => {
+                if (c.fixed) return '<th></th>';
+                const on = lpaState.sort === c.key;
+                return `<th class="sortable ${c.num ? 'num' : ''} ${on ? (lpaState.dir > 0 ? 'asc' : 'desc') : ''}" data-key="${c.key}">${c.label}<span class="sort">${on && lpaState.dir < 0 ? '&#9660;' : '&#9650;'}</span></th>`;
+            }).join('') + '</tr>';
+        }
 
-                return searchMatch && statusMatch && amountMatch;
+        function lpaBuildColumnMenu() {
+            const menu = document.getElementById('lpa-cols-menu');
+            LPA_COLS.filter((c) => !c.fixed).forEach((c) => {
+                const l = document.createElement('label');
+                l.innerHTML = `<input type="checkbox" ${lpaState.hidden.has(c.key) ? '' : 'checked'}> ${c.label}`;
+                l.querySelector('input').addEventListener('change', (e) => {
+                    e.target.checked ? lpaState.hidden.delete(c.key) : lpaState.hidden.add(c.key);
+                    try { localStorage.setItem('kft-lpa-hidden', JSON.stringify([...lpaState.hidden])); } catch (err) {}
+                    changePage(tempCurrentPage);
+                });
+                menu.appendChild(l);
             });
+        }
 
+        function applyFilters() {
+            lpaBuildBranches();
+            const status = document.getElementById('status-filter').value;
+            const base = tempData.filter(lpaBaseMatches);
+            filteredData = base.filter((r) => lpaStatusMatches(r, status));
+            if (lpaState.sort) {
+                const col = LPA_COLS.find((c) => c.key === lpaState.sort);
+                filteredData.sort((x, y) => {
+                    const a = lpaSortValue(x, col), b = lpaSortValue(y, col);
+                    return (a > b ? 1 : a < b ? -1 : 0) * lpaState.dir;
+                });
+            }
+            lpaBuildTabs(base);
+            lpaRenderChips();
             tempCurrentPage = 1;
             renderTable(filteredData, 'temp-table-body', tempCurrentPage);
             renderPagination(filteredData, 'temp-pagination', tempCurrentPage);
         }
 
-        // Render table
-        // === Updated renderTable with View button spinner ===
+        document.addEventListener('DOMContentLoaded', () => {
+            lpaBuildColumnMenu();
+            document.getElementById('lpa-tabs').addEventListener('click', (e) => {
+                const b = e.target.closest('button[data-status]');
+                if (!b) return;
+                document.getElementById('status-filter').value = b.dataset.status;
+                applyFilters();
+            });
+            document.getElementById('lpa-chips').addEventListener('click', (e) => {
+                const id = e.target.closest('[data-clear]')?.dataset.clear;
+                if (!id) return;
+                (id === 'all' ? ['search-filter', 'branch-filter', 'loan-amount-filter'] : [id]).forEach((x) => {
+                    const el = document.getElementById(x); el.value = x === 'search-filter' ? '' : 'all';
+                });
+                applyFilters();
+            });
+            document.getElementById('lpa-thead').addEventListener('click', (e) => {
+                const th = e.target.closest('th.sortable');
+                if (!th) return;
+                lpaState.dir = lpaState.sort === th.dataset.key ? -lpaState.dir : 1;
+                lpaState.sort = th.dataset.key;
+                applyFilters();
+            });
+            const sizeSel = document.getElementById('lpa-size');
+            try { const s = localStorage.getItem('kft-lpa-size'); if (s) { sizeSel.value = s; itemsPerPage = parseInt(s, 10) || 10; changePage(1); } } catch (e) {}
+            sizeSel.addEventListener('change', () => {
+                itemsPerPage = parseInt(sizeSel.value, 10) || 10;
+                try { localStorage.setItem('kft-lpa-size', sizeSel.value); } catch (e) {}
+                changePage(1);
+            });
+            const table = document.getElementById('lpa-table'), dens = document.getElementById('lpa-density');
+            const setDensity = (d) => { table.classList.toggle('compact', d === 'compact'); dens.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x.dataset.d === d)); };
+            try { setDensity(localStorage.getItem('kft-density') || ''); } catch (e) {}
+            dens.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; setDensity(b.dataset.d); try { localStorage.setItem('kft-density', b.dataset.d); } catch (err) {} });
+            const colsBtn = document.getElementById('lpa-cols-btn'), colsMenu = document.getElementById('lpa-cols-menu');
+            colsBtn.addEventListener('click', (e) => { e.stopPropagation(); colsMenu.classList.toggle('open'); });
+            colsMenu.addEventListener('click', (e) => e.stopPropagation());
+            document.addEventListener('click', () => colsMenu.classList.remove('open'));
+        });
+
+        // Render table (grid columns, sorting and visibility from LPA_COLS / lpaState)
         function renderTable(data, tableBodyId, currentPage) {
+            lpaRenderHead();
             const tbody = document.getElementById(tableBodyId);
             tbody.innerHTML = '';
             const start = (currentPage - 1) * itemsPerPage;
             const end = start + itemsPerPage;
             const pageData = data.slice(start, end);
+            const cols = LPA_COLS.filter((c) => c.fixed || !lpaState.hidden.has(c.key));
+            document.getElementById('lpa-info').textContent = data.length
+                ? `Showing ${(start + 1).toLocaleString('en-US')}–${Math.min(end, data.length).toLocaleString('en-US')} of ${data.length.toLocaleString('en-US')} applications`
+                : 'No applications';
 
             if (pageData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">No records found</td></tr>';
+                tbody.innerHTML = `<tr><td colspan="${cols.length}" class="empty"><i class="bi bi-search me-1"></i>No applications match these filters.</td></tr>`;
                 return;
             }
 
             pageData.forEach((record, index) => {
                 const row = document.createElement('tr');
-                const statusText = statusMap[record.status] || 'Not Received';
 
                 let letterButton = '';
                 {% if result.is_user_have_sign %}
@@ -621,27 +744,25 @@
                     }
                 {% endif %}
 
-                row.innerHTML = `
-                    <td>${record.branch || 'Not Received'}</td>
-                    <td>${record.role || 'Not Received'}</td>
-                    <td>${record.Application_No || 'Not Received'}</td>
-                    <td>${record['Borrower_Name'] || 'Not Received'}</td>
-                    <td>${record['Loan_Amount'] || 'Not Received'}</td>
-                    <td>${formatDate(record.ApplicationDate)}</td>
-                    <td>${record.approved_by || ''}</td>
-                    <td title='${record.approved_date}'>${formatDate(String(record.approved_date))}</td>
-                    <td>
-                        ${statusText}
-                    </td>
-                    <td>
-                        <button class="btn btn-sm btn-primary view-btn"
-                                data-index="${start + index}">
-                            <span class="view-text">View</span>
-                            <span class="spinner-border spinner-border-sm d-none" role="status"></span>
-                        </button>
-                        ${letterButton}
-                    </td>
-                `;
+                const cell = {
+                    branch: rvEsc(record.branch || 'Not Received'),
+                    role: rvEsc(record.role || 'Not Received'),
+                    Application_No: `<span class="strong">${rvEsc(record.Application_No || 'Not Received')}</span>`,
+                    Borrower_Name: rvEsc(record['Borrower_Name'] || 'Not Received'),
+                    Loan_Amount: lpaAmount(record['Loan_Amount']) !== null ? `<span class="strong">${lpaAmount(record['Loan_Amount']).toLocaleString('en-US')}</span>` : 'Not Received',
+                    ApplicationDate: formatDate(record.ApplicationDate),
+                    approved_by: rvEsc(record.approved_by || ''),
+                    approved_date: `<span title="${rvEsc(record.approved_date)}">${formatDate(String(record.approved_date))}</span>`,
+                    status: statusPill(record),
+                    _action: `<div class="d-flex align-items-center gap-1 justify-content-end">
+                                <button class="btn btn-sm btn-primary view-btn" data-index="${start + index}">
+                                    <span class="view-text">Review</span>
+                                    <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                                </button>
+                                ${letterButton}
+                              </div>`
+                };
+                row.innerHTML = cols.map((c) => `<td class="${c.num ? 'num' : ''}" data-k="${c.key}" data-label="${c.label}">${cell[c.key]}</td>`).join('');
                 tbody.appendChild(row);
             });
 
@@ -898,6 +1019,103 @@
             await checkAgainstLoanMetrics(record, natureOfBusiness, experience);
         }
 
+        // ---- Review pop-up helpers (approved design) ----
+        function rvEsc(value) {
+            return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        // Status as a coloured pill (same colours across the app)
+        function statusPill(record) {
+            const s = String(record.status);
+            const cls = { '1': 'info', '5': 'neutral', '6': 'neutral', '7': 'neutral', '8': 'neutral', '2': 'ok', '9': 'ok', '3': 'bad', '10': 'bad' }[s] || 'neutral';
+            let html = `<span class="kft-pill ${cls}">${rvEsc(statusMap[record.status] || 'Not Received')}</span>`;
+            if (isAwaitingExecutiveApproval(record)) html += ' <span class="kft-pill gold">Awaiting Executive</span>';
+            return html;
+        }
+
+        function fillReviewHeader(record) {
+            const amount = (v) => {
+                const n = Number(String(v ?? '').replace(/,/g, ''));
+                return v === null || v === undefined || v === '' || isNaN(n) ? '' : 'PKR ' + n.toLocaleString('en-US');
+            };
+            document.getElementById('tempModalLabel').textContent = `Application ${record.Application_No || ''} · ${record.Borrower_Name || ''}`;
+            document.getElementById('rv-meta').textContent = [
+                record.CNIC && `CNIC ${record.CNIC}`, record.Branch_Name, record.bank_name,
+                record.loan_officer && `Loan officer: ${record.loan_officer}`,
+                formatDate(record.ApplicationDate) && `Applied ${formatDate(record.ApplicationDate)}`
+            ].filter(Boolean).join(' · ');
+            document.getElementById('rv-pills').innerHTML = statusPill(record) + ' <span class="kft-pill bad d-none" id="rv-pill-exception">Matrix exception</span>';
+            document.getElementById('rv-matrix-badge').classList.add('d-none');
+            document.getElementById('rv-strip').innerHTML = [
+                ['Product', record.LoanProductCode], ['Requested', amount(record.Requested_Loan_Amount)], ['Bank loan amount', amount(record.Loan_Amount)],
+                ['Loan cycle', record.Loan_Cycle], ['DBR', record.Dbr], ['Tenure', record.Tenor_Of_Month ? `${record.Tenor_Of_Month} months` : '']
+            ].map(([k, v]) => `<div><div class="k">${k}</div><div class="v">${rvEsc(v || '—')}</div></div>`).join('');
+        }
+
+        // Tablet/phone: the decision panel is the "Decision" tab (rv-dec); the Save button reads "Go to decision" until it is open
+        const rvNarrow = window.matchMedia('(max-width: 1000px)');
+        let rvLastPane = 'rv-applicant';
+        function rvDecisionOpen() { return document.querySelector('#tempModal .rv').classList.contains('dec-on'); }
+        function rvSyncSaveLabel() {
+            const btn = document.getElementById('temp-save-btn');
+            if (btn && !btn.disabled) btn.textContent = rvNarrow.matches && !rvDecisionOpen() ? 'Go to decision' : 'Save';
+        }
+        function showReviewTab(id) {
+            const dec = id === 'rv-dec';
+            document.querySelector('#tempModal .rv').classList.toggle('dec-on', dec);
+            document.querySelectorAll('#rv-tabs button').forEach((b) => b.classList.toggle('on', b.dataset.pane === id));
+            const bar = document.getElementById('rv-tabs'), onBtn = bar.querySelector('button.on');
+            if (onBtn) bar.scrollLeft = Math.max(0, onBtn.offsetLeft - bar.offsetLeft - 40);
+            rvSyncSaveLabel();
+            if (dec) { document.getElementById('rv-decision').scrollTop = 0; return; }
+            rvLastPane = id;
+            document.querySelectorAll('#temp-modal-body .rv-tab').forEach((p) => p.classList.toggle('on', p.id === id));
+            // Documents load the first time the tab is opened for this application
+            if (id === 'rv-docs' && document.getElementById('imagesSection').style.display === 'none') {
+                const idx = parseInt(document.getElementById('temp-modal-body').getAttribute('data-index'), 10);
+                const rec = filteredData[idx];
+                if (rec && rec.Application_No) loadApplicationImages(rec.Application_No);
+                else { document.getElementById('imagesSection').style.display = 'block'; document.getElementById('noImagesMessage').style.display = 'block'; }
+            }
+            const paneEl = document.getElementById('temp-modal-body');
+            if (paneEl) paneEl.scrollTop = 0;
+        }
+        document.getElementById('rv-tabs').addEventListener('click', (e) => {
+            const b = e.target.closest('button[data-pane]');
+            if (b) showReviewTab(b.dataset.pane);
+        });
+        const rvOnResize = () => {
+            if (!rvNarrow.matches && rvDecisionOpen()) showReviewTab(rvLastPane);
+            else rvSyncSaveLabel();
+        };
+        if (rvNarrow.addEventListener) rvNarrow.addEventListener('change', rvOnResize); else rvNarrow.addListener(rvOnResize);   // older iOS Safari
+
+        // KFT matrix cards: label each check Pass / Exception from the result row the calculation already writes
+        // ("Meet Requirement" cell with text-success / text-danger). Re-applied whenever the tables are recalculated.
+        function rvDecorateMatrix() {
+            ['tableCalculatorMathsPaidOff', 'tableCalculatorMathsLoanCeiling', 'tableCalculatorMathsLoanLimit'].forEach((id) => {
+                const table = document.getElementById(id);
+                const box = table && table.closest('.col-md-12');
+                const heading = box && box.querySelector('h5');
+                if (!heading) return;
+                const fail = !!table.querySelector('.text-danger');
+                const pass = !fail && !!table.querySelector('.text-success');
+                const state = fail ? 'fail' : pass ? 'pass' : 'info';
+                if (box.dataset.rvState === state && heading.querySelector('.kft-pill')) return;   // nothing changed
+                box.dataset.rvState = state;
+                box.classList.add('rv-check');
+                box.classList.toggle('fail', fail);
+                box.classList.toggle('info', state === 'info');
+                let pill = heading.querySelector('.kft-pill');
+                if (!pill) { pill = document.createElement('span'); heading.appendChild(pill); }
+                pill.className = 'kft-pill ' + (fail ? 'bad' : pass ? 'ok' : 'neutral');
+                pill.textContent = fail ? 'Exception' : pass ? 'Pass' : 'Info';
+            });
+        }
+        let rvMatrixTimer = null;
+        new MutationObserver(() => { clearTimeout(rvMatrixTimer); rvMatrixTimer = setTimeout(rvDecorateMatrix, 50); })
+            .observe(document.getElementById('rv-matrix'), { childList: true, subtree: true });
+
         // View record in modal
         async function viewRecord(index) {
             const record = filteredData[index];
@@ -958,8 +1176,20 @@
             }
 
             const modalBody = document.getElementById('temp-modal-body');
-            modalBody.innerHTML = '';
             modalBody.setAttribute('data-index', index);
+
+            // Review pop-up: each existing section goes into its own tab; the decision fields go into the side panel
+            const pane = {
+                applicant: document.getElementById('rv-applicant'),
+                business: document.getElementById('rv-business'),
+                history: document.getElementById('rv-history'),
+                matrix: document.getElementById('rv-matrix'),
+                tat: document.getElementById('rv-tat'),
+                decision: document.getElementById('rv-decision')
+            };
+            Object.values(pane).forEach((p) => { p.innerHTML = ''; });
+            showReviewTab('rv-applicant');
+            fillReviewHeader(record);
 
             // Heading for Lender & Borrower Information
             const heading = document.createElement('div');
@@ -968,7 +1198,7 @@
                     Bank & Borrower Information
                 </h4>
             `;
-            modalBody.appendChild(heading);
+            pane.applicant.appendChild(heading);
 
             // Table for Lender & Borrower Information
             const tableContainer = document.createElement('div');
@@ -995,7 +1225,7 @@
                     </table>
                 </div>
             `;
-            modalBody.appendChild(tableContainer);
+            pane.applicant.appendChild(tableContainer);
 
             // Heading for Loan History
             const loanHistoryHeading = document.createElement('div');
@@ -1004,7 +1234,7 @@
                     Loan History
                 </h4>
             `;
-            modalBody.appendChild(loanHistoryHeading);
+            pane.history.appendChild(loanHistoryHeading);
 
             // Loan History Section with Loading
             const loanHistoryContainer = document.createElement('div');
@@ -1023,7 +1253,7 @@
                     </div>
                 </div>
             `;
-            modalBody.appendChild(loanHistoryContainer);
+            pane.history.appendChild(loanHistoryContainer);
 
             // Fetch loan history
             if (record && record.CNIC) {
@@ -1109,7 +1339,7 @@
                     Key Loan Information
                 </h4>
             `;
-            modalBody.appendChild(keyLoanHeading);
+            pane.business.appendChild(keyLoanHeading);
 
             // Table for Business Indicators
             const businessIndicators = document.createElement('div');
@@ -1120,39 +1350,21 @@
                         Business Indicators
                     </h5>
                     <table class="table table-sm">
-                        <tr><th>Loan Product:</th><td>${record.LoanProductCode || 'Not Received'}</td><td></td></tr>
-                        <tr><th>Nature of Business:</th><td>${record.Nature_Of_Business || 'Not Received'}</td><td>
-                            <select class="form-select form-select-sm nature-of-business" id="nature-of-business">
-                                <option value="">Select</option>
-                                {% for item in result.occupation_list %}
-                                    <option value="{{item['name']}}">{{item['name']}}</option>
-                                {% else %}
-                                    <option value="">[[No record found!]]</option>
-                                {% endfor %}
-                            </select>
-                        </td></tr>
-                        <tr><th>Purpose of the Loan:</th><td>${record.Purpose_Of_Loan || 'Not Received'}</td><td></td></tr>
-                        <tr><th>Enterprise Premises:</th><td>${record.Enterprise_Premises || 'Not Received'}</td><td></td></tr>
-                        <tr><th>Experience Start Date:</th><td>${formatDate(record.Experiense_Start_Date) || 'Not Received'}</td><td>
-                            <select class="form-select form-select-sm experience" id="experience">
-                                <option value="">Select</option>
-                                {% for item in result.experience_ranges_list %}
-                                    <option value="{{item['label']}}">{{item['label']}}</option>
-                                {% else %}
-                                    <option value="">[[No record found!]]</option>
-                                {% endfor %}
-                            </select>
-                        </td></tr>
-                        <tr><th>Credit History ECIB:</th><td>${record.Credit_History_Ecib || 'Not Received'}</td><td></td></tr>
-                        <tr><th>Annual Business Income:</th><td>${formatNumber(record.Annual_Business_Incomes) || 'Not Received'}</td><td></td></tr>
-                        <tr><th>Annual Expenses:</th><td>${formatNumber(record.Annual_Expenses)|| 'Not Received'}</td><td></td></tr>
-                        <tr><th>Annual Disposable Income:</th><td>${formatNumber(record.Annual_Disposable_Income) || 'Not Received'}</td><td></td></tr>
-                        <tr><th>Monthly Repayment Capacity:</th><td>${record.Monthly_Repayment_Capacity || 'Not Received'}</td><td></td></tr>
-                        <tr><th>Debt Burden Ratio (DBR):</th><td>${record.Dbr || 'Not Received'}</td><td></td></tr>
+                        <tr><th>Loan Product:</th><td>${record.LoanProductCode || 'Not Received'}</td></tr>
+                        <tr><th>Nature of Business:</th><td>${record.Nature_Of_Business || 'Not Received'}</td></tr>
+                        <tr><th>Purpose of the Loan:</th><td>${record.Purpose_Of_Loan || 'Not Received'}</td></tr>
+                        <tr><th>Enterprise Premises:</th><td>${record.Enterprise_Premises || 'Not Received'}</td></tr>
+                        <tr><th>Experience Start Date:</th><td>${formatDate(record.Experiense_Start_Date) || 'Not Received'}</td></tr>
+                        <tr><th>Credit History ECIB:</th><td>${record.Credit_History_Ecib || 'Not Received'}</td></tr>
+                        <tr><th>Annual Business Income:</th><td>${formatNumber(record.Annual_Business_Incomes) || 'Not Received'}</td></tr>
+                        <tr><th>Annual Expenses:</th><td>${formatNumber(record.Annual_Expenses)|| 'Not Received'}</td></tr>
+                        <tr><th>Annual Disposable Income:</th><td>${formatNumber(record.Annual_Disposable_Income) || 'Not Received'}</td></tr>
+                        <tr><th>Monthly Repayment Capacity:</th><td>${record.Monthly_Repayment_Capacity || 'Not Received'}</td></tr>
+                        <tr><th>Debt Burden Ratio (DBR):</th><td>${record.Dbr || 'Not Received'}</td></tr>
                     </table>
                 </div>
             `;
-            modalBody.appendChild(businessIndicators);
+            pane.business.appendChild(businessIndicators);
 
             // Table for Family Info
             const familyInfo = document.createElement('div');
@@ -1173,7 +1385,7 @@
                     </table>
                 </div>
             `;
-            modalBody.appendChild(familyInfo);
+            pane.business.appendChild(familyInfo);
 
             // Heading for KFT ACCEPTED Loan Terms
             const kftLoanHeading = document.createElement('div');
@@ -1182,7 +1394,7 @@
                     Loan Calculator & KFT Loan Matrix
                 </h4>
             `;
-            modalBody.appendChild(kftLoanHeading);
+            pane.matrix.appendChild(kftLoanHeading);
 
             // Table for Paid Off %
             const calculatorMathsPaidOff = document.createElement('div');
@@ -1196,7 +1408,7 @@
                     </table>
                 </div>
             `;
-            modalBody.appendChild(calculatorMathsPaidOff);
+            pane.matrix.appendChild(calculatorMathsPaidOff);
 
             // Table for KFT Required Loan Exposure
             const calculatorMathsLoanCeiling = document.createElement('div');
@@ -1210,7 +1422,7 @@
                     </table>
                 </div>
             `;
-            modalBody.appendChild(calculatorMathsLoanCeiling);
+            pane.matrix.appendChild(calculatorMathsLoanCeiling);
 
             // Table for Loan Limit Per KFT Matrix
             const calculatorMathsLoanLimit = document.createElement('div');
@@ -1224,7 +1436,7 @@
                     </table>
                 </div>
             `;
-            modalBody.appendChild(calculatorMathsLoanLimit);
+            pane.matrix.appendChild(calculatorMathsLoanLimit);
 
 
             // Check for exceptions using the checkForExceptions function
@@ -1236,66 +1448,88 @@
 
             // Table for KFT Approved Terms
             const kftAcceptedLoanTerms = document.createElement('div');
-            kftAcceptedLoanTerms.className = 'row mt-3';
+            kftAcceptedLoanTerms.className = 'rv-decision';
+            const rvTrailItem = (label, by, date) => `<li><span>${label}</span><span>${by ? rvEsc(by) + (formatDate(date) ? ` &middot; ${formatDate(date)}` : '') : '&mdash;'}</span></li>`;
+            document.getElementById('rv-matrix-badge').classList.toggle('d-none', !hasException);
+            const rvExc = document.getElementById('rv-pill-exception');
+            if (rvExc) rvExc.classList.toggle('d-none', !hasException);
             kftAcceptedLoanTerms.innerHTML = `
-                <div class="col-md-12">
-                    <h5 class="bg-success text-white p-2 mb-2 rounded" style="font-weight: bold; border-left: 4px solid #34d399;">
-                        KFT Agreed Terms
-                    </h5>
-                    <table class="table table-sm">
-                        <tr><th>KFT Approved Loan Limit:</th><td>
-                            <div class="input-group">
-                                <input class="form-control form-control-sm" type="text" value="${record.kft_approved_loan_limit !== null ? record.kft_approved_loan_limit : record.Loan_Amount}" id="amount-accepted">
-                                <button class="btn btn-danger btn-sm" type="button" id="reset-button" title="Reset">
-                                    <i class="bi bi-arrow-counterclockwise"></i>
-                                </button>
-                            </div>
-                        </td></tr>
-                        <tr><th>Tenure (Tenure of Months):</th><td>${record.Tenor_Of_Month || 'Not Received'}</td></tr>
-                        <tr><th>Collateral Type:</th><td>${record.Collateral_Type || 'Not Received'}</td></tr>
-                        <tr><th>Bank Approved Interest Rate (Yet to Receive):</th><td>Not Received</td></tr>
-                        <tr><th>KFT Subsidized Interest Rate:</th><td id="td-interest-rate">${interest_rate}%</td></tr>
-                        <tr><th>Repayment Terms:</th><td>${record.repayment_frequency || 'Not Received'}</td></tr>
-                        <!-- Display Reviewed By and Reviewed Date, with brackets only if date exists -->
-                        <tr>
-                            <th>Reviewed By (Reviewed Date):</th>
-                            <td>${record.reviewed_by || ''}${record.reviewed_date ? ` (${formatDate(record.reviewed_date)})` : ''}</td>
-                        </tr>
-                        <!-- Display Approved By and Approved Date, with brackets only if date exists -->
-                        <tr>
-                            <th>Approved By (Approved Date):</th>
-                            <td>${record.approved_by || ''}${formatDate(record.approved_date) ? ` (${formatDate(record.approved_date)})` : ''}</td>
-                        </tr>
-                        <!-- Display Rejected By and Rejected Date, with brackets only if date exists -->
-                        <tr>
-                            <th>Rejected By (Rejected Date):</th>
-                            <td>${record.rejected_by || ''}${formatDate(record.rejected_date) ? ` (${formatDate(record.rejected_date)})` : ''}</td>
-                        </tr>
-                        ${requiresExecutiveApproval(record) ? `
-                        <tr>
-                            <th>Executive Approved By (Date):</th>
-                            <td>${record.exec_approved_by
-                                ? `${record.exec_approved_by}${formatDate(record.exec_approved_date) ? ` (${formatDate(record.exec_approved_date)})` : ''}`
-                                : (isAwaitingExecutiveApproval(record) ? '<span class="badge bg-warning text-dark">Awaiting Executive Approval</span>' : '')}</td>
-                        </tr>` : ''}
-                        <tr><th>Status:</th>
-                        <td>
-                            <select class="form-select form-select-sm" id="temp-status">
-                                ${generateStatusOptions(record.status, hasException)}
-                            </select>
-                            ${hasException ? '<span class="badge bg-danger text-white ms-2" title="' + exceptionReason + '">⚠️ Exception Detected!</span>' : ''}
-                        </td>
-                        </tr>
-                        <tr>
-                            <th>Exceptions/Notes:</th>
-                            <td>
-                                <textarea class="form-control" id="temp-notes" rows="4">${record.notes || ''}</textarea>
-                            </td>
-                        </tr>
-                    </table>
+                ${hasException
+                    ? `<div class="rv-callout warn"><i class="bi bi-exclamation-triangle-fill"></i><div><b>KFT matrix exception.</b> ${rvEsc(exceptionReason || '')} See the KFT matrix tab, and use a "(With Exception)" status.</div></div>`
+                    : `<div class="rv-callout ok"><i class="bi bi-check-circle-fill"></i><div>No KFT matrix exception detected.</div></div>`}
+                <div class="rv-req">
+                    <div class="rv-side-title">Business indicator required fields <span>(for loan matrix)</span></div>
+                    <div>
+                        <label class="form-label" for="nature-of-business">Nature of business <span class="text-danger">*</span></label>
+                        <select class="form-select nature-of-business" id="nature-of-business">
+                            <option value="">Select</option>
+                            {% for item in result.occupation_list %}
+                                <option value="{{item['name']}}">{{item['name']}}</option>
+                            {% else %}
+                                <option value="">[[No record found!]]</option>
+                            {% endfor %}
+                        </select>
+                        <span class="rv-hint">Bank data: ${rvEsc(record.Nature_Of_Business || 'Not Received')}</span>
+                    </div>
+                    <div>
+                        <label class="form-label" for="experience">Experience start date <span class="text-danger">*</span></label>
+                        <select class="form-select experience" id="experience">
+                            <option value="">Select</option>
+                            {% for item in result.experience_ranges_list %}
+                                <option value="{{item['label']}}">{{item['label']}}</option>
+                            {% else %}
+                                <option value="">[[No record found!]]</option>
+                            {% endfor %}
+                        </select>
+                        <span class="rv-hint">Bank data: ${rvEsc(formatDate(record.Experiense_Start_Date) || 'Not Received')}</span>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label" for="amount-accepted">KFT approved loan limit (PKR)</label>
+                    <div class="input-group">
+                        <input class="form-control" type="text" value="${record.kft_approved_loan_limit !== null ? record.kft_approved_loan_limit : record.Loan_Amount}" id="amount-accepted">
+                        <button class="btn btn-secondary" type="button" id="reset-button" title="Reset to the bank loan amount">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </button>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label" for="temp-status">Decision</label>
+                    <select class="form-select" id="temp-status">
+                        ${generateStatusOptions(record.status, hasException)}
+                    </select>
+                    ${hasException ? '<span class="badge bg-danger text-white mt-2" title="' + rvEsc(exceptionReason) + '">Exception detected</span>' : ''}
+                    ${requiresExecutiveApproval(record) ? '<span class="rv-hint"><i class="bi bi-info-circle"></i><span>This product needs Executive approval: an Approver&#39;s decision waits for the Executive before the email is sent.</span></span>' : ''}
+                </div>
+                <div>
+                    <label class="form-label" for="temp-notes">Exceptions / notes</label>
+                    <textarea class="form-control" id="temp-notes" rows="4">${record.notes || ''}</textarea>
+                </div>
+                <div>
+                    <div class="rv-side-title">Agreed terms</div>
+                    <div class="rv-terms">
+                        <div><div class="k">Tenure</div><div class="v">${record.Tenor_Of_Month ? rvEsc(record.Tenor_Of_Month) + ' months' : 'Not Received'}</div></div>
+                        <div><div class="k">Repayment</div><div class="v">${rvEsc(record.repayment_frequency || 'Not Received')}</div></div>
+                        <div><div class="k">KFT subsidised rate</div><div class="v" id="td-interest-rate">${interest_rate}%</div></div>
+                        <div><div class="k">Bank rate</div><div class="v text-muted fw-normal">Yet to receive</div></div>
+                        <div style="grid-column:1 / -1"><div class="k">Collateral</div><div class="v">${rvEsc(record.Collateral_Type || 'Not Received')}</div></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="rv-side-title">Approval trail</div>
+                    <ul class="rv-trail">
+                        ${rvTrailItem('Reviewed', record.reviewed_by, record.reviewed_date)}
+                        ${rvTrailItem('Approved', record.approved_by, record.approved_date)}
+                        ${record.rejected_by ? rvTrailItem('Disagreed', record.rejected_by, record.rejected_date) : ''}
+                        ${requiresExecutiveApproval(record)
+                            ? (record.exec_approved_by
+                                ? rvTrailItem('Executive approved', record.exec_approved_by, record.exec_approved_date)
+                                : `<li><span>Executive approval</span><span>${isAwaitingExecutiveApproval(record) ? '<span class="kft-pill gold">Waiting</span>' : '&mdash;'}</span></li>`)
+                            : ''}
+                    </ul>
                 </div>
             `;
-            modalBody.appendChild(kftAcceptedLoanTerms);
+            pane.decision.appendChild(kftAcceptedLoanTerms);
 
             // Heading for Turnaround Time
             const othersHeading = document.createElement('div');
@@ -1304,7 +1538,7 @@
                     Turnaround Time
                 </h4>
             `;
-            modalBody.appendChild(othersHeading);
+            pane.tat.appendChild(othersHeading);
 
             // Table for Turnaround Time
             const othersTable = document.createElement('div');
@@ -1314,7 +1548,7 @@
                     ${generateTurnaroundTable(record)}
                 </div>
             `;
-            modalBody.appendChild(othersTable);
+            pane.tat.appendChild(othersTable);
 
             // Heading for Other Available Information
             const othersAvailableInfo = document.createElement('div');
@@ -1323,7 +1557,7 @@
                     Other Available Information
                 </h4>
             `;
-            modalBody.appendChild(othersAvailableInfo);
+            pane.applicant.appendChild(othersAvailableInfo);
 
             // Table for Other Available Information
             const othersAvailableInfoTable = document.createElement('div');
@@ -1343,10 +1577,14 @@
                     </table>
                 </div>
             `;
-            modalBody.appendChild(othersAvailableInfoTable);
+            pane.applicant.appendChild(othersAvailableInfoTable);
 
             const saveBtn = document.getElementById('temp-save-btn');
-            saveBtn.onclick = () => saveTempRecord(record.pre_disb_temp_id, saveBtn);
+            saveBtn.onclick = () => {
+                if (rvNarrow.matches && !rvDecisionOpen()) { showReviewTab('rv-dec'); return; }
+                saveTempRecord(record.pre_disb_temp_id, saveBtn);
+            };
+            rvSyncSaveLabel();
 
             // Instead, attach event listeners programmatically:
             const natureSelect = document.querySelector('.nature-of-business');
@@ -1718,44 +1956,18 @@
             const approvedDays = record.approved_date && formatDate(record.approved_date) !== '' ? calculateDaysBetween(record.uploaded_date, record.approved_date) : 0;
             const totalDays = appraisalDays + bankVerifiedDays + bankProcessedDays + approvedDays;
 
+            // Same dates and day counts as before, shown as step cards (approved design)
+            const step = (label, date, days) =>
+                `<div><div class="k">${label}</div><div class="d">${date || '&mdash;'}</div><div class="n">${days} <small>${days === 1 ? 'day' : 'days'}</small></div></div>`;
             return `
-                <table class="table table-sm" id="tableTurnaroundTime">
-                    <tr>
-                        <th>Turnaround Time - TAT</th>
-                        <th>Dates</th>
-                        <th>Days</th>
-                    </tr>
-                    <tr>
-                        <td>Loan Application Date</td>
-                        <td>${applicationDate}</td>
-                        <td>${applicationDays}</td>
-                    </tr>
-                    <tr>
-                        <td>Loan Appraisal Date</td>
-                        <td>${appraisalDate}</td>
-                        <td>${appraisalDays}</td>
-                    </tr>
-                    <tr>
-                        <td>Bank Verified on</td>
-                        <td>${bankVerifiedDate}</td>
-                        <td>${bankVerifiedDays}</td>
-                    </tr>
-                    <tr>
-                        <td>Bank Processed on</td>
-                        <td>${bankProcessedDate}</td>
-                        <td>${bankProcessedDays}</td>
-                    </tr>
-                    <tr>
-                        <td>KFT Approved on</td>
-                        <td>${approvedDate}</td>
-                        <td>${approvedDays}</td>
-                    </tr>
-                    <tr>
-                        <td>Total Turnaround Time</td>
-                        <td></td>
-                        <td>${totalDays}</td>
-                    </tr>
-                </table>
+                <div class="rv-tat" id="tableTurnaroundTime">
+                    ${step('Application', applicationDate, applicationDays)}
+                    ${step('Appraisal', appraisalDate, appraisalDays)}
+                    ${step('Bank verified', bankVerifiedDate, bankVerifiedDays)}
+                    ${step('Bank processed', bankProcessedDate, bankProcessedDays)}
+                    ${step('KFT decision', approvedDate, approvedDays)}
+                    ${step('Total turnaround', '', totalDays)}
+                </div>
             `;
         }
 

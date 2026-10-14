@@ -58,9 +58,6 @@ def add_edit_user_service_hours(user_service_hours_id=None):
 
             print(user_id, service_hours, service_category, description)
 
-            service_category_escaped = escape_sql_string(service_category)
-            description_escaped = escape_sql_string(description) if description else 'NULL'
-            status_escaped = escape_sql_string(status)
 
             print(user_id, service_hours, service_category, description)
 
@@ -72,31 +69,31 @@ def add_edit_user_service_hours(user_service_hours_id=None):
 
             if user_service_hours_id:
                 print('Updating the record.')
-                query = f"""
+                query = """
                     UPDATE tbl_user_service_hours 
-                    SET user_id = {user_id},
-                        service_hours = {service_hours},
-                        service_category = {service_category_escaped},
-                        description = {description_escaped},
-                        status = {status_escaped},
-                        modified_by = {current_user_id},
-                        modified_date = '{current_time}'
-                    WHERE user_service_hours_id = {user_service_hours_id}
+                    SET user_id = %s,
+                        service_hours = %s,
+                        service_category = %s,
+                        description = %s,
+                        status = %s,
+                        modified_by = %s,
+                        modified_date = %s
+                    WHERE user_service_hours_id = %s
                 """
-                execute_command(query)
+                execute_command(query, params=(user_id, service_hours, service_category, description, status, current_user_id, current_time, user_service_hours_id))
             else:
                 print('Inserting the record.')
-                query = f"""
+                query = """
                     INSERT INTO tbl_user_service_hours 
                     (user_id, service_hours, service_category, description, status, 
                      created_by, created_date, modified_by, modified_date)
-                    VALUES ({user_id}, {service_hours}, {service_category_escaped}, 
-                            {description_escaped}, {status_escaped}, 
-                            {current_user_id}, '{current_time}', 
-                            {current_user_id}, '{current_time}')
+                    VALUES (%s, %s, %s, 
+                            %s, %s, 
+                            %s, %s, 
+                            %s, %s)
                     RETURNING user_service_hours_id
                 """
-                execute_command(query)
+                execute_command(query, params=(user_id, service_hours, service_category, description, status, current_user_id, current_time, current_user_id, current_time))
             return jsonify({'success': 'Service hours saved'}), 200
 
         return render_template('add_edit_user_service_hours.html',
@@ -135,8 +132,6 @@ def add_edit_user_reporting_period(user_reporting_period_id=None):
             current_user_id = get_current_user_id()
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            reporting_date_escaped = escape_sql_string(reporting_date)
-            status_escaped = escape_sql_string(status)
 
             user_id = int(user_id)
             if user_id <= 0:
@@ -152,25 +147,25 @@ def add_edit_user_reporting_period(user_reporting_period_id=None):
 
             if existing_record and not user_reporting_period_id:
                 # Update existing record
-                query = f"""
+                query = """
                     UPDATE tbl_user_reporting_period 
-                    SET reporting_date = {reporting_date_escaped},
-                        status = {status_escaped},
-                        modified_by = {current_user_id},
-                        modified_date = '{current_time}'
-                    WHERE user_id = {user_id}
+                    SET reporting_date = %s,
+                        status = %s,
+                        modified_by = %s,
+                        modified_date = %s
+                    WHERE user_id = %s
                 """
-                execute_command(query)
+                execute_command(query, params=(reporting_date, status, current_user_id, current_time, user_id))
             else:
                 # Insert new record
-                query = f"""
+                query = """
                     INSERT INTO tbl_user_reporting_period 
                     (user_id, reporting_date, status, created_by, created_date, modified_by, modified_date)
-                    VALUES ({user_id}, {reporting_date_escaped}, {status_escaped}, 
-                            {current_user_id}, '{current_time}', {current_user_id}, '{current_time}')
+                    VALUES (%s, %s, %s, 
+                            %s, %s, %s, %s)
                     RETURNING user_reporting_period_id
                 """
-                execute_command(query)
+                execute_command(query, params=(user_id, reporting_date, status, current_user_id, current_time, current_user_id, current_time))
 
             return jsonify({'success': 'Reporting period saved'}), 200
 
@@ -189,14 +184,14 @@ def delete_user_service_hours(user_service_hours_id):
 
         current_user_id = get_current_user_id()
         current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        query = f"""
+        query = """
             UPDATE tbl_user_service_hours 
             SET status = '2', 
-                modified_by = {current_user_id}, 
-                modified_date = '{current_time}'
-            WHERE user_service_hours_id = {user_service_hours_id}
+                modified_by = %s, 
+                modified_date = %s
+            WHERE user_service_hours_id = %s
         """
-        execute_command(query)
+        execute_command(query, params=(current_user_id, current_time, user_service_hours_id))
         return jsonify({'success': 'Service hours deleted'}), 200
     except Exception as e:
         print('delete user service hours exception:- ', str(e))

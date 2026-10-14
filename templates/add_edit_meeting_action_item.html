@@ -8,23 +8,39 @@
     {% include 'navbar.html' %}
     {% import 'breadcrumbs.html' as brd %}
     {{ brd.render_Breadcrumbs([{"url": "manage_meeting_setup", "label": "Manage Meeting Setup"}, {"url": "", "label": 'Edit Meeting Action Item' if result.mai_details else 'Add Meeting Action Item' }]) }}
+    {% set rec = result.mai_details %}
 
-    <div class="container mt-4">
+    <div class="container mt-2">
         {% include 'message_box.html' %}
 
-        <div class="card">
-            <div class="card-header">
-                <h2>{{ 'Edit Meeting Action Item' if result.mai_details else 'Add Meeting Action Item' }}</h2>
-            </div>
-            <div class="card-body">
-                <form method="POST">
-                    <div class="form-group mb-3">
-                        <label for="mai_name">Name</label>
-                        <input type="text" name="mai_name" class="form-control" value="{{ result.mai_details.mai_name if result.mai_details else '' }}" required>
+        <div class="kf-page-head">
+            <h1>{{ 'Edit meeting action item' if rec else 'Add meeting action item' }}</h1>
+            <p>Action items are the follow-up tasks recorded against meetings.</p>
+        </div>
+
+        <div class="kf-form-layout">
+            <form method="POST" class="kf-card">
+                <div class="kf-sec">Details</div>
+                <div class="kf-body">
+                    <div class="kf-grid">
+                        <div class="kf-field">
+                            <label for="mai_name">Name <span class="req">*</span></label>
+                            <input type="text" id="mai_name" name="mai_name" class="form-control" value="{{ rec.mai_name if rec else '' }}" required>
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-primary">{{ 'Update Meeting Action Item' if result.mai_details else 'Add Meeting Action Item' }}</button>
-                </form>
-            </div>
+                </div>
+
+                <div class="kf-foot">
+                    <a href="{{ url_for('manage_meeting_setup') }}#meeting-action-items" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">{{ 'Update meeting action item' if rec else 'Save meeting action item' }}</button>
+                </div>
+            </form>
+
+            <aside class="kf-card kf-help">
+                <h4>Meeting setup</h4>
+                <p>Action items are the follow-up tasks recorded against meetings.</p>
+                <p>The list is managed on the <a href="{{ url_for('manage_meeting_setup') }}#meeting-action-items">Meeting Setup</a> page.</p>
+            </aside>
         </div>
     </div>
 </body>

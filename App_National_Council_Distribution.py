@@ -30,28 +30,22 @@ def add_edit_national_council_distribution(national_council_distribution_id=None
             current_user_id = get_current_user_id()
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            national_council_distribution_name_escaped = escape_sql_string(national_council_distribution_name)
-
             if national_council_distribution_id:
-                query = f"""
+                query = """
                     UPDATE tbl_national_council_distribution 
-                    SET national_council_distribution_name = {national_council_distribution_name_escaped},
-                        is_active = {is_active},
-                        status = {status},
-                        modified_by = {current_user_id},
-                        modified_date = '{current_time}'
-                    WHERE national_council_distribution_id = {national_council_distribution_id}
+                    SET national_council_distribution_name = %s, is_active = %s, status = %s,
+                        modified_by = %s, modified_date = %s
+                    WHERE national_council_distribution_id = %s
                 """
-                execute_command(query)
+                execute_command(query, params=(national_council_distribution_name, is_active, status, current_user_id, current_time, national_council_distribution_id))
             else:
-                query = f"""
+                query = """
                     INSERT INTO tbl_national_council_distribution 
                     (national_council_distribution_name, is_active, status, created_by, created_date, modified_by, modified_date)
-                    VALUES ({national_council_distribution_name_escaped}, {is_active}, {status}, 
-                            {current_user_id}, '{current_time}', {current_user_id}, '{current_time}')
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
                     RETURNING national_council_distribution_id
                 """
-                execute_command(query)
+                execute_command(query, params=(national_council_distribution_name, is_active, status, current_user_id, current_time, current_user_id, current_time))
             return redirect(url_for('manage_branches') + "#national-council-distributions")
 
         return render_template('add_edit_national_council_distribution.html',

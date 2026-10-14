@@ -1,0 +1,123 @@
+{# Shared layout for the cron / job monitor pages. A page extends this and fills:
+   page_title, page_subtitle, api_url (JSON {success, data:[...]}), storage_key, export_name, and columns (a JS array). #}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block page_title %}{% endblock %}</title>
+    {% include 'head.html' %}
+    <style>
+        .cm-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+        .cm-kpi { padding: 14px 16px; border-left: 3px solid var(--green-600); }
+        .cm-kpi.bad { border-left-color: var(--bad); } .cm-kpi.neutral { border-left-color: var(--line); }
+        .cm-kpi .l { font-size: 11px; font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: .4px; }
+        .cm-kpi .v { font-size: 22px; font-weight: 700; margin-top: 4px; }
+        .cm-kpi .f { font-size: 12px; color: var(--ink-3); }
+        #cm-grid td.err { white-space: normal; min-width: 240px; max-width: 420px; color: var(--bad); font-size: 12px; }
+        @media (max-width: 900px) { .cm-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    </style>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url":"", "label": self.page_title()}] ) }}
+
+    <div class="container mt-2">
+        {% include 'message_box.html' %}
+
+        <div class="kf-page-head">
+            <h1>{{ self.page_title() }}</h1>
+            <p>{% block page_subtitle %}{% endblock %}</p>
+        </div>
+
+        <div class="cm-kpis">
+            <div class="kf-card cm-kpi neutral"><div class="l">Runs</div><div class="v" id="cm-runs">—</div><div class="f" id="cm-range">&nbsp;</div></div>
+            <div class="kf-card cm-kpi"><div class="l">Succeeded</div><div class="v" id="cm-ok">—</div><div class="f" id="cm-ok-f">&nbsp;</div></div>
+            <div class="kf-card cm-kpi bad"><div class="l">Failed</div><div class="v" id="cm-bad">—</div><div class="f" id="cm-bad-f">&nbsp;</div></div>
+            <div class="kf-card cm-kpi neutral"><div class="l">Last run</div><div class="v" id="cm-last" style="font-size:16px;margin-top:8px">—</div><div class="f" id="cm-last-f">&nbsp;</div></div>
+        </div>
+
+        <form id="cm-filters" hidden>
+            <div class="kf-field">
+                <label for="startDate">Start date</label>
+                <input type="date" class="form-control" id="startDate" value="{{ default_start }}">
+            </div>
+            <div class="kf-field">
+                <label for="endDate">End date</label>
+                <input type="date" class="form-control" id="endDate" value="{{ default_end }}">
+            </div>
+            <div class="dg-panel-actions">
+                <button type="submit" class="btn btn-primary" id="filterBtn">Apply</button>
+            </div>
+        </form>
+        <div id="cm-grid" class="mb-4"></div>
+    </div>
+
+    <script>
+        const esc = KFTGrid.escape;
+        const fmtDateTime = (dt) => dt ? new Date(dt).toLocaleString('en-PK', { timeZone: 'Asia/Karachi' }) : '';
+        const iso = (dt) => { const d = new Date(dt); return dt && !isNaN(d) ? d.toISOString() : null; };
+        const isOk = (s) => /^(succeeded|success|completed)$/i.test(String(s || ''));
+        const isRunning = (s) => /run|start/i.test(String(s || ''));
+        const statusPill = (s) => s ? `<span class="kft-pill ${isOk(s) ? 'ok' : isRunning(s) ? 'info' : 'bad'}">${esc(String(s).toUpperCase())}</span>` : '';
+        const count = (key, label) => ({ key, label, type: 'number', sum: true, value: (r) => Number(r[key] ?? 0) });
+        const errorCol = { key: 'error_message', label: 'Error', className: 'err', render: (r) => esc(r.error_message || '') };
+        const startedCol = { key: 'started_at', label: 'Started', type: 'date', value: (r) => iso(r.started_at), exportValue: (r) => fmtDateTime(r.started_at), render: (r) => esc(fmtDateTime(r.started_at)) };
+        const finishedCol = { key: 'finished_at', label: 'Finished', type: 'date', hidden: true, value: (r) => iso(r.finished_at), exportValue: (r) => fmtDateTime(r.finished_at), render: (r) => esc(fmtDateTime(r.finished_at)) };
+        const statusCol = { key: 'status', label: 'Status', filter: true, filterLabel: 'statuses', value: (r) => String(r.status || '').toUpperCase(), render: (r) => statusPill(r.status) };
+        const durationCol = { key: 'duration_seconds', label: 'Duration (s)', type: 'number', value: (r) => r.duration_seconds };
+
+        const columns = {% block columns %}[]{% endblock %};
+
+        const grid = KFTGrid.create(document.getElementById('cm-grid'), {
+            columns, storageKey: '{% block storage_key %}cron{% endblock %}', exportName: '{% block export_name %}Job_Runs{% endblock %}',
+            pageSize: 25, panel: document.getElementById('cm-filters'), sort: { key: 'started_at', dir: 'desc' },
+            searchPlaceholder: 'Search status or error…', emptyText: 'No runs in this period'
+        });
+
+        function summarise(rows, start, end) {
+            const ok = rows.filter((r) => isOk(r.status)).length;
+            const running = rows.filter((r) => isRunning(r.status)).length;
+            const bad = rows.length - ok - running;
+            document.getElementById('cm-runs').textContent = rows.length.toLocaleString('en-US');
+            document.getElementById('cm-range').textContent = `${start} – ${end}`;
+            document.getElementById('cm-ok').textContent = ok.toLocaleString('en-US');
+            document.getElementById('cm-ok-f').textContent = rows.length ? Math.round(ok / rows.length * 100) + '% of runs' : ' ';
+            document.getElementById('cm-bad').textContent = bad.toLocaleString('en-US');
+            document.getElementById('cm-bad-f').textContent = (bad ? 'Check the Error column' : 'No failures') + (running ? ` · ${running} still running` : '');
+            const last = rows.map((r) => r.started_at).filter(Boolean).sort((a, b) => new Date(b) - new Date(a))[0];
+            const lastRow = rows.find((r) => r.started_at === last);
+            document.getElementById('cm-last').textContent = last ? fmtDateTime(last) : '—';
+            document.getElementById('cm-last-f').innerHTML = lastRow ? statusPill(lastRow.status) : '&nbsp;';
+        }
+
+        async function loadData() {
+            const start = document.getElementById('startDate').value;
+            const end = document.getElementById('endDate').value;
+            if (!start || !end) { alert('Please select both start and end dates.'); return; }
+            const btn = document.getElementById('filterBtn');
+            btn.disabled = true;
+            grid.setLoading(true);
+            try {
+                const res = await fetch(`{% block api_url %}{% endblock %}?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
+                const json = await res.json();
+                if (!json.success) throw new Error(json.error || 'Failed to load data');
+                const rows = json.data || [];
+                grid.setRows(rows);
+                grid.setChips([{ label: `Period: ${start} – ${end}` }]);
+                summarise(rows, start, end);
+            } catch (err) {
+                grid.setRows([]);
+                alert('Could not load the runs: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                grid.setLoading(false);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadData);
+        document.getElementById('cm-filters').addEventListener('submit', (e) => { e.preventDefault(); loadData(); });
+    </script>
+</body>
+</html>

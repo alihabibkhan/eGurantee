@@ -76,6 +76,8 @@ def post_meeting_action_items():
 @application.route('/save-action-item', methods=['POST'])
 def save_action_item():
     try:
+        if not is_login():
+            return jsonify({'success': False, 'message': 'Please log in again.'}), 401
         schedule_meeting_id = request.form.get('schedule_meeting_id')
         action_item_id = request.form.get('action_item_id')  # For editing
         action_items = request.form.get('action_items')
@@ -98,110 +100,33 @@ def save_action_item():
 
         print('is action_item_id available? :- ', action_item_id)
 
+        # Empty optional values are stored as NULL. Values are passed as parameters
+        # (never pasted into the SQL) to prevent SQL injection.
+        def _int_or_none(v):
+            return int(v) if v else None
+        values = (action_items, _int_or_none(action_item_priority), _int_or_none(assigned_to), target_completion_date,
+                  _int_or_none(action_item_status), notes_followup or None, date_followup or None, date_completed or None)
+
         if action_item_id:
-            # Preprocess values using if/else without ternary operators
-            if action_item_priority:
-                action_item_priority = int(action_item_priority)
-            else:
-                action_item_priority = 'NULL'
-
-            if assigned_to:
-                assigned_to = int(assigned_to)
-            else:
-                assigned_to = 'NULL'
-
-            if action_item_status:
-                action_item_status = int(action_item_status)
-            else:
-                action_item_status = 'NULL'
-
-            if notes_followup:
-                notes_followup = "'" + notes_followup + "'"
-            else:
-                notes_followup = 'NULL'
-
-            if date_followup:
-                date_followup = "'" + date_followup + "'::date"
-            else:
-                date_followup = 'NULL'
-
-            if date_completed:
-                date_completed = "'" + date_completed + "'::date"
-            else:
-                date_completed = 'NULL'
-
-            # Construct the UPDATE query using string concatenation
             query = """
                 UPDATE tbl_post_meeting_updates
-                SET action_items = '""" + action_items + """',
-                    action_item_priority = """ + str(action_item_priority) + """,
-                    assigned_to = """ + str(assigned_to) + """,
-                    target_completion_date = '""" + target_completion_date + """'::date,
-                    action_item_status = """ + str(action_item_status) + """,
-                    notes_followup = """ + notes_followup + """,
-                    date_followup = """ + date_followup + """,
-                    date_completed = """ + date_completed + """,
-                    modified_by = '""" + modified_by + """',
-                    modified_date = '""" + modified_date + """'
-                WHERE post_meeting_id = """ + str(int(action_item_id)) + """ AND status = 1
+                SET action_items = %s, action_item_priority = %s, assigned_to = %s,
+                    target_completion_date = %s::date, action_item_status = %s, notes_followup = %s,
+                    date_followup = %s::date, date_completed = %s::date, modified_by = %s, modified_date = %s
+                WHERE post_meeting_id = %s AND status = 1
             """
+            params = values + (str(modified_by), modified_date, int(action_item_id))
         else:
-            # Preprocess values to handle NULLs and conditionals in Python
-            if action_item_priority:
-                action_item_priority = int(action_item_priority)
-            else:
-                action_item_priority = 'NULL'
-
-            if assigned_to:
-                assigned_to = int(assigned_to)
-            else:
-                assigned_to = 'NULL'
-
-            if action_item_status:
-                action_item_status = int(action_item_status)
-            else:
-                action_item_status = 'NULL'
-
-            if notes_followup:
-                notes_followup = "'" + notes_followup + "'"
-            else:
-                notes_followup = 'NULL'
-
-            if date_followup:
-                date_followup = "'" + date_followup + "'::date"
-            else:
-                date_followup = 'NULL'
-
-            if date_completed:
-                date_completed = "'" + date_completed + "'::date"
-            else:
-                date_completed = 'NULL'
-
-            # Construct the SQL query
-            query = f"""
+            query = """
                 INSERT INTO tbl_post_meeting_updates (
                     schedule_meeting_id, action_items, action_item_priority, assigned_to,
                     target_completion_date, action_item_status, notes_followup, date_followup,
                     date_completed, status, created_by, created_date, modified_by, modified_date
-                ) VALUES (
-                    {int(schedule_meeting_id)},
-                    '{action_items}',
-                    {action_item_priority},
-                    {assigned_to},
-                    '{target_completion_date}'::date,
-                    {action_item_status},
-                    {notes_followup},
-                    {date_followup},
-                    {date_completed},
-                    1,
-                    '{created_by}',
-                    '{created_date}',
-                    '{created_by}',
-                    '{created_date}'
-                )
+                ) VALUES (%s, %s, %s, %s, %s::date, %s, %s, %s::date, %s::date, 1, %s, %s, %s, %s)
             """
+            params = (int(schedule_meeting_id),) + values + (str(created_by), created_date, str(created_by), created_date)
 
-        execute_command(query)
+        execute_command(query, params=params)
         return jsonify({'success': True, 'message': 'Action item saved successfully.'})
     except Exception as e:
         print('save_action_item exception:- ', str(e))
@@ -210,6 +135,8 @@ def save_action_item():
 @application.route('/get-action-items/<int:schedule_meeting_id>')
 def get_action_items(schedule_meeting_id):
     try:
+        if not is_login():
+            return jsonify({'success': False, 'message': 'Please log in again.'}), 401
         print('schedule_meeting_id:- ', schedule_meeting_id)
         query = f"""
             SELECT pmu.post_meeting_id, pmu.action_items, pmu.target_completion_date,
@@ -233,6 +160,8 @@ def get_action_items(schedule_meeting_id):
 @application.route('/get-action-item/<int:post_meeting_id>')
 def get_action_item(post_meeting_id):
     try:
+        if not is_login():
+            return jsonify({'success': False, 'message': 'Please log in again.'}), 401
         print('post_meeting_id:- ', post_meeting_id)
         query = f"""
             SELECT pmu.post_meeting_id, pmu.action_items, pmu.action_item_priority,
@@ -254,14 +183,16 @@ def get_action_item(post_meeting_id):
 @application.route('/delete-action-item/<int:post_meeting_id>', methods=['POST'])
 def delete_action_item(post_meeting_id):
     try:
+        if not is_login():
+            return jsonify({'success': False, 'message': 'Please log in again.'}), 401
         modified_by = get_current_user_id()  # Replace with actual user
         modified_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        query = f"""
+        query = """
             UPDATE tbl_post_meeting_updates
-            SET status = 2, modified_by = '{modified_by}', modified_date = '{modified_date}'
-            WHERE post_meeting_id = {post_meeting_id} AND status = 1
+            SET status = 2, modified_by = %s, modified_date = %s
+            WHERE post_meeting_id = %s AND status = 1
         """
-        execute_command(query)
+        execute_command(query, params=(modified_by, modified_date, post_meeting_id))
         return jsonify({'success': True, 'message': 'Action item deleted successfully.'})
     except Exception as e:
         print('delete_action_item exception:- ', str(e))
@@ -291,36 +222,28 @@ def schedule_meeting(mand_meet_id):
             current_user_id = get_current_user_id()
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            # Escape strings to prevent SQL injection (temporary; use parameterized queries in production)
-            meeting_title_escaped = escape_sql_string(meeting_title)
-            meeting_aganda_escaped = escape_sql_string(meeting_aganda)
-
+            # Values are passed as parameters (never pasted into the SQL) to prevent SQL injection
             if schedule_meeting_details:
                 # Update existing schedule meeting
-                query = f"""
+                query = """
                     UPDATE tbl_schedule_meetings 
-                    SET meeting_title = {meeting_title_escaped},
-                        meeting_aganda = {meeting_aganda_escaped},
-                        schedule_date = '{schedule_date}',
-                        pre_ms_id = {pre_ms_id},
-                        status = {status},
-                        modified_by = {current_user_id},
-                        modified_date = '{current_time}'
-                    WHERE schedule_meeting_id = {schedule_meeting_details['schedule_meeting_id']}
+                    SET meeting_title = %s, meeting_aganda = %s, schedule_date = %s, pre_ms_id = %s,
+                        status = %s, modified_by = %s, modified_date = %s
+                    WHERE schedule_meeting_id = %s
                 """
-                execute_command(query)
+                execute_command(query, params=(meeting_title, meeting_aganda, schedule_date, pre_ms_id, status,
+                                               current_user_id, current_time, schedule_meeting_details['schedule_meeting_id']))
             else:
                 # Insert new schedule meeting
-                query = f"""
+                query = """
                     INSERT INTO tbl_schedule_meetings 
                     (mand_meet_id, meeting_title, meeting_aganda, schedule_date, pre_ms_id, 
                      status, created_by, created_date, modified_by, modified_date)
-                    VALUES ({mand_meet_id}, {meeting_title_escaped}, {meeting_aganda_escaped}, 
-                            '{schedule_date}', {pre_ms_id}, {status}, 
-                            {current_user_id}, '{current_time}', {current_user_id}, '{current_time}')
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING schedule_meeting_id
                 """
-                execute_command(query)
+                execute_command(query, params=(mand_meet_id, meeting_title, meeting_aganda, schedule_date, pre_ms_id,
+                                               status, current_user_id, current_time, current_user_id, current_time))
             return redirect(url_for('view_meeting_calendar'))
 
         # Pass data to template
@@ -385,29 +308,26 @@ def add_edit_meeting_category(meeting_category_id=None):
             current_user_id = get_current_user_id()
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            meeting_category_code_escaped = escape_sql_string(meeting_category_code)
-            meeting_category_name_escaped = escape_sql_string(meeting_category_name)
-
             if meeting_category_id:
-                query = f"""
+                query = """
                     UPDATE tbl_meeting_categories 
-                    SET meeting_category_code = {meeting_category_code_escaped},
-                        meeting_category_name = {meeting_category_name_escaped},
-                        status = {status},
-                        modified_by = {current_user_id},
-                        modified_date = '{current_time}'
-                    WHERE meeting_category_id = {meeting_category_id}
+                    SET meeting_category_code = %s,
+                        meeting_category_name = %s,
+                        status = %s,
+                        modified_by = %s,
+                        modified_date = %s
+                    WHERE meeting_category_id = %s
                 """
-                execute_command(query)
+                execute_command(query, params=(meeting_category_code, meeting_category_name, status, current_user_id, current_time, meeting_category_id))
             else:
-                query = f"""
+                query = """
                     INSERT INTO tbl_meeting_categories
                     (meeting_category_code, meeting_category_name, status, created_by, created_date, modified_by, modified_date)
-                    VALUES ({meeting_category_code_escaped}, {meeting_category_name_escaped}, {status}, 
-                            {current_user_id}, '{current_time}', {current_user_id}, '{current_time}')
+                    VALUES (%s, %s, %s, 
+                            %s, %s, %s, %s)
                     RETURNING meeting_category_id
                 """
-                execute_command(query)
+                execute_command(query, params=(meeting_category_code, meeting_category_name, status, current_user_id, current_time, current_user_id, current_time))
             return redirect(url_for('manage_meeting_setup') + "#meeting-categories")
 
         return render_template('add_edit_meeting_category.html',
@@ -425,12 +345,12 @@ def delete_meeting_category(meeting_category_id):
 
         current_user_id = get_current_user_id()
         current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        query = f"""
+        query = """
             UPDATE tbl_meeting_categories 
-            SET status = 2, modified_by = {current_user_id}, modified_date = '{current_time}'
-            WHERE meeting_category_id = {meeting_category_id}
+            SET status = 2, modified_by = %s, modified_date = %s
+            WHERE meeting_category_id = %s
         """
-        execute_command(query)
+        execute_command(query, params=(current_user_id, current_time, meeting_category_id))
         return redirect(url_for('manage_meeting_setup') + "#meeting-categories")
     except Exception as e:
         print('delete meeting category exception:- ', str(e))
@@ -466,29 +386,28 @@ def add_edit_meeting_frequency(meeting_freq_id=None):
             current_user_id = get_current_user_id()
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            meeting_freq_title_escaped = escape_sql_string(meeting_freq_title)
 
             if meeting_freq_id:
-                query = f"""
+                query = """
                     UPDATE tbl_meeting_frequencies 
-                    SET meeting_freq_title = {meeting_freq_title_escaped},
-                        min_freq = {min_freq},
-                        max_freq = {max_freq},
-                        status = {status},
-                        modified_by = {current_user_id},
-                        modified_date = '{current_time}'
-                    WHERE meeting_freq_id = {meeting_freq_id}
+                    SET meeting_freq_title = %s,
+                        min_freq = %s,
+                        max_freq = %s,
+                        status = %s,
+                        modified_by = %s,
+                        modified_date = %s
+                    WHERE meeting_freq_id = %s
                 """
-                execute_command(query)
+                execute_command(query, params=(meeting_freq_title, min_freq, max_freq, status, current_user_id, current_time, meeting_freq_id))
             else:
-                query = f"""
+                query = """
                     INSERT INTO tbl_meeting_frequencies 
                     (meeting_freq_title, min_freq, max_freq, status, created_by, created_date, modified_by, modified_date)
-                    VALUES ({meeting_freq_title_escaped}, {min_freq}, {max_freq}, {status}, 
-                            {current_user_id}, '{current_time}', {current_user_id}, '{current_time}')
+                    VALUES (%s, %s, %s, %s, 
+                            %s, %s, %s, %s)
                     RETURNING meeting_freq_id
                 """
-                execute_command(query)
+                execute_command(query, params=(meeting_freq_title, min_freq, max_freq, status, current_user_id, current_time, current_user_id, current_time))
             return redirect(url_for('manage_meeting_setup') + "#meeting-frequencies")
 
         return render_template('add_edit_meeting_frequency.html',
@@ -506,12 +425,12 @@ def delete_meeting_frequency(meeting_freq_id):
 
         current_user_id = get_current_user_id()
         current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        query = f"""
+        query = """
             UPDATE tbl_meeting_frequencies 
-            SET status = 2, modified_by = {current_user_id}, modified_date = '{current_time}'
-            WHERE meeting_freq_id = {meeting_freq_id}
+            SET status = 2, modified_by = %s, modified_date = %s
+            WHERE meeting_freq_id = %s
         """
-        execute_command(query)
+        execute_command(query, params=(current_user_id, current_time, meeting_freq_id))
         return redirect(url_for('manage_meeting_setup') + "#meeting-frequencies")
     except Exception as e:
         print('delete meeting frequency exception:- ', str(e))
@@ -544,27 +463,26 @@ def add_edit_meeting_priority(meeting_priority_id=None):
             current_user_id = get_current_user_id()
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            meeting_priority_name_escaped = escape_sql_string(meeting_priority_name)
 
             if meeting_priority_id:
-                query = f"""
+                query = """
                     UPDATE tbl_meeting_priorities 
-                    SET meeting_priority_name = {meeting_priority_name_escaped},
-                        status = {status},
-                        modified_by = {current_user_id},
-                        modified_date = '{current_time}'
-                    WHERE meeting_priority_id = {meeting_priority_id}
+                    SET meeting_priority_name = %s,
+                        status = %s,
+                        modified_by = %s,
+                        modified_date = %s
+                    WHERE meeting_priority_id = %s
                 """
-                execute_command(query)
+                execute_command(query, params=(meeting_priority_name, status, current_user_id, current_time, meeting_priority_id))
             else:
-                query = f"""
+                query = """
                     INSERT INTO tbl_meeting_priorities 
                     (meeting_priority_name, status, created_by, created_date, modified_by, modified_date)
-                    VALUES ({meeting_priority_name_escaped}, {status}, 
-                            {current_user_id}, '{current_time}', {current_user_id}, '{current_time}')
+                    VALUES (%s, %s, 
+                            %s, %s, %s, %s)
                     RETURNING meeting_priority_id
                 """
-                execute_command(query)
+                execute_command(query, params=(meeting_priority_name, status, current_user_id, current_time, current_user_id, current_time))
             return redirect(url_for('manage_meeting_setup') + "#meeting-priorities")
 
         return render_template('add_edit_meeting_priority.html',
@@ -582,12 +500,12 @@ def delete_meeting_priority(meeting_priority_id):
 
         current_user_id = get_current_user_id()
         current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        query = f"""
+        query = """
             UPDATE tbl_meeting_priorities 
-            SET status = 2, modified_by = {current_user_id}, modified_date = '{current_time}'
-            WHERE meeting_priority_id = {meeting_priority_id}
+            SET status = 2, modified_by = %s, modified_date = %s
+            WHERE meeting_priority_id = %s
         """
-        execute_command(query)
+        execute_command(query, params=(current_user_id, current_time, meeting_priority_id))
         return redirect(url_for('manage_meeting_setup') + "#meeting-priorities")
     except Exception as e:
         print('delete meeting priority exception:- ', str(e))
@@ -620,27 +538,26 @@ def add_edit_pre_meeting_status(pre_ms_id=None):
             current_user_id = get_current_user_id()
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            pre_ms_name_escaped = escape_sql_string(pre_ms_name)
 
             if pre_ms_id:
-                query = f"""
+                query = """
                     UPDATE tbl_pre_meeting_status 
-                    SET pre_ms_name = {pre_ms_name_escaped},
-                        status = {status},
-                        modified_by = {current_user_id},
-                        modified_date = '{current_time}'
-                    WHERE pre_ms_id = {pre_ms_id}
+                    SET pre_ms_name = %s,
+                        status = %s,
+                        modified_by = %s,
+                        modified_date = %s
+                    WHERE pre_ms_id = %s
                 """
-                execute_command(query)
+                execute_command(query, params=(pre_ms_name, status, current_user_id, current_time, pre_ms_id))
             else:
-                query = f"""
+                query = """
                     INSERT INTO tbl_pre_meeting_status 
                     (pre_ms_name, status, created_by, created_date, modified_by, modified_date)
-                    VALUES ({pre_ms_name_escaped}, {status}, 
-                            {current_user_id}, '{current_time}', {current_user_id}, '{current_time}')
+                    VALUES (%s, %s, 
+                            %s, %s, %s, %s)
                     RETURNING pre_ms_id
                 """
-                execute_command(query)
+                execute_command(query, params=(pre_ms_name, status, current_user_id, current_time, current_user_id, current_time))
             return redirect(url_for('manage_meeting_setup') + "#pre-meeting-status")
 
         return render_template('add_edit_pre_meeting_status.html',
@@ -659,12 +576,12 @@ def delete_pre_meeting_status(pre_ms_id):
 
         current_user_id = get_current_user_id()
         current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        query = f"""
+        query = """
             UPDATE tbl_pre_meeting_status 
-            SET status = 2, modified_by = {current_user_id}, modified_date = '{current_time}'
-            WHERE pre_ms_id = {pre_ms_id}
+            SET status = 2, modified_by = %s, modified_date = %s
+            WHERE pre_ms_id = %s
         """
-        execute_command(query)
+        execute_command(query, params=(current_user_id, current_time, pre_ms_id))
         return redirect(url_for('manage_meeting_setup') + "#pre-meeting-status")
     except Exception as e:
         print('delete pre-meeting status exception:- ', str(e))
@@ -697,27 +614,26 @@ def add_edit_post_meeting_status(post_ms_id=None):
             current_user_id = get_current_user_id()
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            post_ms_name_escaped = escape_sql_string(post_ms_name)
 
             if post_ms_id:
-                query = f"""
+                query = """
                     UPDATE tbl_post_meeting_status 
-                    SET post_ms_name = {post_ms_name_escaped},
-                        status = {status},
-                        modified_by = {current_user_id},
-                        modified_date = '{current_time}'
-                    WHERE post_ms_id = {post_ms_id}
+                    SET post_ms_name = %s,
+                        status = %s,
+                        modified_by = %s,
+                        modified_date = %s
+                    WHERE post_ms_id = %s
                 """
-                execute_command(query)
+                execute_command(query, params=(post_ms_name, status, current_user_id, current_time, post_ms_id))
             else:
-                query = f"""
+                query = """
                     INSERT INTO tbl_post_meeting_status 
                     (post_ms_name, status, created_by, created_date, modified_by, modified_date)
-                    VALUES ({post_ms_name_escaped}, {status}, 
-                            {current_user_id}, '{current_time}', {current_user_id}, '{current_time}')
+                    VALUES (%s, %s, 
+                            %s, %s, %s, %s)
                     RETURNING post_ms_id
                 """
-                execute_command(query)
+                execute_command(query, params=(post_ms_name, status, current_user_id, current_time, current_user_id, current_time))
             return redirect(url_for('manage_meeting_setup') + "#post-meeting-status")
 
         return render_template('add_edit_post_meeting_status.html',
@@ -736,12 +652,12 @@ def delete_post_meeting_status(post_ms_id):
 
         current_user_id = get_current_user_id()
         current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        query = f"""
+        query = """
             UPDATE tbl_post_meeting_status 
-            SET status = 2, modified_by = {current_user_id}, modified_date = '{current_time}'
-            WHERE post_ms_id = {post_ms_id}
+            SET status = 2, modified_by = %s, modified_date = %s
+            WHERE post_ms_id = %s
         """
-        execute_command(query)
+        execute_command(query, params=(current_user_id, current_time, post_ms_id))
         return redirect(url_for('manage_meeting_setup') + "#post-meeting-status")
     except Exception as e:
         print('delete post-meeting status exception:- ', str(e))
@@ -774,27 +690,26 @@ def add_edit_meeting_action_item(mai_id=None):
             current_user_id = get_current_user_id()
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            mai_name_escaped = escape_sql_string(mai_name)
 
             if mai_id:
-                query = f"""
+                query = """
                     UPDATE tbl_meeting_action_items 
-                    SET mai_name = {mai_name_escaped},
-                        status = {status},
-                        modified_by = {current_user_id},
-                        modified_date = '{current_time}'
-                    WHERE mai_id = {mai_id}
+                    SET mai_name = %s,
+                        status = %s,
+                        modified_by = %s,
+                        modified_date = %s
+                    WHERE mai_id = %s
                 """
-                execute_command(query)
+                execute_command(query, params=(mai_name, status, current_user_id, current_time, mai_id))
             else:
-                query = f"""
+                query = """
                     INSERT INTO tbl_meeting_action_items 
                     (mai_name, status, created_by, created_date, modified_by, modified_date)
-                    VALUES ({mai_name_escaped}, {status}, 
-                            {current_user_id}, '{current_time}', {current_user_id}, '{current_time}')
+                    VALUES (%s, %s, 
+                            %s, %s, %s, %s)
                     RETURNING mai_id
                 """
-                execute_command(query)
+                execute_command(query, params=(mai_name, status, current_user_id, current_time, current_user_id, current_time))
             return redirect(url_for('manage_meeting_setup') + "#meeting-action-items")
 
         return render_template('add_edit_meeting_action_item.html',
@@ -812,12 +727,12 @@ def delete_meeting_action_item(mai_id):
 
         current_user_id = get_current_user_id()
         current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        query = f"""
+        query = """
             UPDATE tbl_meeting_action_items 
-            SET status = 2, modified_by = {current_user_id}, modified_date = '{current_time}'
-            WHERE mai_id = {mai_id}
+            SET status = 2, modified_by = %s, modified_date = %s
+            WHERE mai_id = %s
         """
-        execute_command(query)
+        execute_command(query, params=(current_user_id, current_time, mai_id))
         return redirect(url_for('manage_meeting_setup') + "#meeting-action-items")
     except Exception as e:
         print('delete meeting action item exception:- ', str(e))
@@ -850,27 +765,26 @@ def add_edit_meeting_action_item_priority(maip_id=None):
             current_user_id = get_current_user_id()
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            maip_name_escaped = escape_sql_string(maip_name)
 
             if maip_id:
-                query = f"""
+                query = """
                     UPDATE tbl_meeting_action_items_priorities 
-                    SET maip_name = {maip_name_escaped},
-                        status = {status},
-                        modified_by = {current_user_id},
-                        modified_date = '{current_time}'
-                    WHERE maip_id = {maip_id}
+                    SET maip_name = %s,
+                        status = %s,
+                        modified_by = %s,
+                        modified_date = %s
+                    WHERE maip_id = %s
                 """
-                execute_command(query)
+                execute_command(query, params=(maip_name, status, current_user_id, current_time, maip_id))
             else:
-                query = f"""
+                query = """
                     INSERT INTO tbl_meeting_action_items_priorities 
                     (maip_name, status, created_by, created_date, modified_by, modified_date)
-                    VALUES ({maip_name_escaped}, {status}, 
-                            {current_user_id}, '{current_time}', {current_user_id}, '{current_time}')
+                    VALUES (%s, %s, 
+                            %s, %s, %s, %s)
                     RETURNING maip_id
                 """
-                execute_command(query)
+                execute_command(query, params=(maip_name, status, current_user_id, current_time, current_user_id, current_time))
             return redirect(url_for('manage_meeting_setup') + "#meeting-action-items-priorities")
 
         return render_template('add_edit_meeting_action_item_priority.html',
@@ -888,12 +802,12 @@ def delete_meeting_action_item_priority(maip_id):
 
         current_user_id = get_current_user_id()
         current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        query = f"""
+        query = """
             UPDATE tbl_meeting_action_items_priorities 
-            SET status = 2, modified_by = {current_user_id}, modified_date = '{current_time}'
-            WHERE maip_id = {maip_id}
+            SET status = 2, modified_by = %s, modified_date = %s
+            WHERE maip_id = %s
         """
-        execute_command(query)
+        execute_command(query, params=(current_user_id, current_time, maip_id))
         return redirect(url_for('manage_meeting_setup') + "#meeting-action-items-priorities")
     except Exception as e:
         print('delete meeting action item priority exception:- ', str(e))
@@ -926,27 +840,26 @@ def add_edit_meeting_action_item_status(mais_id=None):
             current_user_id = get_current_user_id()
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            mais_name_escaped = escape_sql_string(mais_name)
 
             if mais_id:
-                query = f"""
+                query = """
                     UPDATE tbl_meeting_action_items_status 
-                    SET mais_name = {mais_name_escaped},
-                        status = {status},
-                        modified_by = {current_user_id},
-                        modified_date = '{current_time}'
-                    WHERE mais_id = {mais_id}
+                    SET mais_name = %s,
+                        status = %s,
+                        modified_by = %s,
+                        modified_date = %s
+                    WHERE mais_id = %s
                 """
-                execute_command(query)
+                execute_command(query, params=(mais_name, status, current_user_id, current_time, mais_id))
             else:
-                query = f"""
+                query = """
                     INSERT INTO tbl_meeting_action_items_status 
                     (mais_name, status, created_by, created_date, modified_by, modified_date)
-                    VALUES ({mais_name_escaped}, {status}, 
-                            {current_user_id}, '{current_time}', {current_user_id}, '{current_time}')
+                    VALUES (%s, %s, 
+                            %s, %s, %s, %s)
                     RETURNING mais_id
                 """
-                execute_command(query)
+                execute_command(query, params=(mais_name, status, current_user_id, current_time, current_user_id, current_time))
             return redirect(url_for('manage_meeting_setup') + "#meeting-action-items-status")
 
         return render_template('add_edit_meeting_action_item_status.html',
@@ -964,12 +877,12 @@ def delete_meeting_action_item_status(mais_id):
 
         current_user_id = get_current_user_id()
         current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        query = f"""
+        query = """
             UPDATE tbl_meeting_action_items_status 
-            SET status = 2, modified_by = {current_user_id}, modified_date = '{current_time}'
-            WHERE mais_id = {mais_id}
+            SET status = 2, modified_by = %s, modified_date = %s
+            WHERE mais_id = %s
         """
-        execute_command(query)
+        execute_command(query, params=(current_user_id, current_time, mais_id))
         return redirect(url_for('manage_meeting_setup') + "#meeting-action-items-status")
     except Exception as e:
         print('delete meeting action item status exception:- ', str(e))
@@ -1014,34 +927,33 @@ def add_edit_mandatory_meeting(mand_meet_id=None):
             else:
                 proposed_month = None  # Handle case where proposed_month is empty
 
-            resp_committ_escaped = escape_sql_string(resp_committ)
 
             if mand_meet_id:
-                query = f"""
+                query = """
                     UPDATE tbl_mandatory_meetings 
-                    SET meeting_category_id = {meeting_category_id},
-                        meeting_freq_id = {meeting_freq_id},
-                        proposed_month = '{proposed_month}',
-                        nc_disb_id = {nc_disb_id},
-                        resp_committ = {resp_committ_escaped},
-                        meeting_priority_id = {meeting_priority_id},
-                        status = {status},
-                        modified_by = {current_user_id},
-                        modified_date = '{current_time}'
-                    WHERE mand_meet_id = {mand_meet_id}
+                    SET meeting_category_id = %s,
+                        meeting_freq_id = %s,
+                        proposed_month = %s,
+                        nc_disb_id = %s,
+                        resp_committ = %s,
+                        meeting_priority_id = %s,
+                        status = %s,
+                        modified_by = %s,
+                        modified_date = %s
+                    WHERE mand_meet_id = %s
                 """
-                execute_command(query)
+                execute_command(query, params=(meeting_category_id, meeting_freq_id, proposed_month, nc_disb_id, resp_committ, meeting_priority_id, status, current_user_id, current_time, mand_meet_id))
             else:
-                query = f"""
+                query = """
                     INSERT INTO tbl_mandatory_meetings 
                     (meeting_category_id, meeting_freq_id, proposed_month, nc_disb_id, resp_committ, 
                      meeting_priority_id, status, created_by, created_date, modified_by, modified_date)
-                    VALUES ({meeting_category_id}, {meeting_freq_id}, '{proposed_month}', {nc_disb_id}, 
-                            {resp_committ_escaped}, {meeting_priority_id}, {status}, 
-                            {current_user_id}, '{current_time}', {current_user_id}, '{current_time}')
+                    VALUES (%s, %s, %s, %s, 
+                            %s, %s, %s, 
+                            %s, %s, %s, %s)
                     RETURNING mand_meet_id
                 """
-                execute_command(query)
+                execute_command(query, params=(meeting_category_id, meeting_freq_id, proposed_month, nc_disb_id, resp_committ, meeting_priority_id, status, current_user_id, current_time, current_user_id, current_time))
             return redirect(url_for('manage_meeting_setup') + "#mandatory-meetings")
 
         return render_template('add_edit_mandatory_meeting.html',
@@ -1064,12 +976,12 @@ def delete_mandatory_meeting(mand_meet_id):
 
         current_user_id = get_current_user_id()
         current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        query = f"""
+        query = """
             UPDATE tbl_mandatory_meetings 
-            SET status = 2, modified_by = {current_user_id}, modified_date = '{current_time}'
-            WHERE mand_meet_id = {mand_meet_id}
+            SET status = 2, modified_by = %s, modified_date = %s
+            WHERE mand_meet_id = %s
         """
-        execute_command(query)
+        execute_command(query, params=(current_user_id, current_time, mand_meet_id))
         return redirect(url_for('manage_meeting_setup') + "#mandatory-meetings")
     except Exception as e:
         print('delete mandatory meeting exception:- ', str(e))
@@ -1091,6 +1003,8 @@ def master_book_action_items():
 @application.route('/get-master-book-action-items', methods=['POST'])
 def get_master_book_action_items():
     try:
+        if not is_login():
+            return jsonify({'success': False, 'message': 'Please log in again.'}), 401
         filters = {
             'meetingCategoryWithCode': request.json.get('meetingCategoryWithCode', ''),
             'Frequency': request.json.get('Frequency', ''),

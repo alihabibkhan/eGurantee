@@ -61,53 +61,33 @@ def add_edit_branch(branch_id=None):
             current_user_id = get_current_user_id()
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            # Escape string inputs to prevent SQL injection
-            branch_code_escaped = escape_sql_string(branch_code)
-            branch_name_escaped = escape_sql_string(branch_name)
-            role_escaped = escape_sql_string(role)
-            area_escaped = escape_sql_string(area)
-            email_escaped = escape_sql_string(email)
-            bank_distribution_escaped = escape_sql_string(bank_distribution)
-            kft_distribution_escaped = escape_sql_string(kft_distribution)
-            national_council_distribution_escaped = escape_sql_string(national_council_distribution)
-
+            # Values are passed as parameters (never pasted into the SQL) to prevent SQL injection
             if branch_id:
                 # Update existing record
-                query = f"""
-                    UPDATE tbl_branches 
-                    SET branch_code = {branch_code_escaped},
-                        branch = '{branch}',
-                        branch_name = {branch_name_escaped},
-                        role = {role_escaped},
-                        area = {area_escaped},
-                        area_name = '{area_name}',
-                        branch_manager = '{branch_manager}',
-                        email = {email_escaped},
-                        bank_id = {bank_id},
-                        bank_distribution = {bank_distribution_escaped},
-                        kft_distribution = {kft_distribution_escaped},
-                        national_council_distribution = {national_council_distribution_escaped},
-                        live_branch = '{live_branch}',
-                        modified_by = {current_user_id},
-                        modified_date = '{current_time}'
-                    WHERE branch_id = {branch_id}
+                query = """
+                    UPDATE tbl_branches
+                    SET branch_code = %s, branch = %s, branch_name = %s, role = %s, area = %s, area_name = %s,
+                        branch_manager = %s, email = %s, bank_id = %s, bank_distribution = %s, kft_distribution = %s,
+                        national_council_distribution = %s, live_branch = %s, modified_by = %s, modified_date = %s
+                    WHERE branch_id = %s
                 """
-                execute_command(query)
+                execute_command(query, params=(branch_code, branch, branch_name, role, area, area_name, branch_manager, email,
+                                               bank_id, bank_distribution, kft_distribution, national_council_distribution,
+                                               live_branch, current_user_id, current_time, branch_id))
             else:
                 # Insert new record
-                query = f"""
-                    INSERT INTO tbl_branches 
-                    (branch_code, branch_name, role, area, email, bank_id, bank_distribution, 
-                     kft_distribution, national_council_distribution, live_branch, 
+                query = """
+                    INSERT INTO tbl_branches
+                    (branch_code, branch_name, role, area, email, bank_id, bank_distribution,
+                     kft_distribution, national_council_distribution, live_branch,
                      created_by, created_date, modified_by, modified_date, area_name, branch, branch_manager)
-                    VALUES ({branch_code_escaped}, {branch_name_escaped}, {role_escaped}, 
-                            {area_escaped}, {email_escaped}, {bank_id}, {bank_distribution_escaped}, 
-                            {kft_distribution_escaped}, {national_council_distribution_escaped}, 
-                            '{live_branch}', {current_user_id}, '{current_time}', 
-                            {current_user_id}, '{current_time}', '{area_name}', '{branch}', '{branch_manager}')
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING branch_id
                 """
-                execute_command(query)
+                execute_command(query, params=(branch_code, branch_name, role, area, email, bank_id, bank_distribution,
+                                               kft_distribution, national_council_distribution, live_branch,
+                                               current_user_id, current_time, current_user_id, current_time,
+                                               area_name, branch, branch_manager))
             return redirect(url_for('manage_branches'))
 
         content = {

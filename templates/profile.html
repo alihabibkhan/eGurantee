@@ -2,65 +2,46 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>User Profile</title>
+  <title>My Profile</title>
   {% include 'head.html' %}
   <style>
-    .profile-card {
-      max-width: 800px;
-      margin: 50px auto;
-      border-radius: 12px;
-      background: #fff;
-      padding: 30px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-    }
-    .profile-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid #ddd;
-      padding-bottom: 15px;
-    }
-    .profile-header img {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      object-fit: cover;
-    }
-    .profile-header .info {
-      margin-left: 15px;
-    }
-    .profile-header .info h5 {
-      margin: 0;
-      font-weight: bold;
-    }
-    .profile-section {
-      display: flex;
-      justify-content: space-between;
-      padding: 12px 0;
-      border-bottom: 1px solid #f0f0f0;
-    }
-    .profile-label {
-      font-weight: 500;
-      color: #444;
-    }
-    .profile-value {
-      color: #666;
-      flex: 1;
-      margin-left: 30px;
-    }
-    .btn-save {
-      background-color: #0d6efd;
-      color: white;
-      border: none;
-    }
-    .image-preview {
-      margin-top: 10px;
-    }
-    .image-preview img {
-      max-width: 100px;
-      max-height: 100px;
-      border-radius: 5px;
-    }
+    /* Profile (approved design). Colours come from kft-theme.css. */
+    .profile-page { max-width: 1180px; }
+    .page-title p { color: var(--ink-3); margin: 2px 0 0; }
+    .profile-grid { display: grid; grid-template-columns: 320px 1fr; gap: 14px; align-items: start; margin-top: 18px; }
+    .id-card { text-align: center; padding: 24px 20px; }
+    .id-card .big-avatar { width: 84px; height: 84px; border-radius: 50%; background: var(--green-600); color: var(--on-primary);
+                           display: grid; place-items: center; font-size: 30px; font-weight: 700; margin: 0 auto 12px; }
+    .id-card h2 { font-size: 18px; font-weight: 700; margin: 0; }
+    .id-card .mail { color: var(--ink-3); font-size: 13px; overflow-wrap: anywhere; }
+    .id-card .pills { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin: 12px 0 16px; }
+    .id-list { text-align: left; border-top: 1px solid var(--line-2); padding-top: 12px; display: grid; gap: 9px; font-size: 13px; }
+    .id-list div { display: flex; justify-content: space-between; gap: 10px; }
+    .id-list span:first-child { color: var(--ink-3); }
+    .id-list span:last-child { font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+    .id-list .chips { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-start; }
+    .id-list .chips .chip { font-size: 12px; font-weight: 500 !important; padding: 3px 10px; border-radius: 999px; background: var(--neutral-bg); color: var(--ink-2); text-align: left !important; }
+    .p-card .card-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 18px;
+                         border-bottom: 1px solid var(--line-2); flex-wrap: wrap; }
+    .p-card .card-head h3 { font-size: 14.5px; font-weight: 600; margin: 0; font-family: var(--font); }
+    .p-card .card-head .sub { font-size: 12px; color: var(--ink-3); }
+    .p-card .card-body { padding: 16px 18px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 18px; }
+    .hint { font-size: 11.5px; color: var(--ink-3); margin-top: 4px; display: block; }
+    .strength { display: flex; gap: 4px; margin-top: 6px; }
+    .strength i { flex: 1; height: 4px; border-radius: 2px; background: var(--line); }
+    .strength i.on { background: var(--ok); }
+    .sig-box { border: 1px dashed var(--line); border-radius: 10px; padding: 16px; display: flex; gap: 16px; align-items: center; background: var(--surface-2); flex-wrap: wrap; }
+    .sig-box .sig { width: 200px; height: 80px; border-radius: 8px; background: #fff; border: 1px solid var(--line); display: grid; place-items: center; overflow: hidden; flex: none; }
+    .sig-box .sig img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .sig-box .sig .none { font-size: 12px; color: #6F7C75; }
+    .choice { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .choice.two { grid-template-columns: repeat(2, 1fr); }
+    .choice button { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 10px; font-size: 13px; font-weight: 600;
+                     color: var(--ink-2); display: flex; align-items: center; gap: 8px; justify-content: center; }
+    .choice button.on { border-color: var(--green-600); background: var(--green-50); color: var(--green-600); box-shadow: 0 0 0 1px var(--green-600) inset; }
+    .save-row { display: flex; justify-content: flex-end; gap: 8px; }
+    @media (max-width: 992px) { .profile-grid, .form-grid { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
@@ -69,57 +50,197 @@
   {% import 'breadcrumbs.html' as brd %}
   {{ brd.render_Breadcrumbs([{"url":'', "label":'Profile'}]) }}
 
-  <div class="container">
-    <div class="profile-card">
-      <div class="profile-header">
-        <div class="d-flex align-items-center">
-            <img src="/static/images/profile_icon.png" alt="Avatar">
-          <div class="info">
-            <h5>{{ result.user.name }}</h5>
-            <small>{{ result.user.email }}</small>
+  {% set role_names = {'1': 'Reviewer', '2': 'Approver', '3': 'Executive Approver', '4': 'Administrator', '5': 'Executive'} %}
+  {% set display_name = result.user.name or 'User' %}
+
+  <div class="container profile-page mb-5">
+    {% include 'message_box.html' %}
+
+    <div class="page-title">
+      <h1 class="mb-0">My profile</h1>
+      <p>Your details, password, approval-letter signature and display preferences.</p>
+    </div>
+
+    <div class="profile-grid">
+      <!-- Identity card -->
+      <div class="card id-card">
+        <div class="big-avatar">{{ (display_name.split()|map('first')|join)[:2]|upper }}</div>
+        <h2>{{ display_name }}</h2>
+        <div class="mail">{{ result.user.email }}</div>
+        <div class="pills">
+          <span class="kft-pill ok">{{ role_names.get(session['rights']|string, 'User') }}</span>
+          {% if result.is_user_have_sign %}<span class="kft-pill info">Signs approval letters</span>{% endif %}
+        </div>
+        {% set d = result.details or {} %}
+        {% macro show(value) -%}
+          {%- if value is none or value|string|trim in ['', 'None', 'none', 'N/A'] -%}—
+          {%- elif value.strftime is defined -%}{{ value.strftime('%d %b %Y') }}
+          {%- else -%}{{ value }}{%- endif -%}
+        {%- endmacro %}
+        <div class="id-list">
+          <div><span>Volunteer ID</span><span>{{ show(d.volunteer_id) }}</span></div>
+          <div><span>Phone</span><span>{{ show(d.phone) }}</span></div>
+          <div><span>Country</span><span>{{ show(d.country_of_residence) }}</span></div>
+          <div><span>Joined</span><span>{{ show(d.date_of_joining) }}</span></div>
+          <div><span>Orientation</span><span>{{ ('Completed ' ~ show(d.orientation_completed_on)) if show(d.orientation_completed_on) != '—' else '—' }}</span></div>
+          <div><span>Reports to</span><span>{{ show(d.manager_name) }}</span></div>
+        </div>
+        <div class="id-list" style="margin-top:12px">
+          <div><span>Assigned branches</span><span></span></div>
+          <div class="chips">
+            {% if d.assigned_branches %}
+              {% for b in d.assigned_branches.split(', ') %}<span class="chip">{{ b }}</span>{% endfor %}
+            {% else %}
+              <span class="text-muted" style="font-weight:400">None assigned</span>
+            {% endif %}
           </div>
         </div>
-        <button type="button" class="btn-close d-none" aria-label="Close"></button>
       </div>
 
-      <form method="POST" class="mt-3" action="{{url_for('profile')}}" enctype="multipart/form-data">
-        <div class="profile-section">
-          <div class="profile-label">Name</div>
-          <div class="profile-value">
-            <input type="text" class="form-control" name="name" value="{{ result.user.name }}" required>
-          </div>
+      <!-- Editable sections: same form fields as before (name, password, image) -->
+      <form method="POST" action="{{ url_for('profile') }}" enctype="multipart/form-data" class="form-show-processing" id="profileForm" style="display:grid;gap:14px">
+        <div class="card p-card">
+          <div class="card-head"><h3>Personal details</h3><span class="sub">Contact an Administrator to change your email or role</span></div>
+          <div class="card-body"><div class="form-grid">
+            <div>
+              <label class="form-label" for="pName">Full name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="pName" name="name" value="{{ result.user.name }}" required>
+            </div>
+            <div>
+              <label class="form-label" for="pEmail">Email</label>
+              <input type="email" class="form-control" id="pEmail" value="{{ result.user.email }}" disabled>
+              <span class="hint">Used to sign in</span>
+            </div>
+          </div></div>
         </div>
 
-        <div class="profile-section">
-          <div class="profile-label">Email</div>
-          <div class="profile-value">{{ result.user.email }}</div>
-        </div>
-
-        <div class="profile-section">
-          <div class="profile-label">New Password</div>
-          <div class="profile-value">
-            <input type="password" class="form-control" name="password" placeholder="Leave blank to keep current password">
-          </div>
+        <div class="card p-card">
+          <div class="card-head"><h3>Change password</h3><span class="sub">Leave blank to keep your current password</span></div>
+          <div class="card-body"><div class="form-grid">
+            <div>
+              <label class="form-label" for="pPass">New password</label>
+              <input type="password" class="form-control" id="pPass" name="password" autocomplete="new-password" placeholder="Leave blank to keep current password">
+              <div class="strength" id="pStrength"><i></i><i></i><i></i><i></i></div>
+              <span class="hint" id="pStrengthText">Use 10+ characters with a number and a symbol</span>
+            </div>
+            <div>
+              <label class="form-label" for="pPass2">Confirm new password</label>
+              <input type="password" class="form-control" id="pPass2" autocomplete="new-password" placeholder="Type it again">
+              <span class="hint" id="pMatch"></span>
+            </div>
+          </div></div>
         </div>
 
         {% if result.is_user_have_sign %}
-          <div class="profile-section">
-            <div class="profile-label">Signature Image</div>
-            <div class="profile-value">
-              <input type="file" class="form-control" name="image" accept="image/*">
-              {% if result.image_base64 %}
-                <div class="image-preview">
-                  <img src="data:image/jpeg;base64,{{ result.image_base64 }}" alt="Current Profile Image">
-                </div>
-              {% endif %}
+        <div class="card p-card">
+          <div class="card-head"><h3>Approval-letter signature</h3><span class="sub">Printed on approval letters you send</span></div>
+          <div class="card-body">
+            <div class="sig-box">
+              <div class="sig" id="sigPreview">
+                {% if result.image_base64 %}
+                  <img src="data:image/jpeg;base64,{{ result.image_base64 }}" alt="Current signature">
+                {% else %}
+                  <span class="none">No signature uploaded</span>
+                {% endif %}
+              </div>
+              <div style="flex:1;min-width:220px">
+                <div style="font-weight:600;font-size:13px">{{ 'Current signature' if result.image_base64 else 'Add your signature' }}</div>
+                <div style="font-size:12.5px;color:var(--ink-3);margin:2px 0 10px">PNG or JPG with a transparent or white background works best.</div>
+                <input type="file" class="form-control" name="image" id="pImage" accept="image/*">
+              </div>
             </div>
           </div>
+        </div>
         {% endif %}
-        <div class="mt-4 text-end">
-          <button type="submit" class="btn btn-primary">Save Changes</button>
+
+        <div class="card p-card">
+          <div class="card-head"><h3>Display preferences</h3><span class="sub">Saved on this device</span></div>
+          <div class="card-body" style="display:grid;gap:16px">
+            <div>
+              <label class="form-label">Theme</label>
+              <div class="choice" data-choice="theme">
+                <button type="button" data-v="light"><span class="material-symbols-rounded">light_mode</span>Light</button>
+                <button type="button" data-v="dark"><span class="material-symbols-rounded">dark_mode</span>Dark</button>
+                <button type="button" data-v="system"><span class="material-symbols-rounded">computer</span>Match system</button>
+              </div>
+            </div>
+            <div>
+              <label class="form-label">Side menu on start</label>
+              <div class="choice two" data-choice="nav">
+                <button type="button" data-v="collapsed">Compact icons</button>
+                <button type="button" data-v="expanded">Full menu with labels</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="save-row">
+          <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary" data-processing-text="Saving...">Save changes</button>
         </div>
       </form>
     </div>
   </div>
+
+  <script>
+    (function () {
+      const root = document.documentElement;
+      const get = (k, d) => { try { return localStorage.getItem(k) || d; } catch (e) { return d; } };
+      const set = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+
+      // Display preferences (same keys the top-bar switch and sidebar use)
+      function sync() {
+        const theme = get('kft-theme', 'light');
+        const nav = root.classList.contains('nav-expanded') ? 'expanded' : 'collapsed';
+        document.querySelectorAll('[data-choice="theme"] button').forEach((b) => b.classList.toggle('on', b.dataset.v === theme));
+        document.querySelectorAll('[data-choice="nav"] button').forEach((b) => b.classList.toggle('on', b.dataset.v === nav));
+      }
+      document.querySelectorAll('[data-choice="theme"] button').forEach((b) => b.addEventListener('click', () => {
+        set('kft-theme', b.dataset.v);
+        const v = b.dataset.v === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : b.dataset.v;
+        root.setAttribute('data-theme', v); root.setAttribute('data-bs-theme', v);
+        window.dispatchEvent(new CustomEvent('kft-theme-change', { detail: { dark: v === 'dark' } }));
+        sync();
+      }));
+      document.querySelectorAll('[data-choice="nav"] button').forEach((b) => b.addEventListener('click', () => {
+        root.classList.toggle('nav-expanded', b.dataset.v === 'expanded');
+        set('kft-nav', b.dataset.v);
+        document.querySelectorAll('.kft-collapse-btn .label').forEach((l) => { l.textContent = b.dataset.v === 'expanded' ? 'Collapse menu' : 'Expand menu'; });
+        sync();
+      }));
+      document.querySelectorAll('[data-theme-toggle]').forEach((b) => b.addEventListener('click', () => setTimeout(sync)));
+      sync();
+
+      // Password strength + confirmation (the server only receives "password", as before)
+      const p1 = document.getElementById('pPass'), p2 = document.getElementById('pPass2');
+      const bars = document.querySelectorAll('#pStrength i'), txt = document.getElementById('pStrengthText'), match = document.getElementById('pMatch');
+      function check() {
+        const v = p1.value;
+        const score = !v ? 0 : [v.length >= 8, v.length >= 10, /\d/.test(v) && /[A-Za-z]/.test(v), /[^A-Za-z0-9]/.test(v)].filter(Boolean).length;
+        bars.forEach((b, i) => b.classList.toggle('on', i < score));
+        txt.textContent = !v ? 'Use 10+ characters with a number and a symbol' : ['Too short', 'Weak', 'Fair', 'Good', 'Strong'][score];
+        if (!p2.value) { match.textContent = ''; return; }
+        const ok = p1.value === p2.value;
+        match.textContent = ok ? 'Passwords match' : 'Passwords do not match';
+        match.style.color = ok ? 'var(--ok)' : 'var(--bad)';
+      }
+      p1.addEventListener('input', check); p2.addEventListener('input', check);
+      document.getElementById('profileForm').addEventListener('submit', (e) => {
+        if (p1.value && p1.value !== p2.value) {
+          e.preventDefault(); e.stopImmediatePropagation();
+          match.textContent = 'Passwords do not match'; match.style.color = 'var(--bad)'; p2.focus();
+        }
+      }, true);
+
+      // Live preview of a newly chosen signature
+      const img = document.getElementById('pImage');
+      if (img) img.addEventListener('change', () => {
+        const f = img.files && img.files[0]; if (!f) return;
+        const r = new FileReader();
+        r.onload = () => { document.getElementById('sigPreview').innerHTML = `<img src="${r.result}" alt="New signature">`; };
+        r.readAsDataURL(f);
+      });
+    })();
+  </script>
 </body>
 </html>

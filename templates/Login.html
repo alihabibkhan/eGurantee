@@ -3,214 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
-    {% include 'head.html' %}  <!-- assuming this includes Bootstrap, etc. -->
-
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <title>Sign in · KFT eGuarantee</title>
+    {% include 'head.html' %}
 
     <style>
-        :root {
-            --primary: #9b2ab8;
-            --primary-dark: #662d91;
-            --light-bg: #f8f9fc;
-            --card-bg: rgb(255, 255, 255);
-            --glass-border: rgba(200, 200, 220, 0.5);
-            --text-dark: #2d2d44;
-            --text-muted: #6b7280;
-        }
-
-        body {
-            background: linear-gradient(135deg, #f0f4ff, #f8f0ff, #e6e9ff);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: system-ui, -apple-system, sans-serif;
-            color: var(--text-dark);
-            padding: 1.5rem;
-        }
-
-        .login-card {
-            width: 100%;
-            max-width: 480px;
-            background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
-            padding: 3rem 2.5rem;
-            text-align: center;
-        }
-
-        .logo {
-            max-width: 160px;
-            height: auto;
-            margin-bottom: 1.8rem;
-            filter: drop-shadow(0 6px 12px rgba(155, 42, 184, 0.12));
-            transition: transform 0.4s ease;
-        }
-
-        .logo:hover {
-            transform: scale(1.05);
-        }
-
-        h3 {
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-
-        .lead {
-            color: var(--text-muted);
-            margin-bottom: 2.5rem;
-        }
-
-        .form-label {
-            position: absolute;
-            top: 0.9rem;
-            left: 1.2rem;
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            pointer-events: none;
-            transition: all 0.25s ease;
-            background: transparent;
-        }
-
-        .form-control:focus + .form-label,
-        .form-control:not(:placeholder-shown) + .form-label {
-            top: -0.4rem;
-            left: 1rem;
-            font-size: 0.75rem;
-            color: var(--primary);
-            background: white;
-            padding: 0 0.4rem;
-        }
-
-        .form-control {
-            background: white;
-            border: 1px solid #d1d5db;
-            border-radius: 12px;
-            padding: 1.4rem 1rem 0.6rem 1rem;
-            height: 3.4rem;
-            transition: all 0.25s ease;
-        }
-
-        .form-control:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 0.25rem rgba(155, 42, 184, 0.15);
-            outline: none;
-        }
-
-        .input-group .form-control {
-            border-right: none;
-            border-radius: 12px 0 0 12px;
-        }
-
-        .input-group .password-toggle {
-            background: white;
-            border: 1px solid #d1d5db;
-            border-left: none;
-            border-radius: 0 12px 12px 0;
-            cursor: pointer;
-            padding: 0 1rem;
-        }
-
-        .btn-primary-custom {
-            background: linear-gradient(90deg, var(--primary), var(--primary-dark));
-            border: none;
-            padding: 0.9rem;
-            border-radius: 12px;
-            font-weight: 600;
-            color: white;
-            transition: all 0.3s ease;
-            width: 100%;
-        }
-
-        .btn-primary-custom:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 30px rgba(155, 42, 184, 0.28);
-        }
-
-        .form-check-input:checked {
-            background-color: var(--primary);
-            border-color: var(--primary);
-        }
-
-        a {
-            color: var(--primary);
-            text-decoration: none;
-        }
-
-        a:hover {
-            color: var(--primary-dark);
-            text-decoration: underline;
-        }
-
-        @media (max-width: 576px) {
-            .login-card {
-                padding: 2.5rem 1.8rem;
-                border-radius: 20px;
-            }
+        /* Split login (approved design). Colours come from kft-theme.css. */
+        body { margin: 0; min-height: 100vh; background: var(--surface); }
+        .login { min-height: 100vh; display: grid; grid-template-columns: 1.05fr 1fr; }
+        .login-brand { background: linear-gradient(160deg, #0B2E1F 0%, #1A5E40 70%, #1F6E4B 100%); color: #fff;
+                       padding: 48px 56px; display: flex; flex-direction: column; }
+        .login-brand .brand-mark { display: flex; align-items: center; gap: 12px; }
+        .login-brand .logo-chip { width: 52px; height: 52px; border-radius: 12px; background: #fff; display: grid; place-items: center; flex: none; }
+        .login-brand .logo-chip img { width: 40px; }
+        .login-brand .brand-mark b { font-size: 16px; letter-spacing: .3px; display: block; }
+        .login-brand .brand-mark span { font-size: 12px; opacity: .78; }
+        .login-brand h2 { font-family: var(--font-head); font-size: 38px; line-height: 1.15; font-weight: 700; margin-top: auto; max-width: 460px; color: #fff; }
+        .login-brand p { opacity: .82; margin-top: 14px; max-width: 440px; font-size: 15px; }
+        .login-brand .stats { display: flex; gap: 36px; margin-top: 40px; }
+        .login-brand .stats b { display: block; font-size: 24px; font-weight: 700; }
+        .login-brand .stats span { font-size: 12px; opacity: .75; }
+        .login-form { display: grid; place-items: center; padding: 40px 24px; }
+        .login-box { width: 100%; max-width: 380px; }
+        .login-box .mobile-logo { display: none; width: 140px; margin-bottom: 24px; }
+        .login-box h1 { font-size: 28px; margin: 0; }
+        .login-box .sub { color: var(--ink-3); margin: 4px 0 26px; }
+        .login-box .form-control { height: 44px; }
+        .login-box .pw-toggle { border-left: 0; cursor: pointer; }
+        .login-box .input-group .form-control { border-right: 0; }
+        .login-box .btn-primary { height: 46px; font-size: 14.5px; }
+        .login-box .row-links { display: flex; justify-content: flex-end; font-size: 13px; margin: -4px 0 22px; }
+        .login-box .foot { margin-top: 36px; font-size: 12px; color: var(--ink-3); text-align: center; }
+        .login-box .flash-alert { margin-top: 0 !important; margin-bottom: 18px; }
+        .login-box .col-md-6 { width: 100%; }
+        @media (max-width: 860px) {
+            .login { grid-template-columns: 1fr; }
+            .login-brand { display: none; }
+            .login-box .mobile-logo { display: block; }
         }
     </style>
 </head>
 <body>
-
-    <div class="login-card">
-        <img src="{{ url_for('static', filename='images/KFT_NEW_LOGO.jpg') }}"
-             alt="KFT Logo" class="logo rounded img-thumbnail">
-
-        {% include 'message_box.html' %}
-
-        <form method="POST" action="{{ url_for('login') }}" class="form-show-processing mt-4">
-            <div class="mb-4 position-relative">
-                <input type="email" class="form-control" name="email"
-                       placeholder=" " autocomplete="email" required autofocus>
-                <label class="form-label">Email</label>
+    <div class="login">
+        <div class="login-brand">
+            <div class="brand-mark">
+                <div class="logo-chip"><img src="{{ url_for('static', filename='images/kft_logo_new_design.png') }}" alt="KFT logo"></div>
+                <div><b>KHUSHALI FOUNDATION TRUST</b><span>Community Helping Community</span></div>
             </div>
-
-            <div class="mb-4 position-relative">
-                <div class="input-group">
-                    <input type="password" class="form-control" name="password"
-                           id="passwordInput" placeholder=" " autocomplete="current-password" required>
-                    <span class="input-group-text password-toggle" onclick="togglePassword()">
-                        <i class="bi bi-eye" id="toggleIcon"></i>
-                    </span>
-                </div>
-                <label class="form-label">Password</label>
+            <h2>Supporting families and students across Pakistan since 2010.</h2>
+            <p>The eGuarantee System manages loan guarantees, approvals and portfolio reporting for KFT volunteers and partner banks.</p>
+            <div class="stats">
+                <div><b>{{ stats.years if stats else 16 }}</b><span>years of service</span></div>
+                <div><b>{{ stats.councils if stats else 9 }}</b><span>regional councils</span></div>
+                <div><b>{{ stats.loans if stats else '—' }}</b><span>loans</span></div>
             </div>
+        </div>
 
-            <div class="d-flex justify-content-between align-items-center mb-4 small">
-                <!--
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" id="remember">
-                    <label class="form-check-label" for="remember">Remember me</label>
-                </div>
-                -->
-                <a href="{{ url_for('forgot_password') }}">Forgot Password?</a>
-            </div>
+        <div class="login-form">
+            <div class="login-box">
+                <img class="mobile-logo" src="{{ url_for('static', filename='images/KFT_NEW_LOGO.jpg') }}" alt="KFT logo">
+                <h1>Sign in</h1>
+                <p class="sub">Use your volunteer email and password.</p>
 
-            <div class="d-grid">
-                <button type="submit" class="btn btn-primary-custom">LOG IN</button>
+                {% include 'message_box.html' %}
+
+                <form method="POST" action="{{ url_for('login') }}" class="form-show-processing">
+                    <div class="mb-3">
+                        <label class="form-label" for="emailInput">Email</label>
+                        <input type="email" class="form-control" id="emailInput" name="email" placeholder="name@example.org"
+                               autocomplete="email" required autofocus>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="passwordInput">Password</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" name="password" id="passwordInput"
+                                   placeholder="Your password" autocomplete="current-password" required>
+                            <span class="input-group-text pw-toggle" onclick="togglePassword()" title="Show / hide password">
+                                <i class="bi bi-eye" id="toggleIcon"></i>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="row-links"><a href="{{ url_for('forgot_password') }}">Forgot password?</a></div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary" data-processing-text="Signing in...">Sign in</button>
+                    </div>
+                </form>
+
+                <div class="foot">Khushali Foundation Trust · eGuarantee System<br><a href="{{ url_for('privacy_policy') }}">Privacy policy</a></div>
             </div>
-        </form>
+        </div>
     </div>
 
     <script>
         function togglePassword() {
             const input = document.getElementById('passwordInput');
             const icon = document.getElementById('toggleIcon');
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.classList.remove('bi-eye');
-                icon.classList.add('bi-eye-slash');
-            } else {
-                input.type = 'password';
-                icon.classList.remove('bi-eye-slash');
-                icon.classList.add('bi-eye');
-            }
+            const show = input.type === 'password';
+            input.type = show ? 'text' : 'password';
+            icon.classList.toggle('bi-eye', !show);
+            icon.classList.toggle('bi-eye-slash', show);
         }
     </script>
-
 </body>
 </html>

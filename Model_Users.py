@@ -65,13 +65,13 @@ def get_all_user_data():
 
 def get_all_user_data_by_id(id):
     print('executing get_all_user_data_by_id method.')
-    query = f"""
-        SELECT DISTINCT u.user_id, u.name, u.email, u.rights, u.volunteer_id, u.gender, u.dob, u.phone, 
-                        u.country_of_residence, u.date_of_joining, u.orientation_completed_on, u.manager_id, 
+    query = """
+        SELECT DISTINCT u.user_id, u.name, u.email, u.rights, u.volunteer_id, u.gender, u.dob, u.phone,
+                        u.country_of_residence, u.date_of_joining, u.orientation_completed_on, u.manager_id,
                         u.assigned_branch, u.date_of_retirement, u.reason
-        FROM tbl_users u where u.user_id = '{str(id)}'
+        FROM tbl_users u where CAST(u.user_id AS VARCHAR) = %s
     """
-    result = fetch_records(query, is_print=True)
+    result = fetch_records(query, is_print=True, params=(str(id),))
     print('printing result of get_all_user_data_by_id')
     print(result)
     return result[0]

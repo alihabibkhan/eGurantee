@@ -32,28 +32,22 @@ def add_edit_bank_distribution(bank_distribution_id=None):
             current_user_id = get_current_user_id()
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            bank_distribution_name_escaped = escape_sql_string(bank_distribution_name)
-
             if bank_distribution_id:
-                query = f"""
+                query = """
                     UPDATE tbl_bank_distribution 
-                    SET bank_distribution_name = {bank_distribution_name_escaped},
-                        is_active = {is_active},
-                        status = {status},
-                        modified_by = {current_user_id},
-                        modified_date = '{current_time}'
-                    WHERE bank_distribution_id = {bank_distribution_id}
+                    SET bank_distribution_name = %s, is_active = %s, status = %s,
+                        modified_by = %s, modified_date = %s
+                    WHERE bank_distribution_id = %s
                 """
-                execute_command(query)
+                execute_command(query, params=(bank_distribution_name, is_active, status, current_user_id, current_time, bank_distribution_id))
             else:
-                query = f"""
+                query = """
                     INSERT INTO tbl_bank_distribution 
                     (bank_distribution_name, is_active, status, created_by, created_date, modified_by, modified_date)
-                    VALUES ({bank_distribution_name_escaped}, {is_active}, {status}, 
-                            {current_user_id}, '{current_time}', {current_user_id}, '{current_time}')
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
                     RETURNING bank_distribution_id
                 """
-                execute_command(query)
+                execute_command(query, params=(bank_distribution_name, is_active, status, current_user_id, current_time, current_user_id, current_time))
             return redirect(url_for('manage_branches') + "#bank-distributions")
 
         return render_template('add_edit_bank_distribution.html',

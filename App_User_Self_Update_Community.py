@@ -54,10 +54,6 @@ def add_edit_user_comm_svc_hours(cum_sev_hr_id=None):
 
             # Convert month_year (YYYY-MM) to a valid DATE (YYYY-MM-01)
             month_year_date = f"{month_year}-01" if month_year else None
-            service_category_escaped = escape_sql_string(service_category)
-            brief_key_activities_escaped = escape_sql_string(brief_key_activities) if brief_key_activities else 'NULL'
-            month_year_escaped = f"'{month_year_date}'" if month_year_date else 'NULL'
-            status_escaped = escape_sql_string(status)
 
             user_id = int(user_id)
             hours_contributed = int(hours_contributed)
@@ -67,31 +63,26 @@ def add_edit_user_comm_svc_hours(cum_sev_hr_id=None):
                 return jsonify({'error': 'Month/Year is required'}), 400
 
             if cum_sev_hr_id:
-                query = f"""
+                # Values are passed as parameters (never pasted into the SQL) to prevent SQL injection
+                query = """
                     UPDATE tbl_user_comm_svc_hours 
-                    SET user_id = {user_id},
-                        hours_contributed = {hours_contributed},
-                        service_category = {service_category_escaped},
-                        brief_key_activities = {brief_key_activities_escaped},
-                        month_year = {month_year_escaped},
-                        status = {status_escaped},
-                        modified_by = {current_user_id},
-                        modified_date = '{current_time}'
-                    WHERE cum_sev_hr_id = {cum_sev_hr_id}
+                    SET user_id = %s, hours_contributed = %s, service_category = %s, brief_key_activities = %s,
+                        month_year = %s, status = %s, modified_by = %s, modified_date = %s
+                    WHERE cum_sev_hr_id = %s
                 """
-                execute_command(query)
+                execute_command(query, params=(user_id, hours_contributed, service_category, brief_key_activities,
+                                               month_year_date, status, current_user_id, current_time, cum_sev_hr_id))
             else:
-                query = f"""
+                query = """
                     INSERT INTO tbl_user_comm_svc_hours 
                     (user_id, hours_contributed, service_category, brief_key_activities, month_year, status, 
                      created_by, created_date, modified_by, modified_date)
-                    VALUES ({user_id}, {hours_contributed}, {service_category_escaped}, 
-                            {brief_key_activities_escaped}, {month_year_escaped}, {status_escaped}, 
-                            {current_user_id}, '{current_time}', 
-                            {current_user_id}, '{current_time}')
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING cum_sev_hr_id
                 """
-                execute_command(query)
+                execute_command(query, params=(user_id, hours_contributed, service_category, brief_key_activities,
+                                               month_year_date, status, current_user_id, current_time,
+                                               current_user_id, current_time))
             return jsonify({'success': 'Community service hours saved'}), 200
 
         return render_template('manage_self_update_community.html',

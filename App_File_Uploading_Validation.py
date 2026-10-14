@@ -6,7 +6,7 @@ from pdf_helper import *
 
 @application.route('/manage-file', methods=['GET', 'POST'])
 def manage_file():
-    if not (is_login() and (is_admin() or is_executive_approver())):
+    if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/manage-file"))):
         flash("Please log in to access this page.", "warning")
         return redirect(url_for('login'))
 
@@ -20,7 +20,15 @@ def manage_file():
         if action_type == 'validate':
             # Your existing validation logic (unchanged)
             # Example placeholder – replace with your actual implementation
-            return handle_validation(file_type, request.form.get('input_timestamp'))
+            input_timestamp = request.form.get('input_timestamp')
+            # The period is later used in SQL, so it must be a real date/time (form sends YYYY-MM-DDTHH:MM)
+            if input_timestamp:
+                try:
+                    datetime.fromisoformat(input_timestamp)
+                except ValueError:
+                    flash('Invalid file month/period.', 'danger')
+                    return redirect(request.url)
+            return handle_validation(file_type, input_timestamp)
 
         elif action_type == 'upload':
             # Your existing Excel upload logic (unchanged)
@@ -1472,7 +1480,7 @@ def parse_excel_date(date_str):
     try:
         return parse(str(date_str).strip()).date().isoformat()
     except Exception:
-        application.logger.warning(f"parse_excel_date: Failed to parse date '{date_str}'")
+        #application.logger.warning(f"parse_excel_date: Failed to parse date '{date_str}'")
         return '1900-01-01'
 
 
@@ -1574,7 +1582,9 @@ def sanitize_file_columns(address: str) -> str:
         return ''
     cleaned_address = re.sub(r'[;\'"\--]', '', address.strip())
     if cleaned_address != address.strip():
-        application.logger.debug(f"sanitize_file_columns: Cleaned address from '{address}' to '{cleaned_address}'")
+        # application.logger.debug(f"sanitize_file_columns: Cleaned address from '{address}' to '{cleaned_address}'")
+        pass
+
     return cleaned_address
 
 
@@ -1615,7 +1625,7 @@ def clean_numeric_value(value):
         float(str_value)  # Just to validate
         return str_value
     except ValueError:
-        application.logger.warning(f"clean_numeric_value: Invalid number format '{value}'")
+        #application.logger.warning(f"clean_numeric_value: Invalid number format '{value}'")
         return '0'  # Return '0' as fallback
 
 

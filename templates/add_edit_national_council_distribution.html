@@ -7,31 +7,51 @@
 <body>
     {% include 'navbar.html' %}
     {% import 'breadcrumbs.html' as brd %}
-    {{ brd.render_Breadcrumbs([{"url": 'manage_branches', "label": "Manage Branches"}, {"url": "", "label": 'Edit National Council Distribution' if result.national_council_distribution_details else 'Add National Council Distribution' }]) }}
+    {{ brd.render_Breadcrumbs([{"url": "manage_branches", "label": "Manage Branches"}, {"url": "", "label": 'Edit National Council Distribution' if result.national_council_distribution_details else 'Add National Council Distribution' }]) }}
+    {% set rec = result.national_council_distribution_details %}
 
-    <div class="container mt-4">
+    <div class="container mt-2">
         {% include 'message_box.html' %}
 
-        <div class="card">
-            <div class="card-header">
-                <h2>{{ 'Edit National Council Distribution' if result.national_council_distribution_details else 'Add National Council Distribution' }}</h2>
-            </div>
-            <div class="card-body">
-                <form method="POST">
-                    <div class="form-group mb-3">
-                        <label for="national_council_distribution_name">Name</label>
-                        <input type="text" name="national_council_distribution_name" id="national_council_distribution_name" class="form-control" value="{{ result.national_council_distribution_details.national_council_distribution_name if result.national_council_distribution_details else '' }}" required>
+        <div class="kf-page-head">
+            <h1>{{ 'Edit national council distribution' if rec else 'Add national council distribution' }}</h1>
+            <p>Regional councils that branches belong to.</p>
+        </div>
+
+        <div class="kf-form-layout">
+            <form method="POST" class="kf-card">
+                <div class="kf-sec">Details</div>
+                <div class="kf-body">
+                    <div class="kf-grid">
+                        <div class="kf-field">
+                            <label for="national_council_distribution_name">Name <span class="req">*</span></label>
+                            <input type="text" id="national_council_distribution_name" name="national_council_distribution_name" class="form-control" value="{{ rec.national_council_distribution_name if rec else '' }}" required>
+                        </div>
                     </div>
-                    <div class="form-group mb-3">
-                        <label for="is_active">Active</label>
-                        <select name="is_active" class="form-control" id="is_active" required>
-                            <option value="1" {% if result.national_council_distribution_details and result.national_council_distribution_details.is_active == 1 %} selected {% endif %}>Yes</option>
-                            <option value="2" {% if result.national_council_distribution_details and result.national_council_distribution_details.is_active == 2 %} selected {% endif %}>No</option>
-                        </select>
+                </div>
+                <div class="kf-sec">Status</div>
+                <div class="kf-body switches">
+                    <div class="kf-switch-row">
+                        <div><div class="t">Active</div><div class="d">Only active councils are counted on the login page.</div></div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" value="1"
+                                   {{ 'checked' if not rec or rec.is_active == 1 }} aria-label="Active">
+                            <input type="hidden" name="is_active" value="2">
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-primary">{{ 'Update National Council Distribution' if result.national_council_distribution_details else 'Add National Council Distribution' }}</button>
-                </form>
-            </div>
+                </div>
+
+                <div class="kf-foot">
+                    <a href="{{ url_for('manage_branches') }}#national-council-distributions" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">{{ 'Update national council distribution' if rec else 'Save national council distribution' }}</button>
+                </div>
+            </form>
+
+            <aside class="kf-card kf-help">
+                <h4>Regional councils</h4>
+                <p>Branches are linked to a council on the branch form. Councils group branches on the dashboard, the reports and the Awaiting Services page.</p>
+                <p>The number of active councils is shown on the login page.</p>
+            </aside>
         </div>
     </div>
 </body>

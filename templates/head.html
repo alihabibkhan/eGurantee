@@ -1,9 +1,27 @@
 <link rel="icon" type="image/jpg" href="{{ url_for('static', filename='images/khushali-fav-icon.jpg') }}">
+<script>
+  // KFT theme: apply the saved light/dark mode and sidebar state before the page paints (no flash).
+  (function () {
+    var d = document.documentElement, theme = 'light', nav = 'collapsed';
+    try { theme = localStorage.getItem('kft-theme') || theme; nav = localStorage.getItem('kft-nav') || nav; } catch (e) {}
+    if (theme === 'system') theme = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    d.setAttribute('data-theme', theme);
+    d.setAttribute('data-bs-theme', theme);
+    if (nav === 'expanded') d.classList.add('nav-expanded');
+  })();
+</script>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.css">
 <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css">
+
+<!-- KFT design: Inter (UI) + Source Serif 4 (page titles), then the shared theme -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/kft-theme.css', v=7) }}">
+<script src="{{ url_for('static', filename='assets/jsFiles/kft_grid.js', v=4) }}"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -21,35 +39,23 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
 
 <style>
-    .btn-primary {
-        background-color: #f1f3f5;
-        border-color: #f1f3f5;
-        color: #212529;
-        border-radius: 6px;
-        padding: 8px 20px;
-        font-weight: 500;
-        transition: background-color 0.2s ease-in-out;
-    }
-    .btn-primary:hover {
-        background-color: #e0e2e5;
-        border-color: #e0e2e5;
-    }
+    /* .btn-primary now comes from kft-theme.css (brand green) */
     .action-link {
-        color: #212529;
+        color: var(--ink);
         text-decoration: none;
         font-size: 0.85rem;
         margin-right: 10px;
     }
     .action-link.edit {
-        color: #ffc107;
+        color: var(--gold-600);
     }
     .action-link.edit:hover {
-        color: #e0a800;
+        color: var(--warn);
     }
     .action-link.delete {
-        color: #dc3545;
+        color: var(--bad);
     }
     .action-link.delete:hover {
-        color: #c82333;
+        color: #9a2f26;
     }
 </style>

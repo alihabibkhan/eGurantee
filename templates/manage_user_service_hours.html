@@ -7,109 +7,53 @@
     {% include 'head.html' %}
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <style>
-        .table-responsive {
-            margin-bottom: 1rem;
-        }
-        .pagination .page-item.active .page-link {
-            background-color: #0d6efd;
-            border-color: #0d6efd;
-        }
-        .pagination .page-item.disabled .page-link {
-            cursor: not-allowed;
-            opacity: 0.65;
-        }
-        .card {
-            margin-top: 1rem;
-        }
-        .accordion-button {
-            color: var(--bs-accordion-active-color);
-            background-color: var(--bs-accordion-active-bg);
-        }
+        .sh-roles { width: 100%; font-size: 13px; }
+        .sh-roles th { color: var(--ink-3); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; padding: 6px 0; }
+        .sh-roles td { padding: 6px 0; border-top: 1px solid var(--line-2); }
     </style>
 </head>
 <body>
     {% include 'navbar.html' %}
     {% import 'breadcrumbs.html' as brd %}
     {{ brd.render_Breadcrumbs([{"url":"", "label":"Manager Volunteer Service Hours"}]) }}
-    <div class="mt-3">
+    {% set vi = result.volunteer_info %}
+
+    <div class="container mt-2">
         {% include 'message_box.html' %}
-    </div>
 
-    <div class="container py-4">
-        <h1 class="mb-4">Manager Volunteer Service Hours</h1>
+        <div class="kf-page-head">
+            <h1>Volunteer service hours</h1>
+            <p>Your volunteer details, reporting period and the service hours you have logged.</p>
+        </div>
 
-        <!-- Data Table Card -->
-        <div class="card">
-            <div class="card-body">
-                <!-- Accordion 1: Volunteer Information -->
-                <div class="accordion mb-3" id="volunteerAccordion">
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="headingVolunteer">
-                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseVolunteer" aria-expanded="true" aria-controls="collapseVolunteer">
-                                <span class="fw-semibold">Volunteer Information</span>
-                            </button>
-                        </h2>
-                        <div id="collapseVolunteer" class="accordion-collapse collapse show" aria-labelledby="headingVolunteer" data-bs-parent="#volunteerAccordion">
-                            <div class="accordion-body">
-                                <div class="row mb-3">
-                                    <div class="col-md-4">
-                                        <label class="form-label">Volunteer ID</label>
-                                        <input type="text" class="form-control" value="{{ result.volunteer_info.volunteer_id or 'N/A' }}" readonly>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Full Name</label>
-                                        <input type="text" class="form-control" value="{{ result.volunteer_info.name or 'N/A' }}" readonly>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Email / Phone</label>
-                                        <input type="text" class="form-control" value="{{ result.volunteer_info.email or 'N/A' }}" readonly>
-                                    </div>
-                                    <div class="col-md-4 mt-2">
-                                        <label class="form-label">Contact/Phone</label>
-                                        <input type="text" class="form-control" value="{{ result.volunteer_info.phone or 'N/A' }}" readonly>
-                                    </div>
-                                </div>
-                                <div class="table-responsive">
-                                    <table class="table table-striped">
-                                        <thead>
-                                            <tr>
-                                                <th>Role</th>
-                                                <th>Responsibility</th>
-                                                <th>Committee</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% if result.get_all_user_privileges_by_user_id %}
-                                                {% for role in result.get_all_user_privileges_by_user_id %}
-                                                    <tr>
-                                                        <td>{{ role.role or 'N/A' }}</td>
-                                                        <td>{{ role.responsibility or 'N/A' }}</td>
-                                                        <td>{{ role.committee or 'N/A' }}</td>
-                                                    </tr>
-                                                {% endfor %}
-                                            {% else %}
-                                                <tr>
-                                                    <td colspan="3">No roles assigned</td>
-                                                </tr>
-                                            {% endif %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
+        <div class="row g-3 mb-3">
+            <div class="col-lg-6">
+                <div class="kf-card h-100">
+                    <div class="kf-sec">Volunteer information</div>
+                    <div class="kf-body">
+                        <div class="kf-grid">
+                            <div class="kf-field"><label>Volunteer ID</label><input type="text" class="form-control" value="{{ vi.volunteer_id or 'N/A' }}" readonly></div>
+                            <div class="kf-field"><label>Full name</label><input type="text" class="form-control" value="{{ vi.name or 'N/A' }}" readonly></div>
+                            <div class="kf-field"><label>Email</label><input type="text" class="form-control" value="{{ vi.email or 'N/A' }}" readonly></div>
+                            <div class="kf-field"><label>Phone</label><input type="text" class="form-control" value="{{ vi.phone or 'N/A' }}" readonly></div>
                         </div>
+                        <table class="sh-roles mt-3">
+                            <thead><tr><th>Role</th><th>Responsibility</th><th>Committee</th></tr></thead>
+                            <tbody>
+                                {% for role in result.get_all_user_privileges_by_user_id %}
+                                <tr><td>{{ role.role or 'N/A' }}</td><td>{{ role.responsibility or 'N/A' }}</td><td>{{ role.committee or 'N/A' }}</td></tr>
+                                {% else %}
+                                <tr><td colspan="3" class="text-muted">No roles assigned</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-
-                <!-- Accordion 2: Reporting Period -->
-                <div class="accordion mb-3" id="reportingAccordion">
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="headingReporting">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseReporting" aria-expanded="true" aria-controls="collapseReporting">
-                                <span class="fw-semibold">Reporting Period</span>
-                            </button>
-                        </h2>
-                        <div id="collapseReporting" class="accordion-collapse collapse show" aria-labelledby="headingReporting" data-bs-parent="#reportingAccordion">
-                            <div class="accordion-body">
+            </div>
+            <div class="col-lg-6">
+                <div class="kf-card h-100">
+                    <div class="kf-sec">Reporting period</div>
+                    <div class="kf-body">
                                 <form id="reportingPeriodForm">
                                     <input type="hidden" id="user_reporting_period_id" name="user_reporting_period_id">
                                     <div class="row mb-3">
@@ -138,63 +82,37 @@
                                             <input type="text" class="form-control" id="calendar" name="calendar">
                                         </div>
                                     </div>
-                                    <button type="button" class="btn btn-primary" onclick="saveReportingPeriod()">Save</button>
+                                    <div class="text-end"><button type="button" class="btn btn-primary" onclick="saveReportingPeriod()">Save reporting period</button></div>
                                 </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Accordion 3: Service Hours -->
-                <div class="accordion mb-3" id="serviceHoursAccordion">
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="headingServiceHours">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseServiceHours" aria-expanded="true" aria-controls="collapseServiceHours">
-                                <span class="fw-semibold">Service Hours</span>
-                            </button>
-                        </h2>
-                        <div id="collapseServiceHours" class="accordion-collapse collapse show" aria-labelledby="headingServiceHours" data-bs-parent="#serviceHoursAccordion">
-                            <div class="accordion-body">
-                                <button type="button" class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#serviceHoursModal" onclick="clearModal()">Add New Service Hours</button>
-                                <div class="table-responsive">
-                                    <table class="table table-striped">
-                                        <thead>
-                                            <tr>
-                                                <th>Service Hours</th>
-                                                <th>Description</th>
-                                                <th>Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% if result.get_user_service_hours %}
-                                                {% for item in result.get_user_service_hours %}
-                                                    <tr>
-                                                        <td>{{ item.service_hours or 'N/A' }}</td>
-                                                        <td>{{ item.description or 'N/A' }}</td>
-                                                        <td>
-                                                            <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#serviceHoursModal" onclick="editServiceHours('{{ item.user_service_hours_id }}', '{{ item.service_hours }}', '{{ item.service_category }}', '{{ item.description or '' }}')">
-                                                                Edit
-                                                            </button>
-                                                            <button type="button" class="btn btn-sm btn-danger" onclick="deleteServiceHours('{{ item.user_service_hours_id }}')">
-                                                                Delete
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                {% endfor %}
-                                            {% else %}
-                                                <tr>
-                                                    <td colspan="4">No service hours available</td>
-                                                </tr>
-                                            {% endif %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <button type="button" class="btn btn-primary" data-grid-action="service-hours-table" data-bs-toggle="modal" data-bs-target="#serviceHoursModal" onclick="clearModal()"><i class="bi bi-plus-lg me-1"></i>Add service hours</button>
+        <table id="service-hours-table" data-grid="service-hours" data-grid-title="Service hours" data-grid-export="Service_Hours"
+               data-grid-search="Search description" data-grid-empty="No service hours logged yet">
+            <thead>
+                <tr>
+                    <th data-type="number" data-sum>Service hours</th>
+                    <th>Description</th>
+                    <th class="act">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in result.get_user_service_hours %}
+                <tr>
+                    <td>{{ item.service_hours or 0 }}</td>
+                    <td>{{ item.description or '' }}</td>
+                    <td>
+                        <button type="button" class="icon-btn" title="Edit" data-bs-toggle="modal" data-bs-target="#serviceHoursModal"
+                                onclick='editServiceHours({{ item.user_service_hours_id|tojson }}, {{ item.service_hours|tojson }}, {{ (item.service_category or "")|tojson }}, {{ (item.description or "")|tojson }})'><i class="bi bi-pencil"></i></button>
+                        <button type="button" class="icon-btn bad" title="Delete" onclick='deleteServiceHours({{ item.user_service_hours_id|tojson }})'><i class="bi bi-trash"></i></button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
     <!-- Service Hours Modal -->
@@ -292,11 +210,10 @@
         }
 
         function editServiceHours(id, hours, category, desc) {
-            const escapedDesc = desc.replace(/'/g, "\\'");
             $('#user_service_hours_id').val(id);
             $('#service_hours').val(hours);
             $('#service_category').val(category);
-            $('#description').val(escapedDesc);
+            $('#description').val(desc);
         }
 
         function saveServiceHours() {

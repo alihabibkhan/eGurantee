@@ -65,41 +65,33 @@ def add_edit_loan_product(product_id=None):
             current_timestamp = str(datetime.now())
 
             if product_id:
-                update_query = f"""
-                    UPDATE tbl_loan_products 
-                    SET name = '{name}', 
-                        product_code = '{product_code}', 
-                        gender = '{gender}', 
-                        description = '{description}', 
-                        auto_approve = '{auto_approve}', 
-                        status = '{str(1)}', 
-                        modified_by = '{current_user_id}', 
-                        modified_date = '{current_timestamp}',
-                        max_exp_per_prud_reg = {str(max_exp_per_prud_reg)},
-                        auto_approval_signature = {str(auto_approval_signature)},
-                        auto_approval_max_amount = {str(auto_approval_max_amount)},
-                        auto_approval_check_loan_metrix = {str(auto_approval_check_loan_metrix)},
-                        allow_exceptional_approval = {str(allow_exceptional_approval)}
-                    WHERE product_id = '{product_id}'
+                update_query = """
+                    UPDATE tbl_loan_products
+                    SET name = %s, product_code = %s, gender = %s, description = %s, auto_approve = %s,
+                        status = '1', modified_by = %s, modified_date = %s,
+                        max_exp_per_prud_reg = %s, auto_approval_signature = %s, auto_approval_max_amount = %s,
+                        auto_approval_check_loan_metrix = %s, allow_exceptional_approval = %s
+                    WHERE product_id = %s
                 """
-                execute_command(update_query)
+                execute_command(update_query, params=(
+                    name, product_code, gender, description, str(auto_approve), current_user_id, current_timestamp,
+                    max_exp_per_prud_reg, auto_approval_signature, auto_approval_max_amount,
+                    auto_approval_check_loan_metrix, allow_exceptional_approval, product_id))
                 flash('Loan product updated successfully.', 'success')
             else:
-                insert_query = f"""
+                insert_query = """
                     INSERT INTO tbl_loan_products (
-                        name, product_code, gender, description, auto_approve, status, 
-                        created_by, created_date, modified_by, modified_date, 
+                        name, product_code, gender, description, auto_approve, status,
+                        created_by, created_date, modified_by, modified_date,
                         max_exp_per_prud_reg, auto_approval_signature, auto_approval_max_amount,
                         auto_approval_check_loan_metrix, allow_exceptional_approval
-                    ) VALUES (
-                        '{name}', '{product_code}', '{gender}', '{description}', '{str(auto_approve)}', '{str(1)}', 
-                        '{current_user_id}', '{current_timestamp}', 
-                        '{current_user_id}', '{current_timestamp}', 
-                        {str(max_exp_per_prud_reg)}, {str(auto_approval_signature)}, {str(auto_approval_max_amount)},
-                        {str(auto_approval_check_loan_metrix)}, {str(allow_exceptional_approval)}
-                    )
+                    ) VALUES (%s, %s, %s, %s, %s, '1', %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """
-                execute_command(insert_query)
+                execute_command(insert_query, params=(
+                    name, product_code, gender, description, str(auto_approve),
+                    current_user_id, current_timestamp, current_user_id, current_timestamp,
+                    max_exp_per_prud_reg, auto_approval_signature, auto_approval_max_amount,
+                    auto_approval_check_loan_metrix, allow_exceptional_approval))
                 flash('Loan product added successfully.', 'success')
 
             return redirect(url_for('manage_loan_metrics') + '#loan-products')
@@ -125,12 +117,12 @@ def delete_loan_product():
 
         product_id = request.args.get('product_id')
         if product_id:
-            delete_query = f"""
-                UPDATE tbl_loan_products 
+            delete_query = """
+                UPDATE tbl_loan_products
                 SET status = '0'
-                WHERE product_id = '{product_id}'
+                WHERE product_id = %s
             """
-            execute_command(delete_query)
+            execute_command(delete_query, params=(product_id,))
             flash('Loan product deleted successfully.', 'success')
         else:
             flash('Invalid product ID.', 'danger')

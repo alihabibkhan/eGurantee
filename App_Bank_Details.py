@@ -46,43 +46,30 @@ def add_edit_bank_details(bank_id=None):
             current_user_id = get_current_user_id()  # Assumed function to get logged-in user ID
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            # Escape string inputs to prevent SQL injection
-            bank_code_escaped = escape_sql_string(bank_code)
-            branch_of_account_escaped = escape_sql_string(branch_of_account)
-            IBAN_escaped = escape_sql_string(IBAN)
-            account_title_escaped = escape_sql_string(account_title)
-            date_account_closed_escaped = escape_sql_string(date_account_closed)
-
+            # Values are passed as parameters (never pasted into the SQL) to prevent SQL injection
             if bank_id:
                 # Update existing record
-                query = f"""
-                    UPDATE tbl_bank_details 
-                    SET bank_code = {bank_code_escaped},
-                        bank_name = '{bank_name}', 
-                        branch_of_account = {branch_of_account_escaped},
-                        currency = '{currency}',
-                        IBAN = {IBAN_escaped}, 
-                        account_title = {account_title_escaped},
-                        date_account_opened = '{str(date_account_opened)}' ,
-                        date_account_closed = {date_account_closed_escaped},
-                        status = '{status}',
-                        modifed_by = {current_user_id}, 
-                        modified_date = '{current_time}'
-                    WHERE bank_id = {bank_id}
+                query = """
+                    UPDATE tbl_bank_details
+                    SET bank_code = %s, bank_name = %s, branch_of_account = %s, currency = %s, IBAN = %s,
+                        account_title = %s, date_account_opened = %s, date_account_closed = %s, status = %s,
+                        modifed_by = %s, modified_date = %s
+                    WHERE bank_id = %s
                 """
-                execute_command(query)
+                execute_command(query, params=(bank_code, bank_name, branch_of_account, currency, IBAN, account_title,
+                                               date_account_opened, date_account_closed, status, current_user_id, current_time, bank_id))
             else:
                 # Insert new record
-                query = f"""
-                    INSERT INTO tbl_bank_details 
-                    (bank_code, branch_of_account, IBAN, account_title, date_account_closed, 
+                query = """
+                    INSERT INTO tbl_bank_details
+                    (bank_code, branch_of_account, IBAN, account_title, date_account_closed,
                      status, created_by, created_date, modifed_by, modified_date, currency, date_account_opened, bank_name)
-                    VALUES ({bank_code_escaped}, {branch_of_account_escaped}, {IBAN_escaped}, 
-                            {account_title_escaped}, {date_account_closed_escaped}, 
-                            1, {current_user_id}, '{current_time}', {current_user_id}, '{current_time}', '{currency}', '{date_account_opened}', '{bank_name}')
+                    VALUES (%s, %s, %s, %s, %s, 1, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING bank_id
                 """
-                execute_command(query)
+                execute_command(query, params=(bank_code, branch_of_account, IBAN, account_title, date_account_closed,
+                                               current_user_id, current_time, current_user_id, current_time, currency,
+                                               date_account_opened, bank_name))
             return redirect(url_for('manage_bank_details'))
 
         # Render form for GET request

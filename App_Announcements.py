@@ -63,51 +63,26 @@ def add_edit_announcement(ann_id=None):
             current_user_id = get_current_user_id()
             current_time    = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            # Escape strings to prevent SQL injection (your existing method)
-            title_esc            = escape_sql_string(title)
-            message_esc          = escape_sql_string(message)
-            bg_color_esc         = escape_sql_string(background_color)
-            text_color_esc       = escape_sql_string(text_color)
-            link_url_esc         = escape_sql_string(link_url)
-            link_text_esc        = escape_sql_string(link_text)
-            start_date_esc       = f"'{start_date}'" if start_date else 'NULL'
-            end_date_esc         = f"'{end_date}'" if end_date else 'NULL'
-
+            # Values are passed as parameters (never pasted into the SQL) to prevent SQL injection
+            values = (title, message, start_date, end_date, is_active, priority,
+                      background_color, text_color, link_url, link_text)
             if ann_id:
-                # Update existing (no modified_by/date in your schema, but adding for audit)
-                query = f"""
-                    UPDATE announcements 
-                    SET 
-                        title = {title_esc},
-                        message = {message_esc},
-                        start_date = {start_date_esc},
-                        end_date = {end_date_esc},
-                        is_active = {is_active},
-                        priority = {priority},
-                        background_color = {bg_color_esc},
-                        text_color = {text_color_esc},
-                        link_url = {link_url_esc},
-                        link_text = {link_text_esc}
-                    WHERE id = {ann_id}
+                query = """
+                    UPDATE announcements
+                    SET title = %s, message = %s, start_date = %s, end_date = %s, is_active = %s, priority = %s,
+                        background_color = %s, text_color = %s, link_url = %s, link_text = %s
+                    WHERE id = %s
                 """
-                print(f'UPDATE announcement query: {query}')  # Debug print
-                execute_command(query)
+                execute_command(query, params=values + (ann_id,))
             else:
-                # Insert new - exactly matching your PG schema
-                query = f"""
-                    INSERT INTO announcements 
+                query = """
+                    INSERT INTO announcements
                     (title, message, start_date, end_date, is_active, priority,
                      background_color, text_color, link_url, link_text, created_by, status)
-                    VALUES (
-                        {title_esc}, {message_esc}, {start_date_esc}, {end_date_esc},
-                        {is_active}, {priority},
-                        {bg_color_esc}, {text_color_esc}, {link_url_esc}, {link_text_esc},
-                        {current_user_id}, 1
-                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1)
                     RETURNING id
                 """
-                print(f'INSERT announcement query: {query}')  # Debug print
-                execute_command(query)
+                execute_command(query, params=values + (current_user_id,))
 
             return redirect(url_for('manage_announcements'))
 

@@ -40,23 +40,23 @@ def add_bank_entry():
         current_date = created_date.strftime('%Y-%m-%d')
 
         # Validate bank_id exists in tbl_bank_details
-        check_query = f"SELECT bank_id FROM tbl_bank_details WHERE bank_id = {bank_id} AND status = '1'"
-        bank_exists = fetch_records(check_query)
+        check_query = "SELECT bank_id FROM tbl_bank_details WHERE bank_id = %s AND status = '1'"
+        bank_exists = fetch_records(check_query, params=(bank_id,))
         if not bank_exists:
             return jsonify({'error': 'Invalid bank ID'}), 400
 
-        query = f"""
+        # Values are passed as parameters (never pasted into the SQL) to prevent SQL injection
+        query = """
             INSERT INTO tbl_bank_entry_management (
                 bank_id, date_posted, mode, general_ledger, nature_of_transaction, 
                 narration, inst_no, withdrawal, deposit, balance, date_reconciled, 
                 status, created_by, created_date, modified_by, modified_date
-            ) VALUES (
-                {bank_id}, '{date_posted}', '', '{general_ledger}', '', 
-                '{narration}', '{inst_no}', {withdrawal or 0}, {deposit or 0}, {balance or 0}, 
-                '{current_date}', {status}, {created_by}, '{created_date}', {created_by}, '{created_date}'
-            ) RETURNING bank_entry_id
+            ) VALUES (%s, %s, '', %s, '', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING bank_entry_id
         """
-        result = execute_command(query)
+        result = execute_command(query, params=(bank_id, date_posted, general_ledger, narration, inst_no,
+                                                withdrawal or 0, deposit or 0, balance or 0, current_date, status,
+                                                created_by, str(created_date), created_by, str(created_date)))
 
         if result:
             bank_entry_id = result  # Get the last inserted ID
@@ -90,37 +90,27 @@ def edit_bank_entry(bank_entry_id):
         current_date = modified_date.strftime('%Y-%m-%d')
 
         # Validate bank_id exists
-        check_query = f"SELECT bank_id FROM tbl_bank_details WHERE bank_id = {bank_id} AND status = '1'"
-        bank_exists = fetch_records(check_query)
+        check_query = "SELECT bank_id FROM tbl_bank_details WHERE bank_id = %s AND status = '1'"
+        bank_exists = fetch_records(check_query, params=(bank_id,))
         if not bank_exists:
             return jsonify({'error': 'Invalid bank ID'}), 400
 
         # Check if bank_entry_id exists
-        check_entry_query = f"SELECT bank_entry_id FROM tbl_bank_entry_management WHERE bank_entry_id = {bank_entry_id}"
-        entry_exists = fetch_records(check_entry_query)
+        check_entry_query = "SELECT bank_entry_id FROM tbl_bank_entry_management WHERE bank_entry_id = %s"
+        entry_exists = fetch_records(check_entry_query, params=(bank_entry_id,))
         if not entry_exists:
             return jsonify({'error': 'Bank entry not found'}), 404
 
-        query = f"""
+        query = """
             UPDATE tbl_bank_entry_management
-            SET bank_id = {bank_id}, 
-                date_posted = '{date_posted}', 
-                mode = '', 
-                general_ledger = '{general_ledger}', 
-                nature_of_transaction = '', 
-                narration = '{narration}', 
-                inst_no = '{inst_no}', 
-                withdrawal = {withdrawal or 0}, 
-                deposit = {deposit or 0}, 
-                balance = {balance or 0}, 
-                date_reconciled = '{current_date}', 
-                status = {status}, 
-                modified_by = {modified_by}, 
-                modified_date = '{modified_date}'
-            WHERE bank_entry_id = {bank_entry_id}
+            SET bank_id = %s, date_posted = %s, mode = '', general_ledger = %s, nature_of_transaction = '',
+                narration = %s, inst_no = %s, withdrawal = %s, deposit = %s, balance = %s,
+                date_reconciled = %s, status = %s, modified_by = %s, modified_date = %s
+            WHERE bank_entry_id = %s
         """
-
-        execute_command(query)
+        execute_command(query, params=(bank_id, date_posted, general_ledger, narration, inst_no, withdrawal or 0,
+                                       deposit or 0, balance or 0, current_date, status, modified_by,
+                                       str(modified_date), bank_entry_id))
 
         return jsonify({'message': 'Bank entry updated successfully'}), 200
     except Exception as e:
@@ -156,5 +146,4 @@ def delete_bank_entry(bank_entry_id):
 
     except Exception as e:
         print('Delete bank entry exception:', str(e))
-        return jsonify({'error': 'Server error'}), 500
         return jsonify({'error': 'Server error'}), 500

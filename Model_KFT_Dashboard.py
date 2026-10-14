@@ -8,6 +8,7 @@ EDUCATION_PRODUCT_CODES = {'STD1', 'SFP1', 'SFP2', 'KFJ1', 'KFJ2', 'KFJ4'}
 CATEGORY_ENTERPRISE = 0
 CATEGORY_EDUCATION = 1
 CATEGORY_OTHER = 2
+SECTOR_NAMES = {CATEGORY_ENTERPRISE: 'Enterprise', CATEGORY_EDUCATION: 'Education'}
 
 UNASSIGNED_REGION = 'Unassigned'
 
@@ -41,7 +42,7 @@ def _get_branch_regions():
             b.branch_name,
             ncd.national_council_distribution_name AS region
         FROM tbl_branches b
-        LEFT JOIN tbl_national_council_distribution ncd
+        INNER JOIN tbl_national_council_distribution ncd
             ON b.national_council_distribution = ncd.national_council_distribution_id and ncd.status = '1'
         WHERE b.live_branch = 1
     """

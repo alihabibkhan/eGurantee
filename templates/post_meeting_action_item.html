@@ -4,10 +4,6 @@
     {% include 'head.html' %}
     <title>Post Meeting Action Items</title>
     <style>
-        .table-responsive { margin-bottom: 1rem; }
-        .card { margin-top: 1rem; }
-        .meetings-box { margin-bottom: 2rem; }
-        .badge { margin-left: 0.5rem; cursor: pointer; }
         #meeting-detail-body td.agenda-cell { white-space: pre-wrap; word-break: break-word; max-height: 200px; overflow-y: auto; }
 
         .notification { position: fixed; top: 20px; right: 20px; padding: 10px 20px; border-radius: 5px; z-index: 9999999999999999; display: none; }
@@ -21,59 +17,42 @@
     {% import 'breadcrumbs.html' as brd %}
     {{ brd.render_Breadcrumbs([{"url": "", "label": "Post Meeting Action Items"}]) }}
 
-    <div class="container mt-4">
+    <div class="container mt-2">
         {% include 'message_box.html' %}
 
-        <div class="card">
-            <div class="card-header">
-                <h2>Post Meeting Action Items</h2>
-            </div>
-            <div class="card-body">
-                <div class="meetings-box">
-                    {% if result.schedule_meetings %}
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Meeting Title</th>
-                                        <th>Category Code</th>
-                                        <th>Schedule Date</th>
-                                        <th>Meeting Status</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for meeting in result.schedule_meetings %}
-                                        <tr>
-                                            <td>{{ meeting.meeting_title or 'N/A' }}</td>
-                                            <td>{{ meeting.meeting_category_code or 'N/A' }}</td>
-                                            <td>{{ meeting.schedule_date or 'N/A' }}</td>
-                                            <td>
-                                                <span class="badge {% if meeting.pre_ms_id == 1 %}bg-danger{% else %}bg-success{% endif %}">
-                                                    {{ meeting.pre_ms_name or 'N/A' }}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <a href="#" class="me-2 text-decoration-none"
-                                                   onclick="viewActionItems('{{ meeting.schedule_meeting_id }}', '{{ meeting.resp_committ }}'); return false;" title="View Action Items">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
-                                                <a href="#" class="text-decoration-none"
-                                                   onclick="showActionItemForm('{{ meeting.schedule_meeting_id }}', '{{ meeting.resp_committ }}'); return false;" title="Add Meeting Action Items">
-                                                    <i class="fas fa-pencil-alt"></i>
-                                                </a>
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% else %}
-                        <p class="text-muted">No scheduled meetings found.</p>
-                    {% endif %}
-                </div>
-            </div>
+        <div class="kf-page-head">
+            <h1>Post-meeting action items</h1>
+            <p>Follow-up tasks agreed in meetings: view them, or add new ones for the committee.</p>
         </div>
+
+        <table id="action-meetings-table" data-grid="action-meetings" data-grid-export="Meetings_Action_Items"
+               data-grid-search="Search title or category" data-grid-sort="2:desc" data-grid-empty="No scheduled meetings found">
+            <thead>
+                <tr>
+                    <th>Meeting title</th>
+                    <th data-filter data-filter-label="categories">Category</th>
+                    <th data-type="date">Schedule date</th>
+                    <th data-filter data-filter-label="statuses">Status</th>
+                    <th class="act">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for meeting in result.schedule_meetings %}
+                <tr>
+                    <td class="strong">{{ meeting.meeting_title or 'N/A' }}</td>
+                    <td>{{ meeting.meeting_category_code or 'N/A' }}</td>
+                    <td data-order="{{ meeting.schedule_date or '' }}">{{ meeting.schedule_date or 'N/A' }}</td>
+                    <td><span class="kft-pill {{ 'bad' if meeting.pre_ms_id == 1 else 'ok' }}">{{ meeting.pre_ms_name or 'N/A' }}</span></td>
+                    <td>
+                        <a href="#" class="icon-btn" title="View action items"
+                           onclick='viewActionItems({{ meeting.schedule_meeting_id|tojson }}, {{ (meeting.resp_committ or "")|tojson }}); return false;'><i class="bi bi-eye"></i></a>
+                        <a href="#" class="icon-btn" title="Add action item"
+                           onclick='showActionItemForm({{ meeting.schedule_meeting_id|tojson }}, {{ (meeting.resp_committ or "")|tojson }}); return false;'><i class="bi bi-plus-lg"></i></a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
     <!-- Notification Div -->
@@ -233,15 +212,16 @@
                     if (data.success) {
                         console.log(data.action_items)
                         data.action_items.forEach(item => {
+                            const e = KFTGrid.escape;
                             const row = `<tr>
-                                <td>${item.action_items || 'N/A'}</td>
-                                <td>${item.priority_name || 'N/A'}</td>
-                                <td>${item.assignee_name || 'N/A'}</td>
-                                <td>${item.target_completion_date || 'N/A'}</td>
-                                <td>${item.status_name || 'N/A'}</td>
+                                <td>${e(item.action_items || 'N/A')}</td>
+                                <td>${e(item.priority_name || 'N/A')}</td>
+                                <td>${e(item.assignee_name || 'N/A')}</td>
+                                <td>${e(item.target_completion_date || 'N/A')}</td>
+                                <td>${e(item.status_name || 'N/A')}</td>
                                 <td class="action-icons">
-                                    <a href="#" onclick="editActionItem('${item.post_meeting_id}'); return false;"><i class="fas fa-pencil-alt"></i></a>
-                                    <a href="#" onclick="deleteActionItem('${item.post_meeting_id}'); return false;"><i class="fas fa-trash"></i></a>
+                                    <a href="#" class="icon-btn" title="Edit" onclick="editActionItem('${e(item.post_meeting_id)}'); return false;"><i class="bi bi-pencil"></i></a>
+                                    <a href="#" class="icon-btn" title="Delete" onclick="deleteActionItem('${e(item.post_meeting_id)}'); return false;"><i class="bi bi-trash"></i></a>
                                 </td>
                             </tr>`;
                             $('#actionItemsTable tbody').append(row);

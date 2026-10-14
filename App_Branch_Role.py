@@ -30,28 +30,22 @@ def add_edit_branch_role(branch_role_id=None):
             current_user_id = get_current_user_id()
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            branch_role_name_escaped = escape_sql_string(branch_role_name)
-
             if branch_role_id:
-                query = f"""
-                    UPDATE tbl_branch_role 
-                    SET branch_role_name = {branch_role_name_escaped},
-                        is_active = {is_active},
-                        status = {status},
-                        modified_by = {current_user_id},
-                        modified_date = '{current_time}'
-                    WHERE branch_role_id = {branch_role_id}
+                query = """
+                    UPDATE tbl_branch_role
+                    SET branch_role_name = %s, is_active = %s, status = %s,
+                        modified_by = %s, modified_date = %s
+                    WHERE branch_role_id = %s
                 """
-                execute_command(query)
+                execute_command(query, params=(branch_role_name, is_active, status, current_user_id, current_time, branch_role_id))
             else:
-                query = f"""
-                    INSERT INTO tbl_branch_role 
+                query = """
+                    INSERT INTO tbl_branch_role
                     (branch_role_name, is_active, status, created_by, created_date, modified_by, modified_date)
-                    VALUES ({branch_role_name_escaped}, {is_active}, {status}, 
-                            {current_user_id}, '{current_time}', {current_user_id}, '{current_time}')
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
                     RETURNING branch_role_id
                 """
-                execute_command(query)
+                execute_command(query, params=(branch_role_name, is_active, status, current_user_id, current_time, current_user_id, current_time))
             return redirect(url_for('manage_branches') + "#branch-roles")
 
         return render_template('add_edit_branch_role.html',

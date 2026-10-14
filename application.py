@@ -154,133 +154,71 @@ def kft_dashboard_data():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+AWAITING_ROLE_NAMES = {'1': 'Reviewer', '2': 'Approver', '3': 'Executive Approver', '4': 'Admin', '5': 'Executive'}
+# Statuses that are waiting for this role's own action (highlighted on the page); 'X' = executive approval
+AWAITING_MY_ACTION = {'1': ['1'], '2': ['5', '6', '7', '8'], '3': ['X'], '5': ['5', '6', '7', '8', 'X']}
+
+
+def can_view_awaiting_service():
+    # Reviewer, Approver, Executive Approver, Admin and Executive all open the page (scoped in the model);
+    # anyone else needs the /awaiting-Service web permission.
+    return str(session.get('rights')) in AWAITING_ROLE_NAMES or \
+        PermissionHelper.has_permission(str(get_current_user_id()), '/awaiting-Service')
+
+
+@application.route('/awaiting-Service/count')
+def awaiting_service_count():
+    # Badge on the dashboard's "Awaiting Services" button: pending applications only, in the user's own scope.
+    if not is_login():
+        return jsonify({'success': False}), 401
+    if not can_view_awaiting_service():
+        return jsonify({'success': False}), 403
+    from Model_PreDisbursement import get_awaiting_pending_count
+    return jsonify({'success': True, 'total': get_awaiting_pending_count()})
+
+
 @application.route('/awaiting-Service')
 def awaiting_service():
-    # Fetch distinct national council distributions for table headers
-    query_distributions = """
-        SELECT DISTINCT ncd.national_council_distribution_name
-        FROM tbl_national_council_distribution ncd
-        INNER JOIN tbl_branches b
-            ON b.national_council_distribution = ncd.national_council_distribution_id
-        WHERE b.live_branch = '1'
-        ORDER BY ncd.national_council_distribution_name
-    """
-    distributions = [row['national_council_distribution_name'] for row in fetch_records(query_distributions)]
+    if not is_login():
+        return redirect(url_for('login'))
+    if not can_view_awaiting_service():
+        flash('You do not have permission to view Awaiting Services.', 'danger')
+        return redirect(url_for('dashboard'))
+    viewer = {'mine': AWAITING_MY_ACTION.get(str(session.get('rights')), [])}
+    return render_template('pending_applications.html', viewer=viewer)
 
-    # Query for pending applications
-    query_pending = """
-        SELECT 
-            ncd.national_council_distribution_name AS national_council_distribution,
-            CASE 
-                WHEN pdt."LoanProductCode" LIKE '%Enterprise%' THEN 'Enterprise'
-                WHEN pdt."LoanProductCode" = 'Student' THEN 'Student'
-                ELSE 'Other'
-            END AS loan_product_category,
-            CASE 
-                WHEN u.rights = '1' THEN 'Reviewer'
-                WHEN u.rights = '2' THEN 'Approver'
-                ELSE 'Unknown'
-            END AS user_role,
-            COUNT(*) AS pending_application_count
-        FROM tbl_pre_disbursement_temp pdt
-        INNER JOIN tbl_branches b 
-            ON pdt."Branch_Name" LIKE CONCAT('%', b."branch_code", '%') 
-            AND b."live_branch" = '1'
-        INNER JOIN tbl_users u 
-            ON u.assigned_branch = b.role
-            AND u."active" = '1' 
-            AND u.rights IN ('1', '2')
-        LEFT JOIN tbl_national_council_distribution ncd
-            ON b.national_council_distribution = ncd.national_council_distribution_id
-        WHERE pdt.Status = '1'
-        GROUP BY 
-            ncd.national_council_distribution_name,
-            CASE 
-                WHEN pdt."LoanProductCode" LIKE '%Enterprise%' THEN 'Enterprise'
-                WHEN pdt."LoanProductCode" = 'Student' THEN 'Student'
-                ELSE 'Other'
-            END,
-            u.rights
-        ORDER BY 
-            ncd.national_council_distribution_name,
-            loan_product_category,
-            user_role
-    """
-    records_pending = fetch_records(query_pending)
-    print(records_pending)
 
-    # Organize data for pending applications
-    data_pending = {}
-    for record in records_pending:
-        dist = record['national_council_distribution'] or 'Unknown'
-        prod = record['loan_product_category']
-        role = record['user_role']
-        count = record['pending_application_count']
-        key = (dist, prod, role)
-        data_pending[key] = data_pending.get(key, 0) + int(count)
-
-    print(data_pending)
-
-    # Query for agreed applications
-    query_agreed = """
-        SELECT 
-            ncd.national_council_distribution_name AS national_council_distribution,
-            COUNT(*) AS agreed_application_count
-        FROM tbl_pre_disbursement_temp pdt
-        INNER JOIN tbl_branches b 
-            ON pdt."Branch_Name" LIKE CONCAT('%', b."branch_code", '%') 
-            AND b."live_branch" = '1'
-        LEFT JOIN tbl_national_council_distribution ncd
-            ON b.national_council_distribution = ncd.national_council_distribution_id
-        WHERE pdt.Status IN ('2', '5')
-            AND DATE_TRUNC('month', pdt.approved_date) = DATE_TRUNC('month', CURRENT_DATE)
-        GROUP BY ncd.national_council_distribution_name
-        ORDER BY ncd.national_council_distribution_name
-    """
-    records_agreed = fetch_records(query_agreed)
-    print(records_agreed)
-
-    # Organize data for agreed applications
-    data_agreed = {}
-    for record in records_agreed:
-        dist = record['national_council_distribution'] or 'Unknown'
-        count = record['agreed_application_count']
-        data_agreed[(dist,)] = data_agreed.get((dist,), 0) + int(count)
-
-    print(data_agreed)
-
-    # Query for rejected applications
-    query_rejected = """
-        SELECT 
-            ncd.national_council_distribution_name AS national_council_distribution,
-            COUNT(*) AS rejected_application_count
-        FROM tbl_pre_disbursement_temp pdt
-        INNER JOIN tbl_branches b 
-            ON pdt."Branch_Name" LIKE CONCAT('%', b."branch_code", '%') 
-            AND b."live_branch" = '1'
-        LEFT JOIN tbl_national_council_distribution ncd
-            ON b.national_council_distribution = ncd.national_council_distribution_id
-        WHERE pdt.Status IN ('3', '6')
-            AND DATE_TRUNC('month', pdt.approved_date) = DATE_TRUNC('month', CURRENT_DATE)
-        GROUP BY ncd.national_council_distribution_name
-        ORDER BY ncd.national_council_distribution_name
-    """
-    records_rejected = fetch_records(query_rejected)
-    print(records_rejected)
-
-    # Organize data for rejected applications
-    data_rejected = {}
-    for record in records_rejected:
-        dist = record['national_council_distribution'] or 'Unknown'
-        count = record['rejected_application_count']
-        data_rejected[(dist,)] = data_rejected.get((dist,), 0) + int(count)
-
-    print(data_rejected)
-    return render_template('pending_applications.html', 
-                         data_pending=data_pending, 
-                         data_agreed=data_agreed, 
-                         data_rejected=data_rejected, 
-                         distributions=distributions)
+@application.route('/awaiting-Service/data')
+def awaiting_service_data():
+    if not is_login():
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    if not can_view_awaiting_service():
+        return jsonify({'success': False, 'error': 'Not allowed'}), 403
+    from Model_PreDisbursement import get_awaiting_services_rows
+    try:
+        rows = []
+        for r in get_awaiting_services_rows():
+            rows.append({
+                'id': r['id'],
+                'app_no': r['app_no'],
+                'borrower': r['borrower'],
+                'cnic': r['cnic'],
+                'product': r['product'] or 'Unknown',
+                'amount': float(r['amount']) if r['amount'] is not None else None,
+                'status': str(r['status']),
+                'exec_pending': int(r['exec_pending']),
+                'branch': r['branch'] or 'Unassigned',
+                'council': r['council'] or 'Unassigned',
+                'uploaded_date': r['uploaded_date'].isoformat() if r['uploaded_date'] else None,
+                'reviewed_date': r['reviewed_date'].isoformat() if r['reviewed_date'] else None,
+                'reviewed_by': r['reviewed_by'],
+                'decision_date': r['decision_date'].isoformat() if r['decision_date'] else None,
+                'decided_by': r['decided_by'],
+            })
+        return jsonify({'success': True, 'rows': rows, 'today': datetime.now().date().isoformat()})
+    except Exception as e:
+        print('awaiting service data exception:- ', str(e))
+        return jsonify({'success': False, 'error': 'Could not load applications'}), 500
 
 
 

@@ -4,123 +4,89 @@
     <meta charset="UTF-8">
     <title>{{ 'Edit Term' if result.term_id else 'Add Term' }}</title>
     {% include 'head.html' %}
-    <style>
-        .card {
-            max-width: 800px;
-            margin: 50px auto;
-            border: none;
-            border-radius: 12px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-        .card-header {
-            background-color: #fff;
-            border-bottom: 1px solid #dee2e6;
-            border-radius: 12px 12px 0 0;
-            text-align: center;
-            padding: 20px;
-        }
-        .card-body {
-            padding: 30px;
-            background-color: #fff;
-        }
-        .btn-dark {
-            background-color: #212529;
-            border-color: #212529;
-            padding: 10px 20px;
-            border-radius: 6px;
-            font-weight: bold;
-        }
-        .btn-dark:hover {
-            background-color: #343a40;
-            border-color: #343a40;
-        }
-        .form-control, .form-select {
-            border-radius: 6px;
-        }
-        .form-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-        .form-row .mb-3 {
-            flex: 1 1 45%;
-            min-width: 200px;
-        }
-    </style>
 </head>
 <body>
     {% include 'navbar.html' %}
     {% import 'breadcrumbs.html' as brd %}
     {{ brd.render_Breadcrumbs([{"url": "manage_users", "label": "Manage Users"}, {"url": "", "label": 'Edit Term' if result.term_id else 'Add Term'}]) }}
+    {% set rec = result.term %}
+    {% set terms = ['First Term', 'Second Term', 'Third Term', 'Additional Term'] %}
+    {% set caps = [('1year', 'One Year'), ('2years', 'Two Years'), ('3years', 'Three Years'), ('Lifetime', 'Life Time')] %}
 
-    <div class="container">
+    <div class="container mt-2">
         {% include 'message_box.html' %}
 
-        <div class="card">
-            <div class="card-header">
-                <h4 class="mb-0">{{ 'Edit Term' if result.term_id else 'Add Term' }}</h4>
-            </div>
-            <div class="card-body">
-                <form method="POST" action="{{ url_for('add_edit_user_service_term', privilege_id=result.privilege_id) if result.privilege_id else url_for('add_edit_user_service_term') }}">
-                    {% if result.user_name != '' %}
-                        <div class="form-row">
-                            <div class="mb-3">
-                                <label class="form-label">User</label>
-                                <input type="text" class="form-control" value="{{result.user_name or ''}}" readonly>
-                            </div>
-                        </div>
-                    {% endif %}
+        <div class="kf-page-head">
+            <h1>{{ 'Edit service term' if result.term_id else 'Add service term' }}</h1>
+            <p>A volunteer's term of service: when it started, its tenure cap and when it ended.</p>
+        </div>
 
-                    <div class="form-row">
-                        <div class="mb-3">
-                            <label class="form-label">Service</label>
-                            <select class="form-select" name="term" required>
-                                <option value="" disabled {{ 'selected' if not result.term else '' }}>[Select...]</option>
-                                <option value="First Term" {{ 'selected' if result.term and result.term.term == 'First Term' else '' }}>First Term</option>
-                                <option value="Second Term" {{ 'selected' if result.term and result.term.term == 'Second Term' else '' }}>Second Term</option>
-                                <option value="Third Term" {{ 'selected' if result.term and result.term.term == 'Third Term' else '' }}>Third Term</option>
-                                <option value="Additional Term" {{ 'selected' if result.term and result.term.term == 'Additional Term' else '' }}>Additional Term</option>
+        <div class="kf-form-layout">
+            <form method="POST" class="kf-card" action="{{ url_for('add_edit_user_service_term', term_id=result.term_id) if result.term_id else url_for('add_edit_user_service_term') }}">
+                <div class="kf-sec">Term</div>
+                <div class="kf-body">
+                    <div class="kf-grid">
+                        {% if result.user_name != '' %}
+                            <div class="kf-field full">
+                                <label>User</label>
+                                <input type="text" class="form-control" value="{{ result.user_name or '' }}" readonly>
+                            </div>
+                        {% endif %}
+                        <div class="kf-field">
+                            <label for="term">Service <span class="req">*</span></label>
+                            <select class="form-select" id="term" name="term" required>
+                                <option value="" disabled {{ 'selected' if not rec else '' }}>Select...</option>
+                                {% for v in terms %}<option value="{{ v }}" {{ 'selected' if rec and rec.term == v else '' }}>{{ v }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="kf-field">
+                            <label for="tenure_cap">Tenure cap <span class="req">*</span></label>
+                            <select class="form-select" id="tenure_cap" name="tenure_cap" required>
+                                <option value="" disabled {{ 'selected' if not rec else '' }}>Select...</option>
+                                {% for v, label in caps %}<option value="{{ v }}" {{ 'selected' if rec and rec.tenure_cap == v else '' }}>{{ label }}</option>{% endfor %}
                             </select>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="mb-3">
-                            <label class="form-label">Tenure Cap</label>
-                            <select class="form-select" name="tenure_cap" required>
-                                <option value="" disabled {{ 'selected' if not result.term else '' }}>[Select...]</option>
-                                <option value="1year" {{ 'selected' if result.term and result.term.tenure_cap == '1year' else '' }}>One Year</option>
-                                <option value="2years" {{ 'selected' if result.term and result.term.tenure_cap == '2years' else '' }}>Two Years</option>
-                                <option value="3years" {{ 'selected' if result.term and result.term.tenure_cap == '3years' else '' }}>Three Years</option>
-                                <option value="Lifetime" {{ 'selected' if result.term and result.term.tenure_cap == 'Lifetime' else '' }}>Life Time</option>
-                            </select>
+                </div>
+
+                <div class="kf-sec">Dates</div>
+                <div class="kf-body">
+                    <div class="kf-grid">
+                        <div class="kf-field">
+                            <label for="from_date">Start from <span class="req">*</span></label>
+                            <input type="date" class="form-control" id="from_date" name="from_date" value="{{ rec.from_date if rec and rec.from_date else '' }}" required>
+                        </div>
+                        <div class="kf-field">
+                            <label for="to_date">Proposed end date</label>
+                            <input type="date" class="form-control" id="to_date" name="to_date" value="{{ rec.to_date if rec and rec.to_date else '' }}">
+                            <span class="hint">Filled in from the start date and tenure cap</span>
+                        </div>
+                        <div class="kf-field">
+                            <label for="actual_end_date">Actual end date <span class="req">*</span></label>
+                            <input type="date" class="form-control" id="actual_end_date" name="actual_end_date" value="{{ rec.actual_end_date if rec and rec.actual_end_date else '' }}" required>
+                        </div>
+                        <div class="kf-field">
+                            <label for="month_served">Months served</label>
+                            <input type="text" class="form-control" id="month_served" name="month_served" value="{{ rec.month_served if rec and rec.month_served else '' }}">
+                            <span class="hint">Calculated from the start and actual end dates</span>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="mb-3">
-                            <label class="form-label">Start From</label>
-                            <input type="date" class="form-control" name="from_date" value="{{ result.term.from_date if result.term and result.term.from_date else '' }}" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Proposed End Date</label>
-                            <input type="date" class="form-control" name="to_date" value="{{ result.term.to_date if result.term and result.term.to_date else '' }}">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="mb-3">
-                            <label class="form-label">Actual End Date</label>
-                            <input type="date" class="form-control" name="actual_end_date" value="{{ result.term.actual_end_date if result.term and result.term.actual_end_date else '' }}" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Month Served</label>
-                            <input type="text" class="form-control" name="month_served" value="{{ result.term.month_served if result.term and result.term.month_served else '' }}">
-                        </div>
-                    </div>
-                    <div class="d-grid">
-                        <input type="hidden" name="hdn_user_id" value="{{ result.hdn_user_id }}">
-                        <button type="submit" class="btn btn-dark">{{ 'Update Term' if result.term_id else 'Add Term' }}</button>
-                    </div>
-                </form>
-            </div>
+                    <input type="hidden" name="hdn_user_id" value="{{ result.hdn_user_id }}">
+                </div>
+
+                <div class="kf-foot">
+                    <a href="{{ url_for('add_edit_user', user_id=result.hdn_user_id) ~ '#user-service-terms' if result.hdn_user_id else url_for('manage_users') }}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">{{ 'Update term' if result.term_id else 'Save term' }}</button>
+                </div>
+            </form>
+
+            <aside class="kf-card kf-help">
+                <h4>Service terms</h4>
+                <ul>
+                    <li>Choosing a start date and tenure cap fills in the proposed end date. A lifetime cap has no end date.</li>
+                    <li>Months served are counted from the start date to the actual end date, including both months.</li>
+                </ul>
+            </aside>
         </div>
     </div>
     <script>
@@ -156,7 +122,7 @@
             if (!fromDateValue) return;
 
             const startDate = new Date(fromDateValue);
-            const currentDate = new Date(2025, 8, 5); // September 05, 2025 (month is 0-based)
+            const currentDate = new Date(); // today
             let endDate;
 
             if (actualEndDateValue) {

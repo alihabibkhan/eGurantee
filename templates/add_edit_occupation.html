@@ -7,25 +7,40 @@
 <body>
     {% include 'navbar.html' %}
     {% import 'breadcrumbs.html' as brd %}
-    {{ brd.render_Breadcrumbs([{"url": 'manage_loan_metrics', "label": "Manage Loan Metrics"}, {"url": "", "label": 'Edit Occupation' if result.occupation else 'Add Occupation' }]) }}
+    {{ brd.render_Breadcrumbs([{"url": "manage_loan_metrics", "label": "Manage Loan Metrics"}, {"url": "", "label": 'Edit Occupation' if result.occupation else 'Add Occupation' }]) }}
+    {% set rec = result.occupation %}
 
-    <div class="container mt-4">
+    <div class="container mt-2">
         {% include 'message_box.html' %}
 
-        <div class="card">
-            <div class="card-header">
-                <h2>{{ 'Edit Occupation' if result.occupation else 'Add Occupation' }}</h2>
-            </div>
-            <div class="card-body">
-                <form method="POST">
-                    <div class="form-group mb-3">
-                        <label for="name">Name</label>
-                        <input type="text" name="name" class="form-control" value="{{ result.occupation.name if result.occupation else '' }}" required>
-                    </div>
+        <div class="kf-page-head">
+            <h1>{{ 'Edit occupation' if rec else 'Add occupation' }}</h1>
+            <p>Occupations used by the loan matrix parameters.</p>
+        </div>
 
-                    <button type="submit" class="btn btn-primary">{{ 'Update Occupation' if result.occupation else 'Add Occupation' }}</button>
-                </form>
-            </div>
+        <div class="kf-form-layout">
+            <form method="POST" class="kf-card">
+                <div class="kf-sec">Details</div>
+                <div class="kf-body">
+                    <div class="kf-grid">
+                        <div class="kf-field">
+                            <label for="name">Name <span class="req">*</span></label>
+                            <input type="text" id="name" name="name" class="form-control" value="{{ rec.name if rec else '' }}" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kf-foot">
+                    <a href="{{ url_for('manage_loan_metrics') }}#occupations" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">{{ 'Update occupation' if rec else 'Save occupation' }}</button>
+                </div>
+            </form>
+
+            <aside class="kf-card kf-help">
+                <h4>Loan matrix parameters</h4>
+                <p>Occupations are one of the parameters of the KFT loan matrix. They are managed on the
+                    <a href="{{ url_for('manage_loan_metrics') }}#occupations">Loan Metrics</a> page.</p>
+            </aside>
         </div>
     </div>
 </body>

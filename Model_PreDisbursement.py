@@ -257,9 +257,9 @@ def requires_executive_approval(pre_disb_temp_id):
     query = f"""
         SELECT {ALLOW_EXCEPTIONAL_APPROVAL_SQL} AS allow_exceptional_approval
         FROM tbl_pre_disbursement_temp pdt
-        WHERE pdt.pre_disb_temp_id = '{str(pre_disb_temp_id)}'
+        WHERE CAST(pdt.pre_disb_temp_id AS VARCHAR) = %s
     """
-    result = fetch_records(query)
+    result = fetch_records(query, params=(str(pre_disb_temp_id),))
     return bool(result) and str(result[0].get('allow_exceptional_approval')) == '1'
 
 
@@ -405,9 +405,9 @@ def get_all_pre_disbursement_temp_by_id(id):
         FROM 
             tbl_pre_disbursement_temp pdt
         WHERE
-        pdt."pre_disb_temp_id" = '{str(id)}'
+        CAST(pdt."pre_disb_temp_id" AS VARCHAR) = %s
     """
-    result = fetch_records(query)
+    result = fetch_records(query, params=(str(id),))
     # print(result)
     return result
 
@@ -500,4 +500,224 @@ def get_all_pre_disbursement_main():
     return result
 
 
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Exception report (task 002): applications decided with an exception status.
+#   9 = Agreed (With Exception), 10 = Disagreed (With Exception)
+#   7 / 8 = Recommended for Agreement / Disagreement (With Exception), only when include_recommended
+# Reviewer / Approver / Executive see their assigned branches; Executive Approver and Admin see all.
+# ---------------------------------------------------------------------------------------------
+EXCEPTION_FINAL_STATUSES = ('9', '10')
+EXCEPTION_RECOMMENDED_STATUSES = ('7', '8')
+
+# Who made the decision and when, per status (status 2/3 are used for the "share of all decisions" figure)
+_EXC_DECIDED_BY_SQL = """CASE WHEN pdt.status IN ('2', '9') THEN pdt.approved_by
+                              WHEN pdt.status IN ('3', '10') THEN pdt.rejected_by
+                              ELSE pdt.reviewed_by END"""
+_EXC_DECISION_DATE_SQL = """CASE WHEN pdt.status IN ('2', '9') THEN pdt.approved_date
+                                 WHEN pdt.status IN ('3', '10') THEN pdt.rejected_date
+                                 ELSE pdt.reviewed_date END"""
+_EXC_AMOUNT_SQL = """NULLIF(regexp_replace(COALESCE({col}, ''), '[^0-9.]', '', 'g'), '')::numeric"""
+
+_EXC_FROM_SQL = """
+    FROM tbl_pre_disbursement_temp pdt
+    LEFT JOIN LATERAL (
+        SELECT b.branch_id, b.branch, b.role
+        FROM tbl_branches b
+        WHERE pdt."Branch_Name" LIKE CONCAT('%%', b.branch_code, '%%') AND b.live_branch = '1'
+        ORDER BY LENGTH(b.branch_code) DESC
+        LIMIT 1
+    ) b ON TRUE
+    LEFT JOIN tbl_branch_role tbr ON tbr.branch_role_id = b.role
+"""
+
+
+def _exception_report_where(filters, statuses):
+    """WHERE clause + params shared by the report rows and the total-decisions figure."""
+    filters = filters or {}
+    where = ["pdt.status IN %s"]
+    params = [tuple(statuses)]
+
+    # Branch scope (same rule as Loan Application Analysis)
+    if get_current_user_role() in ['1', '2', '5']:
+        where.append("""EXISTS (SELECT 1 FROM tbl_users su
+                                WHERE su.user_id = %s AND su.active = '1' AND b.role = ANY (su.assigned_branch))""")
+        params.append(int(get_current_user_id()))
+
+    if filters.get('date_from'):
+        where.append(f"({_EXC_DECISION_DATE_SQL}) >= %s::date")
+        params.append(filters['date_from'])
+    if filters.get('date_to'):
+        where.append(f"({_EXC_DECISION_DATE_SQL}) < %s::date + INTERVAL '1 day'")
+        params.append(filters['date_to'])
+    if filters.get('region'):
+        where.append("CAST(b.role AS VARCHAR) = %s")
+        params.append(str(filters['region']))
+    if filters.get('branch'):
+        where.append("CAST(b.branch_id AS VARCHAR) = %s")
+        params.append(str(filters['branch']))
+    if filters.get('product'):
+        where.append('pdt."LoanProductCode" = %s')
+        params.append(filters['product'])
+    return where, params
+
+
+def get_exception_report(filters=None):
+    """Rows for the Exception Report; all values are passed as query parameters."""
+    filters = filters or {}
+    status = str(filters.get('status') or '')
+    if status in EXCEPTION_FINAL_STATUSES:
+        statuses = (status,)
+    else:
+        statuses = EXCEPTION_FINAL_STATUSES + (EXCEPTION_RECOMMENDED_STATUSES if filters.get('include_recommended') else ())
+
+    where, params = _exception_report_where(filters, statuses)
+
+    if filters.get('decided_by'):
+        where.append(f"CAST(({_EXC_DECIDED_BY_SQL}) AS VARCHAR) = %s")
+        params.append(str(filters['decided_by']))
+    if filters.get('reviewed_by'):
+        where.append("CAST(pdt.reviewed_by AS VARCHAR) = %s")
+        params.append(str(filters['reviewed_by']))
+    if filters.get('limit_min') not in (None, ''):
+        where.append("COALESCE(pdt.KFT_Approved_Loan_Limit, 0) >= %s")
+        params.append(float(filters['limit_min']))
+    if filters.get('limit_max') not in (None, ''):
+        where.append("COALESCE(pdt.KFT_Approved_Loan_Limit, 0) <= %s")
+        params.append(float(filters['limit_max']))
+    if filters.get('email') == 'sent':
+        where.append("pdt.email_status = 2")
+    elif filters.get('email') == 'not_sent':
+        where.append("COALESCE(pdt.email_status, 0) <> 2")
+
+    query = f"""
+        SELECT
+            pdt.pre_disb_temp_id,
+            pdt."Application_No" AS application_no,
+            pdt."Borrower_Name" AS borrower_name,
+            pdt."Father_Husband_Name" AS father_husband_name,
+            pdt."CNIC" AS cnic,
+            pdt."Gender" AS gender,
+            pdt."Contact_No" AS contact_no,
+            pdt."Branch_Name" AS branch_name_raw,
+            b.branch_id,
+            b.branch,
+            b.role AS region_id,
+            tbr.branch_role_name AS region,
+            pdt."LoanProductCode" AS product,
+            pdt."Purpose_Of_Loan" AS purpose,
+            pdt."Loan_Cycle" AS loan_cycle,
+            pdt."Tenor_Of_Month" AS tenor,
+            {_EXC_AMOUNT_SQL.format(col='pdt."Requested_Loan_Amount"')} AS requested_amount,
+            {_EXC_AMOUNT_SQL.format(col='pdt."Loan_Amount"')} AS loan_amount,
+            pdt.KFT_Approved_Loan_Limit AS approved_limit,
+            pdt.status,
+            {_EXC_DECIDED_BY_SQL} AS decided_by_id,
+            ud.name AS decided_by,
+            {_EXC_DECISION_DATE_SQL} AS decision_date,
+            pdt.reviewed_by AS reviewed_by_id,
+            ur.name AS reviewed_by,
+            pdt.reviewed_date,
+            ue.name AS exec_approved_by,
+            pdt.exec_approved_date,
+            pdt.exec_approval_pending,
+            pdt.email_status,
+            pdt.notes,
+            pdt."ApplicationDate" AS application_date,
+            pdt.uploaded_date
+        {_EXC_FROM_SQL}
+        LEFT JOIN tbl_users ud ON ud.user_id = {_EXC_DECIDED_BY_SQL}
+        LEFT JOIN tbl_users ur ON ur.user_id = pdt.reviewed_by
+        LEFT JOIN tbl_users ue ON ue.user_id = pdt.exec_approved_by
+        WHERE {' AND '.join(where)}
+        ORDER BY decision_date DESC NULLS LAST
+    """
+    return fetch_records(query, is_print=False, params=tuple(params))
+
+
+def get_exception_report_total_decisions(filters=None):
+    """Final decisions (Agreed / Disagreed, with or without exception) in the same scope, period, area and product."""
+    where, params = _exception_report_where(filters, ('2', '3', '9', '10'))
+    query = f"SELECT COUNT(*) AS total {_EXC_FROM_SQL} WHERE {' AND '.join(where)}"
+    result = fetch_records(query, is_print=False, params=tuple(params))
+    return int(result[0]['total']) if result else 0
+
+
+# ---------------------------------------------------------------------------------------------
+# Awaiting Services (dashboard button): every application by stage.
+#   Pending   = 1 Under review, 5/7 and 6/8 Recommended for agreement / disagreement (without / with
+#               exception), and any final decision held for the executive (exec_approval_pending = 1).
+#   Agreed    = 2 / 9 (without / with exception), Disagreed = 3 / 10, once no executive approval is pending.
+# Admin, Executive Approver and other permitted users see all; Reviewer / Approver / Executive see
+# only the applications of their assigned branches.
+# ---------------------------------------------------------------------------------------------
+AWAITING_PENDING_STATUSES = ('1', '5', '6', '7', '8')
+AWAITING_ALL_STATUSES = AWAITING_PENDING_STATUSES + ('2', '3', '9', '10')
+AWAITING_SCOPED_ROLES = ('1', '2', '5')
+_AW_EXEC_PENDING_SQL = "COALESCE(CAST(pdt.exec_approval_pending AS VARCHAR), '') = '1'"
+_AW_DECIDED_BY_SQL = """CASE WHEN pdt.status IN ('2', '9') THEN pdt.approved_by
+                             WHEN pdt.status IN ('3', '10') THEN COALESCE(pdt.rejected_by, pdt.approved_by) END"""
+_AW_DECISION_DATE_SQL = """CASE WHEN pdt.status IN ('2', '9') THEN pdt.approved_date
+                                WHEN pdt.status IN ('3', '10') THEN COALESCE(pdt.rejected_date, pdt.approved_date) END"""
+_AW_FROM_SQL = """
+    FROM tbl_pre_disbursement_temp pdt
+    LEFT JOIN LATERAL (
+        SELECT b.branch_id, b.branch, b.role, b.national_council_distribution
+        FROM tbl_branches b
+        WHERE pdt."Branch_Name" LIKE CONCAT('%%', b.branch_code, '%%') AND b.live_branch = '1'
+        ORDER BY LENGTH(b.branch_code) DESC
+        LIMIT 1
+    ) b ON TRUE
+"""
+
+
+def _awaiting_scope(where, params):
+    if str(get_current_user_role()) in AWAITING_SCOPED_ROLES:
+        where.append("""EXISTS (SELECT 1 FROM tbl_users su
+                                WHERE su.user_id = %s AND su.active = '1' AND b.role = ANY (su.assigned_branch))""")
+        params.append(int(get_current_user_id()))
+
+
+def get_awaiting_services_rows():
+    """One row per application (pending, agreed or disagreed) in the current user's scope."""
+    where = ["pdt.status IN %s"]
+    params = [AWAITING_ALL_STATUSES]
+    _awaiting_scope(where, params)
+    query = f"""
+        SELECT
+            pdt.pre_disb_temp_id AS id,
+            pdt."Application_No" AS app_no,
+            pdt."Borrower_Name" AS borrower,
+            pdt."CNIC" AS cnic,
+            pdt."LoanProductCode" AS product,
+            {_EXC_AMOUNT_SQL.format(col='pdt."Requested_Loan_Amount"')} AS amount,
+            pdt.status,
+            CASE WHEN {_AW_EXEC_PENDING_SQL} THEN 1 ELSE 0 END AS exec_pending,
+            b.branch,
+            ncd.national_council_distribution_name AS council,
+            pdt.uploaded_date,
+            pdt.reviewed_date,
+            ur.name AS reviewed_by,
+            {_AW_DECISION_DATE_SQL} AS decision_date,
+            ud.name AS decided_by
+        {_AW_FROM_SQL}
+        LEFT JOIN tbl_national_council_distribution ncd
+            ON ncd.national_council_distribution_id = b.national_council_distribution
+        LEFT JOIN tbl_users ur ON ur.user_id = pdt.reviewed_by
+        LEFT JOIN tbl_users ud ON ud.user_id = {_AW_DECIDED_BY_SQL}
+        WHERE {' AND '.join(where)}
+    """
+    return fetch_records(query, is_print=False, params=tuple(params))
+
+
+def get_awaiting_pending_count():
+    """Dashboard badge: pending applications only, in the current user's scope."""
+    where = [f"(pdt.status IN %s OR {_AW_EXEC_PENDING_SQL})"]
+    params = [AWAITING_PENDING_STATUSES]
+    _awaiting_scope(where, params)
+    query = f"SELECT COUNT(*) AS total {_AW_FROM_SQL} WHERE {' AND '.join(where)}"
+    result = fetch_records(query, is_print=False, params=tuple(params))
+    return int(result[0]['total']) if result else 0
 

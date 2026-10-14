@@ -7,31 +7,50 @@
 <body>
     {% include 'navbar.html' %}
     {% import 'breadcrumbs.html' as brd %}
-    {{ brd.render_Breadcrumbs([{"url": 'manage_branches', "label": "Manage Branches"}, {"url": "", "label": 'Edit Branch Role' if result.branch_role_details else 'Add Branch Role' }]) }}
+    {{ brd.render_Breadcrumbs([{"url": "manage_branches", "label": "Manage Branches"}, {"url": "", "label": 'Edit Branch Role' if result.branch_role_details else 'Add Branch Role' }]) }}
+    {% set rec = result.branch_role_details %}
 
-    <div class="container mt-4">
+    <div class="container mt-2">
         {% include 'message_box.html' %}
 
-        <div class="card">
-            <div class="card-header">
-                <h2>{{ 'Edit Branch Role' if result.branch_role_details else 'Add Branch Role' }}</h2>
-            </div>
-            <div class="card-body">
-                <form method="POST">
-                    <div class="form-group mb-3">
-                        <label for="branch_role_name">Name</label>
-                        <input type="text" name="branch_role_name" id="branch_role_name" class="form-control" value="{{ result.branch_role_details.branch_role_name if result.branch_role_details else '' }}" required>
+        <div class="kf-page-head">
+            <h1>{{ 'Edit branch role' if rec else 'Add branch role' }}</h1>
+            <p>Branch groups that users are assigned to.</p>
+        </div>
+
+        <div class="kf-form-layout">
+            <form method="POST" class="kf-card">
+                <div class="kf-sec">Details</div>
+                <div class="kf-body">
+                    <div class="kf-grid">
+                        <div class="kf-field">
+                            <label for="branch_role_name">Name <span class="req">*</span></label>
+                            <input type="text" id="branch_role_name" name="branch_role_name" class="form-control" value="{{ rec.branch_role_name if rec else '' }}" required>
+                        </div>
                     </div>
-                    <div class="form-group mb-3">
-                        <label for="is_active">Active</label>
-                        <select name="is_active" id="is_active" class="form-control" required>
-                            <option value="1" {% if result.branch_role_details and result.branch_role_details.is_active == 1 %} selected {% endif %}>Yes</option>
-                            <option value="2" {% if result.branch_role_details and result.branch_role_details.is_active == 2 %} selected {% endif %}>No</option>
-                        </select>
+                </div>
+                <div class="kf-sec">Status</div>
+                <div class="kf-body switches">
+                    <div class="kf-switch-row">
+                        <div><div class="t">Active</div><div class="d">Inactive roles are kept for history but should no longer be assigned.</div></div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" value="1"
+                                   {{ 'checked' if not rec or rec.is_active == 1 }} aria-label="Active">
+                            <input type="hidden" name="is_active" value="2">
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-primary">{{ 'Update Branch Role' if result.branch_role_details else 'Add Branch Role' }}</button>
-                </form>
-            </div>
+                </div>
+
+                <div class="kf-foot">
+                    <a href="{{ url_for('manage_branches') }}#branch-roles" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">{{ 'Update branch role' if rec else 'Save branch role' }}</button>
+                </div>
+            </form>
+
+            <aside class="kf-card kf-help">
+                <h4>Branch roles</h4>
+                <p>A branch role groups branches. Users are given one or more branch roles, which decide which applications they can see and act on.</p>
+            </aside>
         </div>
     </div>
 </body>

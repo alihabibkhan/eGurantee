@@ -13,9 +13,9 @@ def login():
             email = str(request.form.get('email'))
             password = str(request.form.get('password'))
 
-            query = f"select * from tbl_users u where u.email = '{email}' "
-            user = fetch_records(query)
-            print(user)
+            # email is passed as a parameter (never pasted into the SQL) to prevent SQL injection
+            query = "select * from tbl_users u where u.email = %s"
+            user = fetch_records(query, is_print=False, params=(email,))
 
             if user and check_password_hash(user[0]['password'], password):
                 print('setting user sessions.')
@@ -27,12 +27,12 @@ def login():
                 return redirect(url_for('index'))
             else:
                 flash(f"Invalid email or password!", 'danger')
-                return render_template("Login.html")
+                return render_template("Login.html", stats=get_login_stats())
 
     except Exception as e:
         print('login page exception:- ', str(e))
 
-    return render_template("Login.html")
+    return render_template("Login.html", stats=get_login_stats())
 
 
 @application.route('/profile', methods=['GET', 'POST'])
@@ -45,25 +45,22 @@ def profile():
             #     WHERE u.active = '1' AND u.user_id = '{get_current_user_id()}'
             # """
 
-            query = f"""
+            query = """
                 SELECT u."name", u."email", u."signature", u."scan_sign" 
                 FROM tbl_users u 
-                WHERE u."active" = '1' AND u."user_id" = '{get_current_user_id()}'
+                WHERE u."active" = '1' AND CAST(u."user_id" AS VARCHAR) = %s
             """
-            user = fetch_records(query)
+            user = fetch_records(query, params=(str(get_current_user_id()),))
             if not user:
                 abort(404, description="User not found")
             user = user[0]
 
             if request.method == 'POST':
                 name = request.form['name']
-                sql_part = ''
 
                 new_password = request.form.get('password', '')
                 if new_password:
                     new_password = generate_password_hash(new_password)
-                    # sql_part = f", u.password = '{new_password}'"
-                    sql_part = f", \"password\" = '{new_password}'"
 
 
                 # Handle image upload
@@ -77,24 +74,18 @@ def profile():
                 #     UPDATE tbl_users u
                 #     SET u.name = '{name}'
                 # """
-                query = f"""
-                    UPDATE tbl_users
-                    SET "name" = '{name}'
-                """
-
+                # Values are passed as parameters (never pasted into the SQL) to prevent SQL injection
+                query = 'UPDATE tbl_users SET "name" = %s'
+                params = [name]
                 if image_data:
-                    # query += f", u.scan_sign = 0x{image_data}"  # Prefix with 0x for BLOB
-                    query += f', "scan_sign" = {psycopg2.Binary(image_data)}'  # Prefix with 0x for BLOB
-                if sql_part:
-                    query += sql_part
-                # query += f"""
-                #     WHERE u.user_id = '{get_current_user_id()}' AND u.active = '1'
-                # """
-                query += f"""
-                    WHERE "user_id" = '{get_current_user_id()}' AND "active" = '1'
-                """
-                print(query)
-                execute_command(query)
+                    query += ', "scan_sign" = %s'
+                    params.append(psycopg2.Binary(image_data))
+                if new_password:
+                    query += ', "password" = %s'
+                    params.append(new_password)
+                query += ' WHERE CAST("user_id" AS VARCHAR) = %s AND "active" = \'1\''
+                params.append(str(get_current_user_id()))
+                execute_command(query, params=tuple(params))
 
                 session['name'] = name
                 flash("Profile updated successfully.", 'success')
@@ -109,6 +100,7 @@ def profile():
                 'is_user_have_sign': is_user_have_sign(),
                 'user': user,
                 'image_base64': image_base64,
+                'details': get_profile_details(get_current_user_id()),
             }
 
             return render_template('profile.html', result=content)
@@ -130,17 +122,16 @@ def forgot_password():
     if request.method == 'POST':
         email = request.form.get('email')
         # Fetch user record using provided query structure
-        query = f"""
+        query = """
             SELECT u.name, u.email, u.signature, u.scan_sign 
             FROM tbl_users u 
-            WHERE u.active = '1' AND u.email = '{email}'
+            WHERE u.active = '1' AND u.email = %s
         """
-        user = fetch_records(query)
+        user = fetch_records(query, params=(email,))
 
         if user:
-            # Generate reset token
+            # Generate reset token (not printed: the log must not hold working reset links)
             token = s.dumps(email, salt='password-reset-salt')
-            print('token:- ', token)
             reset_url = url_for('reset_password', token=token, _external=True)
 
             # Email content
@@ -181,23 +172,21 @@ def reset_password(token):
     if request.method == 'POST':
         password = request.form.get('password')
         # Fetch user record to verify email
-        query = f"""
+        query = """
             SELECT u.name, u.email, u.signature, u.scan_sign 
             FROM tbl_users u 
-            WHERE u.active = '1' AND u.email = '{email}'
+            WHERE u.active = '1' AND u.email = %s
         """
-        user = fetch_records(query)
+        user = fetch_records(query, params=(email,))
 
         if user:
-            # Update password (assuming you have a method to hash and set password)
-            hashed_password = generate_password_hash(password)  # Replace with your password hashing method
-            update_query = f"""
+            hashed_password = generate_password_hash(password)
+            update_query = """
                 UPDATE tbl_users 
-                SET password = '{hashed_password}' 
-                WHERE email = '{email}' AND active = '1'
+                SET password = %s 
+                WHERE email = %s AND active = '1'
             """
-
-            execute_command(update_query)
+            execute_command(update_query, params=(hashed_password, email))
 
             flash('Your password has been updated. Please log in.', 'success')
             return redirect(url_for('login'))

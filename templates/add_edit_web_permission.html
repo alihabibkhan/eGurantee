@@ -11,64 +11,74 @@
         {"url": "manage_web_permissions", "label": "Manage Web Permissions"},
         {"url": "", "label": 'Edit Web Permission' if result.permission else 'Add Web Permission'}
     ]) }}
+    {% set rec = result.permission %}
 
-    <div class="container mt-4">
+    <div class="container mt-2">
         {% include 'message_box.html' %}
 
-        <div class="card">
-            <div class="card-header">
-                <h2>{{ 'Edit Web Permission' if result.permission else 'Add Web Permission' }}</h2>
-            </div>
-            <div class="card-body">
-                <form method="POST">
-                    <div class="form-group mb-3">
-                        <label for="category">Category</label>
-                        <select name="category" id="category" class="form-select" required>
-                            <option value="">[[Select]]</option>
-                            <option value="1" {% if result.permission.category|string == '1' %}selected{% endif %}>Information</option>
-                            <option value="2" {% if result.permission.category|string == '2' %}selected{% endif %}>Data Entry</option>
-                            <option value="3" {% if result.permission.category|string == '3' %}selected{% endif %}>Report</option>
-                            <option value="4" {% if result.permission.category|string == '4' %}selected{% endif %}>Setup</option>
-                        </select>
-                    </div>
+        <div class="kf-page-head">
+            <h1>{{ 'Edit web permission' if rec else 'Add web permission' }}</h1>
+            <p>A page or feature that can be granted to users from User Permissions.</p>
+        </div>
 
-                    <div class="form-group mb-3">
-                        <label for="title">Title</label>
-                        <input type="text" name="title" class="form-control"
-                               value="{{ result.permission.title if result.permission else '' }}" required>
+        <div class="kf-form-layout">
+            <form method="POST" class="kf-card">
+                <div class="kf-sec">Permission details</div>
+                <div class="kf-body">
+                    <div class="kf-grid">
+                        <div class="kf-field">
+                            <label for="category">Category <span class="req">*</span></label>
+                            <select name="category" id="category" class="form-select" required>
+                                <option value="">Select...</option>
+                                <option value="1" {% if rec and rec.category|string == '1' %}selected{% endif %}>Information</option>
+                                <option value="2" {% if rec and rec.category|string == '2' %}selected{% endif %}>Data Entry</option>
+                                <option value="3" {% if rec and rec.category|string == '3' %}selected{% endif %}>Report</option>
+                                <option value="4" {% if rec and rec.category|string == '4' %}selected{% endif %}>Setup</option>
+                            </select>
+                        </div>
+                        <div class="kf-field">
+                            <label for="title">Title <span class="req">*</span></label>
+                            <input type="text" id="title" name="title" class="form-control" value="{{ rec.title if rec else '' }}" required>
+                        </div>
+                        <div class="kf-field">
+                            <label for="route">Route <span class="req">*</span></label>
+                            <input type="text" id="route" name="route" class="form-control" value="{{ rec.route if rec else '' }}" required>
+                            <span class="hint">The page address, e.g. /awaiting-Service</span>
+                        </div>
+                        <div class="kf-field">
+                            <label for="permission_key">Permission key <span class="req">*</span></label>
+                            <input type="text" id="permission_key" name="permission_key" class="form-control" value="{{ rec.permission_key if rec else '' }}" required>
+                            <span class="hint">Example: page.dashboard.view</span>
+                        </div>
+                        <div class="kf-field full">
+                            <label for="description">Description</label>
+                            <textarea id="description" name="description" class="form-control" rows="3">{{ rec.description if rec else '' }}</textarea>
+                        </div>
+                        <div class="kf-switch-row full">
+                            <div><div class="t">Active</div><div class="d">Inactive permissions no longer give access, even if they are assigned.</div></div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="status" name="status" value="1"
+                                       {{ 'checked' if not rec or rec.status|string == '1' }} aria-label="Active">
+                                <input type="hidden" name="status" value="0">
+                            </div>
+                        </div>
                     </div>
+                </div>
 
-                    <div class="form-group mb-3">
-                        <label for="route">Route</label>
-                        <input type="text" name="route" class="form-control"
-                               value="{{ result.permission.route if result.permission else '' }}" required>
-                    </div>
+                <div class="kf-foot">
+                    <a href="{{ url_for('manage_web_permissions') }}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">{{ 'Update permission' if rec else 'Save permission' }}</button>
+                </div>
+            </form>
 
-                    <div class="form-group mb-3">
-                        <label for="permission_key">Permission Key</label>
-                        <input type="text" name="permission_key" class="form-control"
-                               value="{{ result.permission.permission_key if result.permission else '' }}" required>
-                        <small class="text-muted">Example: page.dashboard.view</small>
-                    </div>
-
-                    <div class="form-group mb-3">
-                        <label for="description">Description</label>
-                        <textarea name="description" class="form-control" rows="3">{{ result.permission.description if result.permission else '' }}</textarea>
-                    </div>
-
-                    <div class="form-group mb-3">
-                        <label for="status">Status</label>
-                        <select name="status" class="form-control form-select">
-                            <option value="1" {% if result.permission and result.permission.status|string == '1' %}selected{% endif %}>Active</option>
-                            <option value="0" {% if result.permission and result.permission.status|string == '0' %}selected{% endif %}>Inactive</option>
-                        </select>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">
-                        {{ 'Update Permission' if result.permission else 'Add Permission' }}
-                    </button>
-                </form>
-            </div>
+            <aside class="kf-card kf-help">
+                <h4>How permissions work</h4>
+                <ul>
+                    <li>The <b>route</b> must match the page address exactly; menu items and pages check it.</li>
+                    <li>The <b>key</b> is used for checks inside a page, such as showing a button.</li>
+                    <li>After adding a permission, grant it to users from User Permissions. Changes reach signed-in users within about 5 minutes.</li>
+                </ul>
+            </aside>
         </div>
     </div>
 </body>

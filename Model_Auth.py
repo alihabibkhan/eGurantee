@@ -1,6 +1,39 @@
 from imports import *
 
 
+# Figures shown on the public login page. Cached for an hour so page views don't query the database each time.
+_LOGIN_STATS_CACHE = {'at': 0, 'data': None}
+
+
+def get_login_stats():
+    if _LOGIN_STATS_CACHE['data'] and time.time() - _LOGIN_STATS_CACHE['at'] < 3600:
+        return _LOGIN_STATS_CACHE['data']
+    stats = {'years': datetime.now().year - 2010, 'councils': 9, 'loans': '—'}  # fallback while the database is unavailable
+    try:
+        councils = fetch_records("""
+            SELECT COUNT(*) AS n FROM tbl_national_council_distribution
+            WHERE is_active = 1 AND status = 1
+        """, is_print=False)
+        if councils and councils[0]['n']:
+            stats['councils'] = int(councils[0]['n'])
+        # Task 004: number of loans instead of beneficiaries - same figure as the "Loans" card on the new dashboard
+        # (one row per loan from the latest MIS month, loans with a booked-on date; see Model_KFT_Dashboard)
+        loans = fetch_records("""
+            SELECT COUNT(*) AS n FROM (
+                SELECT DISTINCT ON (loan_no) booked_on FROM tbl_post_disbursement
+                WHERE DATE_TRUNC('month', mis_date) = (SELECT DATE_TRUNC('month', MAX(mis_date)) FROM tbl_post_disbursement)
+                ORDER BY loan_no, id
+            ) t WHERE t.booked_on IS NOT NULL
+        """, is_print=False)
+        if loans and loans[0]['n']:
+            stats['loans'] = f"{int(loans[0]['n']):,}"
+        if councils and loans:  # only cache real figures; retry next time if the database was unavailable
+            _LOGIN_STATS_CACHE.update(at=time.time(), data=stats)
+    except Exception as e:
+        print('login stats exception:- ', str(e))
+    return stats
+
+
 def get_all_user_data():
     query = f"""
         select u.user_id, u."name", u.email, u.rights,
@@ -15,6 +48,22 @@ def get_all_user_data():
         return result[0]
 
     return None
+
+
+def get_profile_details(user_id):
+    """Read-only details for the profile page: volunteer info, manager name and assigned branch roles."""
+    query = """
+        SELECT u.volunteer_id, u.phone, u.country_of_residence, u.date_of_joining, u.orientation_completed_on,
+               m.name AS manager_name,
+               (SELECT STRING_AGG(br.branch_role_name, ', ' ORDER BY br.branch_role_name)
+                  FROM tbl_branch_role br
+                 WHERE br.branch_role_id = ANY (u.assigned_branch)) AS assigned_branches
+        FROM tbl_users u
+        LEFT JOIN tbl_users m ON CAST(m.user_id AS VARCHAR) = CAST(u.manager_id AS VARCHAR)
+        WHERE CAST(u.user_id AS VARCHAR) = %s
+    """
+    result = fetch_records(query, is_print=False, params=(str(user_id),))
+    return result[0] if result else {}
 
 
 # def set_user_session(user_data):

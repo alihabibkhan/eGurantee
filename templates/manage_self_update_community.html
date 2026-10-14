@@ -12,53 +12,72 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <style>
-        .table-responsive {
-            margin-bottom: 1rem;
-        }
-        .pagination .page-item.active .page-link {
-            background-color: #0d6efd;
-            border-color: #0d6efd;
-        }
-        .pagination .page-item.disabled .page-link {
-            cursor: not-allowed;
-            opacity: 0.65;
-        }
-        .card {
-            margin-top: 1rem;
-        }
-        .accordion-button {
-            color: var(--bs-accordion-active-color);
-            background-color: var(--bs-accordion-active-bg);
-        }
-        #ui-datepicker-div {
-            z-index: 1060 !important;
-            margin-top: 5px;
-        }
-        .btn-group {
-            margin-bottom: 1rem;
-        }
-        .btn.loading::after {
-            content: '';
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            margin-left: 8px;
-            border: 2px solid #fff;
-            border-radius: 50%;
-            border-top-color: transparent;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        .filter-buttons {
-            display: flex;
-            gap: 0.5rem;
-        }
+        /* Committee hours (approved design). Colours come from kft-theme.css. */
+        #ui-datepicker-div { z-index: 1060 !important; margin-top: 5px; }
+        .btn.loading::after { content: ''; display: inline-block; width: 14px; height: 14px; margin-left: 8px; border: 2px solid currentColor;
+                              border-radius: 50%; border-top-color: transparent; animation: spin 1s linear infinite; vertical-align: -2px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+        .page-head p { color: var(--ink-3); margin: 2px 0 0; }
+        .page-head .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .section-title { display: flex; align-items: center; gap: 10px; font-size: 11.5px; font-weight: 600; color: var(--ink-3);
+                         text-transform: uppercase; letter-spacing: .7px; margin: 26px 0 12px; }
+        .section-title::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+        .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        .kpi { padding: 14px 16px; border-left: 3px solid var(--green-600); }
+        .kpi.gold { border-left-color: #B8862B; }
+        .kpi .label { font-size: 11px; font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: .4px; }
+        .kpi .value { font-size: 24px; font-weight: 700; margin: 4px 0 2px; }
+        .kpi .foot { font-size: 11.5px; color: var(--ink-3); }
+
+        .two-col { display: grid; grid-template-columns: 3fr 2fr; gap: 14px; margin-top: 14px; }
+        .h-card .head { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 14px 18px;
+                        border-bottom: 1px solid var(--line-2); flex-wrap: wrap; }
+        .h-card .head h3 { font-size: 14.5px; font-weight: 600; margin: 0; font-family: var(--font); }
+        .h-card .head .sub { font-size: 12px; color: var(--ink-3); }
+        .h-card .body { padding: 16px 18px; }
+
+        .mini-bars { display: flex; align-items: flex-end; gap: 10px; height: 150px; padding-top: 8px; }
+        .mini-bars div { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
+        .mini-bars i { width: 100%; max-width: 34px; border-radius: 5px 5px 0 0; background: var(--green-600); display: block; min-height: 2px; }
+        .mini-bars div.now i { background: #B8862B; }
+        .mini-bars span { font-size: 11px; color: var(--ink-3); }
+        .mini-bars b { font-size: 11.5px; }
+        .empty-note { color: var(--ink-3); font-size: 13px; padding: 30px 0; text-align: center; }
+
+        .vol-info { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; font-size: 13px; padding-bottom: 12px; border-bottom: 1px solid var(--line-2); margin-bottom: 12px; }
+        .vol-info .k { color: var(--ink-3); font-size: 11.5px; }
+        .vol-info .v { font-weight: 600; overflow-wrap: anywhere; }
+
+        .filterbar { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; padding: 14px 18px; border-bottom: 1px solid var(--line-2); }
+        .filterbar .field { min-width: 200px; }
+        #serviceHoursTable { margin: 0; }
+        #serviceHoursTable td.act { white-space: normal; max-width: 460px; color: var(--ink-2); }
+        #serviceHoursTable td.num, #serviceHoursTable th.num { text-align: right; }
+        .row-actions { display: flex; gap: 4px; justify-content: flex-end; }
+        .row-actions .btn { width: 32px; height: 32px; padding: 0; display: inline-grid; place-items: center; }
+        .row-actions .btn-del:hover { color: var(--bad); border-color: var(--bad-bg); }
+        tr.year-total td { background: var(--surface-2) !important; font-weight: 600; }
+
+        /* Drawer (Bootstrap offcanvas) */
+        #serviceHoursModal { width: min(440px, 100%); background: var(--surface); color: var(--ink); border-left: 1px solid var(--line); }
+        #serviceHoursModal .offcanvas-header { border-bottom: 1px solid var(--line); }
+        #serviceHoursModal .offcanvas-header p { font-size: 12.5px; color: var(--ink-3); margin: 0; }
+        #serviceHoursModal .offcanvas-footer { padding: 14px 20px; border-top: 1px solid var(--line); display: flex; gap: 8px; justify-content: flex-end; background: var(--surface-2); }
+        .stepper { display: flex; }
+        .stepper .btn { width: 40px; border-radius: 0; }
+        .stepper .btn:first-child { border-radius: 8px 0 0 8px; }
+        .stepper .btn:last-child { border-radius: 0 8px 8px 0; }
+        .stepper .form-control { border-radius: 0; text-align: center; font-weight: 700; }
+        .quick { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+        .quick button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 2px 10px; font-size: 12px; color: var(--ink-2); }
+        .hint { font-size: 11.5px; color: var(--ink-3); display: block; margin-top: 4px; }
+
+        @media (max-width: 992px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } .two-col { grid-template-columns: 1fr; } }
+            #serviceHoursTable td.wrap { white-space: normal; min-width: 260px; }
     </style>
 </head>
 <body>
@@ -69,234 +88,146 @@
         {% include 'message_box.html' %}
     </div>
 
-    <div class="container py-4">
-        <h1 class="mb-4">Self Update Committee Service Hours</h1>
+    <div class="container pb-5">
+        <div class="page-head">
+            <div>
+                <h1 class="mb-0">My committee service hours</h1>
+                <p>Record the hours you give to KFT committees each month. They count towards your volunteer service record.</p>
+            </div>
+            <div class="actions">
+                <button type="button" class="btn btn-primary" data-bs-toggle="offcanvas" data-bs-target="#serviceHoursModal" onclick="clearModal()"><i class="bi bi-plus-lg me-1"></i>Log hours</button>
+            </div>
+        </div>
 
-        <!-- Data Table Card -->
-        <div class="card">
-            <div class="card-body">
-                <!-- Accordion 1: Volunteer Information -->
-                <div class="accordion mb-3" id="volunteerAccordion">
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="headingVolunteer">
-                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseVolunteer" aria-expanded="true" aria-controls="collapseVolunteer">
-                                <span class="fw-semibold">Volunteer Information</span>
-                            </button>
-                        </h2>
-                        <div id="collapseVolunteer" class="accordion-collapse collapse show" aria-labelledby="headingVolunteer" data-bs-parent="#volunteerAccordion">
-                            <div class="accordion-body">
-                                <div class="row mb-3">
-                                    <div class="col-md-4">
-                                        <label class="form-label">Volunteer ID</label>
-                                        <input type="text" class="form-control" value="{{ result.volunteer_info.volunteer_id or 'N/A' }}" readonly>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Full Name</label>
-                                        <input type="text" class="form-control" value="{{ result.volunteer_info.name or 'N/A' }}" readonly>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Email / Phone</label>
-                                        <input type="text" class="form-control" value="{{ result.volunteer_info.email or 'N/A' }}" readonly>
-                                    </div>
-                                    <div class="col-md-4 mt-2">
-                                        <label class="form-label">Contact/Phone</label>
-                                        <input type="text" class="form-control" value="{{ result.volunteer_info.phone or 'N/A' }}" readonly>
-                                    </div>
-                                </div>
-                                <div class="table-responsive">
-                                    <table class="table table-striped">
-                                        <thead>
-                                            <tr>
-                                                <th>Role</th>
-                                                <th>Responsibility</th>
-                                                <th>Committee</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% if result.get_all_user_privileges_by_user_id %}
-                                                {% for role in result.get_all_user_privileges_by_user_id %}
-                                                    <tr>
-                                                        <td>{{ role.role or 'N/A' }}</td>
-                                                        <td>{{ role.responsibility or 'N/A' }}</td>
-                                                        <td>{{ role.committee or 'N/A' }}</td>
-                                                    </tr>
-                                                {% endfor %}
-                                            {% else %}
-                                                <tr>
-                                                    <td colspan="3">No roles assigned</td>
-                                                </tr>
-                                            {% endif %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
+        <!-- Summary (calculated in the browser from the rows in the hours log below) -->
+        <div class="kpi-row">
+            <div class="card kpi"><div class="label">Hours this year</div><div class="value" id="kpiYear">0</div><div class="foot" id="kpiYearFoot">&nbsp;</div></div>
+            <div class="card kpi gold"><div class="label">Hours this month</div><div class="value" id="kpiMonth">0</div><div class="foot" id="kpiMonthFoot">&nbsp;</div></div>
+            <div class="card kpi"><div class="label">Committees served</div><div class="value" id="kpiCommittees">0</div><div class="foot" id="kpiCommitteesFoot">&nbsp;</div></div>
+            <div class="card kpi"><div class="label">Latest entry</div><div class="value" id="kpiLatest" style="font-size:19px;margin-top:8px">&mdash;</div><div class="foot">Keep your hours up to date every month</div></div>
+        </div>
+
+        <div class="two-col">
+            <div class="card h-card">
+                <div class="head"><h3>Hours by month <span class="sub" id="barsYear"></span></h3></div>
+                <div class="body"><div class="mini-bars" id="hoursBars"></div></div>
+            </div>
+            <div class="card h-card">
+                <div class="head"><h3>Volunteer information</h3><span class="sub">Roles are assigned by an Administrator</span></div>
+                <div class="body">
+                    <div class="vol-info">
+                        <div><div class="k">Volunteer ID</div><div class="v">{{ result.volunteer_info.volunteer_id or 'N/A' }}</div></div>
+                        <div><div class="k">Full name</div><div class="v">{{ result.volunteer_info.name or 'N/A' }}</div></div>
+                        <div><div class="k">Email</div><div class="v">{{ result.volunteer_info.email or 'N/A' }}</div></div>
+                        <div><div class="k">Phone</div><div class="v">{{ result.volunteer_info.phone or 'N/A' }}</div></div>
                     </div>
-                </div>
-
-                <!-- Accordion 2: Committee Service Hours -->
-                <div class="accordion mb-3" id="serviceHoursAccordion">
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="headingServiceHours">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseServiceHours" aria-expanded="true" aria-controls="collapseServiceHours">
-                                <span class="fw-semibold">Committee Service Hours</span>
-                            </button>
-                        </h2>
-                        <div id="collapseServiceHours" class="accordion-collapse collapse show" aria-labelledby="headingServiceHours" data-bs-parent="#serviceHoursAccordion">
-                            <div class="accordion-body">
-                                <!-- Filter Section -->
-                                <div class="row mb-3">
-                                    <div class="col-md-4">
-                                        <label for="filter_month_year" class="form-label">Filter by Month/Year</label>
-                                        <input type="text" class="form-control" id="filter_month_year" name="filter_month_year" placeholder="YYYY-MM">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label for="filter_service_category" class="form-label">Filter by Committee</label>
-                                        <select class="form-select" id="filter_service_category" name="filter_service_category">
-                                            <option value="" selected>All</option>
-                                            <option value="Executive Committee">Executive Committee</option>
-                                            <option value="Gilgit Baltistan Committee">Gilgit Baltistan Committee</option>
-                                            <option value="Chitral Committee">Chitral Committee</option>
-                                            <option value="South-Central Committee">South-Central Committee</option>
-                                            <option value="Risk Management Committee">Risk Management Committee</option>
-                                            <option value="Finance Committee">Finance Committee</option>
-                                            <option value="Information Technology Committee">Information Technology Committee</option>
-                                            <option value="Program Impact Committee">Program Impact Committee</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-4 align-self-end">
-                                        <div class="filter-buttons">
-                                            <button type="button" class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
-                                            <button type="button" class="btn btn-secondary" onclick="clearFilters()">Clear Filters</button>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Buttons -->
-                                <div class="btn-group gap-2">
-                                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#serviceHoursModal" onclick="clearModal()">Add New Committee Service Hours</button>
-                                    <button type="button" class="btn btn-primary" onclick="exportToExcel()" data-loading-text="Downloading Excel...">Export as Excel</button>
-                                    <button type="button" class="btn btn-primary" onclick="exportToPDF()" data-loading-text="Downloading PDF...">Export as PDF</button>
-                                </div>
-                                <div class="table-responsive">
-                                    <table class="table table-striped" id="serviceHoursTable">
-                                        <thead>
-                                            <tr>
-                                                <th>Month/Year</th>
-                                                <th>Hours Contributed</th>
-                                                <th>Committee</th>
-                                                <th>Brief Key Activities</th>
-                                                <th class="no-export">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% if result.get_user_cumm_service_hours %}
-                                                {% set current_year = 2025 %}
-                                                <!-- Group by year and summarize completed years (< current_year) -->
-                                                {% set year_totals = {} %}
-                                                {% for item in result.get_user_cumm_service_hours if item.month_year and item.month_year != 'N/A' %}
-                                                    {% set year = item.month_year.split('-')[0] %}
-                                                    {% if year|int < current_year %}
-                                                        {% if year not in year_totals %}
-                                                            {% set _ = year_totals.__setitem__(year, 0) %}
-                                                        {% endif %}
-                                                        {% if item.hours_contributed is not none and item.hours_contributed != 'N/A' %}
-                                                            {% set _ = year_totals.__setitem__(year, year_totals[year] + item.hours_contributed|int) %}
-                                                        {% endif %}
-                                                    {% endif %}
-                                                {% endfor %}
-                                                <!-- Display total rows for completed years above individual rows -->
-                                                {% for year, total in year_totals.items() if total > 0 %}
-                                                    <tr class="table-info">
-                                                        <td>Total for {{ year }}</td>
-                                                        <td>{{ total }}</td>
-                                                        <td colspan="3"></td>
-                                                    </tr>
-                                                {% endfor %}
-                                                <!-- Display individual rows for current and future years -->
-                                                {% for item in result.get_user_cumm_service_hours %}
-                                                    {% set year = item.month_year.split('-')[0] if item.month_year and item.month_year != 'N/A' else 'N/A' %}
-                                                    {% if year|int >= current_year or year == 'N/A' %}
-                                                        <tr>
-                                                            <td class="month-year" data-raw-month-year="{{ item.month_year or 'N/A' }}">{{ item.month_year or 'N/A' }}</td>
-                                                            <td>{{ item.hours_contributed or 'N/A' }}</td>
-                                                            <td>{{ item.service_category or 'N/A' }}</td>
-                                                            <td>{{ item.brief_key_activities or 'N/A' }}</td>
-                                                            <td class="no-export">
-                                                                <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#serviceHoursModal" onclick="editServiceHours('{{ item.cum_sev_hr_id }}', '{{ item.hours_contributed }}', '{{ item.service_category }}', '{{ item.brief_key_activities or '' }}', '{{ item.month_year or '' }}')">
-                                                                    Edit
-                                                                </button>
-                                                                <button type="button" class="btn btn-sm btn-danger" onclick="deleteServiceHours('{{ item.cum_sev_hr_id }}')">
-                                                                    Delete
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                    {% endif %}
-                                                {% endfor %}
-                                            {% else %}
-                                                <tr>
-                                                    <td colspan="5">No service hours available</td>
-                                                </tr>
-                                            {% endif %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead><tr><th>Role</th><th>Responsibility</th><th>Committee</th></tr></thead>
+                            <tbody>
+                                {% if result.get_all_user_privileges_by_user_id %}
+                                    {% for role in result.get_all_user_privileges_by_user_id %}
+                                        <tr>
+                                            <td class="fw-semibold">{{ role.role or 'N/A' }}</td>
+                                            <td>{{ role.responsibility or 'N/A' }}</td>
+                                            <td>{{ role.committee or 'N/A' }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr><td colspan="3" class="text-muted">No roles assigned</td></tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </div>
+
+        <div class="section-title">Hours log</div>
+        <table id="serviceHoursTable">
+            <thead>
+                <tr>
+                    <th data-type="date">Month/year</th>
+                    <th data-filter data-filter-label="years" data-hidden>Year</th>
+                    <th data-type="number" data-sum>Hours</th>
+                    <th data-filter data-filter-label="committees">Committee</th>
+                    <th>Brief key activities</th>
+                    <th class="act">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in result.get_user_cumm_service_hours %}
+                <tr class="hours-row">
+                    <td class="month-year strong" data-raw-month-year="{{ item.month_year or 'N/A' }}" data-order="{{ (item.month_year ~ '-01') if item.month_year and item.month_year != 'N/A' else '' }}">{{ item.month_year or 'N/A' }}</td>
+                    <td>{{ item.month_year.split('-')[0] if item.month_year and item.month_year != 'N/A' else 'N/A' }}</td>
+                    <td data-hours="{{ item.hours_contributed or 0 }}">{{ item.hours_contributed or 0 }}</td>
+                    <td>{{ item.service_category or 'N/A' }}</td>
+                    <td class="wrap">{{ item.brief_key_activities or '' }}</td>
+                    <td>
+                        <button type="button" class="icon-btn" title="Edit" data-bs-toggle="offcanvas" data-bs-target="#serviceHoursModal"
+                                onclick='editServiceHours({{ item.cum_sev_hr_id|tojson }}, {{ item.hours_contributed|tojson }}, {{ (item.service_category or "")|tojson }}, {{ (item.brief_key_activities or "")|tojson }}, {{ (item.month_year or "")|tojson }})'><i class="bi bi-pencil"></i></button>
+                        <button type="button" class="icon-btn bad" title="Delete" onclick='deleteServiceHours({{ item.cum_sev_hr_id|tojson }})'><i class="bi bi-trash"></i></button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
-    <!-- Service Hours Modal -->
-    <div class="modal fade" id="serviceHoursModal" tabindex="-1" aria-labelledby="serviceHoursModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="serviceHoursModalLabel">Committee Service Hours</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="serviceHoursForm">
-                        <input type="hidden" id="cum_sev_hr_id" name="cum_sev_hr_id">
-                        <div class="mb-3">
-                            <label for="month_year" class="form-label">Month/Year</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control" id="month_year" name="month_year" placeholder="YYYY-MM" required>
-                                <button type="button" class="btn btn-outline-secondary" onclick="$('#month_year').datepicker('show');">
-                                    <i class="bi bi-calendar"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="hours_contributed" class="form-label">Hours Contributed</label>
-                            <input type="number" class="form-control" id="hours_contributed" name="hours_contributed" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="service_category" class="form-label">Committee</label>
-                            <select class="form-select" id="service_category" name="service_category" required>
-                                <option value="" selected>[Select...]</option>
-                                <option value="Executive Committee">Executive Committee</option>
-                                <option value="Gilgit Baltistan Committee">Gilgit Baltistan Committee</option>
-                                <option value="Chitral Committee">Chitral Committee</option>
-                                <option value="South-Central Committee">South-Central Committee</option>
-                                <option value="Risk Management Committee">Risk Management Committee</option>
-                                <option value="Finance Committee">Finance Committee</option>
-                                <option value="Information Technology Committee">Information Technology Committee</option>
-                                <option value="Program Impact Committee">Program Impact Committee</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="brief_key_activities" class="form-label">Brief Key Activities</label>
-                            <textarea class="form-control" id="brief_key_activities" name="brief_key_activities"></textarea>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" onclick="saveServiceHours()">Save</button>
-                </div>
+    <!-- Log hours drawer (was a modal; same form, field names and ids) -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="serviceHoursModal" aria-labelledby="serviceHoursModalLabel">
+        <div class="offcanvas-header">
+            <div>
+                <h5 class="offcanvas-title mb-0" id="serviceHoursModalLabel">Committee service hours</h5>
+                <p>One entry per committee per month</p>
             </div>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <form id="serviceHoursForm" class="d-grid gap-3">
+                <input type="hidden" id="cum_sev_hr_id" name="cum_sev_hr_id">
+                <div>
+                    <label for="month_year" class="form-label">Month <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="month_year" name="month_year" placeholder="YYYY-MM" required autocomplete="off">
+                        <button type="button" class="btn btn-outline-secondary" onclick="$('#month_year').datepicker('show');">
+                            <i class="bi bi-calendar"></i>
+                        </button>
+                    </div>
+                </div>
+                <div>
+                    <label for="service_category" class="form-label">Committee <span class="text-danger">*</span></label>
+                    <select class="form-select" id="service_category" name="service_category" required>
+                        <option value="" selected>[Select...]</option>
+                        <option value="Executive Committee">Executive Committee</option>
+                        <option value="Gilgit Baltistan Committee">Gilgit Baltistan Committee</option>
+                        <option value="Chitral Committee">Chitral Committee</option>
+                        <option value="South-Central Committee">South-Central Committee</option>
+                        <option value="Risk Management Committee">Risk Management Committee</option>
+                        <option value="Finance Committee">Finance Committee</option>
+                        <option value="Information Technology Committee">Information Technology Committee</option>
+                        <option value="Program Impact Committee">Program Impact Committee</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="hours_contributed" class="form-label">Hours contributed <span class="text-danger">*</span></label>
+                    <div class="stepper">
+                        <button type="button" class="btn btn-secondary" data-step="-1" aria-label="One hour less">&minus;</button>
+                        <input type="number" class="form-control" id="hours_contributed" name="hours_contributed" min="0" required>
+                        <button type="button" class="btn btn-secondary" data-step="1" aria-label="One hour more">+</button>
+                    </div>
+                    <div class="quick"><button type="button" data-set="2">2 h</button><button type="button" data-set="4">4 h</button><button type="button" data-set="8">8 h</button><button type="button" data-set="16">16 h</button></div>
+                </div>
+                <div>
+                    <label for="brief_key_activities" class="form-label">Brief key activities</label>
+                    <textarea class="form-control" id="brief_key_activities" name="brief_key_activities" rows="4"></textarea>
+                    <span class="hint" id="actCount"></span>
+                </div>
+            </form>
+        </div>
+        <div class="offcanvas-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="offcanvas">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="saveServiceHours()">Save entry</button>
         </div>
     </div>
 
@@ -332,8 +263,8 @@
                 $(".ui-datepicker-calendar").hide();
             });
 
-            // Initialize month_year datepicker when modal is shown
-            $('#serviceHoursModal').on('shown.bs.modal', function () {
+            // Initialize month_year datepicker when the drawer is shown
+            $('#serviceHoursModal').on('shown.bs.offcanvas', function () {
                 $("#month_year").datepicker("destroy"); // Destroy any existing instance
                 $("#month_year").datepicker({
                     dateFormat: "yy-mm",
@@ -366,11 +297,62 @@
                 $("#month_year").on('click', function() {
                     $(this).datepicker('show');
                 });
+                updateActCount();
             });
 
-            // Format month-year in table
+            // Hours stepper and quick picks
+            $('[data-step]').on('click', function() {
+                const v = (parseInt($('#hours_contributed').val(), 10) || 0) + Number($(this).data('step'));
+                $('#hours_contributed').val(Math.max(0, v));
+            });
+            $('[data-set]').on('click', function() { $('#hours_contributed').val($(this).data('set')); });
+            $('#brief_key_activities').on('input', updateActCount);
+
+            // Format month-year in table, work out the summary from every row, then start the grid
             formatMonthYear();
+            renderSummary();
+            KFTGrid.fromTable(document.getElementById('serviceHoursTable'), {
+                storageKey: 'committee-hours', exportName: 'Committee_Service_Hours', sort: { key: 'c0', dir: 'desc' },
+                searchPlaceholder: 'Search committee or activities', emptyText: 'No service hours logged yet'
+            });
         });
+
+        function updateActCount() {
+            $('#actCount').text($('#brief_key_activities').val().length + ' characters');
+        }
+
+        // Summary figures and month bars, from the rows already in the table (no extra server call)
+        function renderSummary() {
+            const entries = [];
+            $('#serviceHoursTable tbody tr.hours-row').each(function() {
+                const ym = String($(this).find('td:eq(0)').data('raw-month-year') || '');
+                const hours = parseFloat($(this).find('td:eq(1)').data('hours')) || 0;
+                const committee = $(this).find('td:eq(2)').text().trim();
+                if (/^\d{4}-\d{2}$/.test(ym)) entries.push({ ym, year: +ym.slice(0, 4), month: +ym.slice(5, 7), hours, committee });
+            });
+            const now = new Date(), year = now.getFullYear(), month = now.getMonth() + 1;
+            const thisYear = entries.filter((e) => e.year === year);
+            const thisMonth = thisYear.filter((e) => e.month === month);
+            const committees = [...new Set(thisYear.map((e) => e.committee).filter((c) => c && c !== 'N/A'))];
+            const sum = (list) => list.reduce((s, e) => s + e.hours, 0);
+            const monthName = (m) => new Date(2000, m - 1, 1).toLocaleString('default', { month: 'short' });
+
+            $('#kpiYear').text(sum(thisYear));
+            $('#kpiYearFoot').text(`Jan – ${monthName(month)} ${year}`);
+            $('#kpiMonth').text(sum(thisMonth));
+            $('#kpiMonthFoot').text(`${now.toLocaleString('default', { month: 'long' })} ${year} · ${thisMonth.length} ${thisMonth.length === 1 ? 'entry' : 'entries'}`);
+            $('#kpiCommittees').text(committees.length);
+            $('#kpiCommitteesFoot').text(committees.length ? committees.map((c) => c.replace(' Committee', '')).join(' · ') : 'This year');
+            const latest = entries.map((e) => e.ym).sort().pop();
+            if (latest) $('#kpiLatest').text(`${monthName(+latest.slice(5, 7))} ${latest.slice(0, 4)}`);
+
+            $('#barsYear').text(`· ${year}`);
+            const perMonth = Array.from({ length: month }, (_, i) => sum(thisYear.filter((e) => e.month === i + 1)));
+            const max = Math.max(1, ...perMonth);
+            $('#hoursBars').html(thisYear.length ? perMonth.map((h, i) =>
+                `<div class="${i + 1 === month ? 'now' : ''}"><b>${h || ''}</b><i style="height:${Math.round(h / max * 100)}%"></i><span>${monthName(i + 1)}</span></div>`).join('')
+                : `<div class="empty-note w-100">No hours logged for ${year} yet. Use "Log hours" to add your first entry.</div>`);
+        }
 
         function formatMonthYear() {
             $('.month-year').each(function() {
@@ -390,15 +372,16 @@
             $('#hours_contributed').val('');
             $('#service_category').val('');
             $('#brief_key_activities').val('');
+            $('#serviceHoursModalLabel').text('Log committee hours');
         }
 
         function editServiceHours(id, hours, category, desc, monthYear) {
-            const escapedDesc = desc.replace(/'/g, "\\'");
             $('#cum_sev_hr_id').val(id);
             $('#month_year').val(monthYear);
             $('#hours_contributed').val(hours);
             $('#service_category').val(category);
-            $('#brief_key_activities').val(escapedDesc);
+            $('#brief_key_activities').val(desc);
+            $('#serviceHoursModalLabel').text('Edit committee hours');
         }
 
         function clearFilters() {
@@ -429,7 +412,7 @@
             } else if (visibleRows === 0) {
                 noDataRow.hide();
                 if (!$('#no-matching-records').length) {
-                    $('#serviceHoursTable tbody').append('<tr id="no-matching-records"><td colspan="5">No matching records found</td></tr>');
+                    $('#serviceHoursTable tbody').append('<tr id="no-matching-records"><td colspan="5" class="text-muted">No matching records found</td></tr>');
                 }
             } else {
                 $('#no-matching-records').remove();
@@ -439,8 +422,8 @@
 
         function toggleButtonLoading(button, isLoading) {
             if (isLoading) {
-                if (!button.dataset.originalText) {
-                    button.dataset.originalText = button.textContent;
+                if (!button.dataset.originalHtml) {
+                    button.dataset.originalHtml = button.innerHTML;
                 }
                 button.disabled = true;
                 button.classList.add('loading');
@@ -448,8 +431,13 @@
             } else {
                 button.disabled = false;
                 button.classList.remove('loading');
-                button.textContent = button.dataset.originalText || button.getAttribute('data-loading-text').replace('...', '');
+                button.innerHTML = button.dataset.originalHtml || button.getAttribute('data-loading-text').replace('...', '');
             }
+        }
+
+        function notify(message, isError) {
+            if (typeof showToast === 'function') showToast(message, isError ? 8000 : 3000, { title: isError ? 'Something went wrong' : 'Committee hours' });
+            else alert(message);
         }
 
         function exportToExcel() {
@@ -477,9 +465,9 @@
                         }
                         data.push([
                             formattedMonthYear,
-                            cells[1].textContent || 'N/A',
-                            cells[2].textContent || 'N/A',
-                            cells[3].textContent || 'N/A'
+                            cells[1] ? cells[1].textContent.trim() || 'N/A' : 'N/A',
+                            cells[2] ? cells[2].textContent.trim() || 'N/A' : 'N/A',
+                            cells[3] ? cells[3].textContent.trim() || 'N/A' : 'N/A'
                         ]);
                     }
                 });
@@ -500,7 +488,7 @@
                 window.URL.revokeObjectURL(url);
             } catch (error) {
                 console.error('Excel export error:', error);
-                alert(`Failed to export Excel file: ${error.message}`);
+                notify(`Failed to export Excel file: ${error.message}`, true);
             } finally {
                 toggleButtonLoading(button, false);
             }
@@ -551,7 +539,7 @@
                 doc.save('community_service_hours.pdf');
             } catch (error) {
                 console.error('PDF export error:', error);
-                alert(`Failed to export PDF file: ${error.message}`);
+                notify(`Failed to export PDF file: ${error.message}`, true);
             } finally {
                 toggleButtonLoading(button, false);
             }
@@ -559,6 +547,7 @@
 
         function saveServiceHours() {
             const form = document.getElementById('serviceHoursForm');
+            if (!form.reportValidity()) return;
             const formData = new FormData(form);
             const cumSevHrId = formData.get('cum_sev_hr_id');
             const url = cumSevHrId ? `/edit-user-comm-svc-hours/${cumSevHrId}` : '/add-user-comm-svc-hours';
@@ -570,11 +559,11 @@
                 processData: false,
                 contentType: false,
                 success: function(response) {
-                    alert('Committee service hours saved successfully!');
-                    location.reload();
+                    notify('Committee service hours saved successfully!');
+                    setTimeout(() => location.reload(), 900);
                 },
                 error: function(xhr, status, error) {
-                    alert('Error saving community service hours: ' + (xhr.responseJSON?.error || error));
+                    notify('Error saving community service hours: ' + (xhr.responseJSON?.error || error), true);
                 }
             });
         }
@@ -585,11 +574,11 @@
                     url: `/delete-user-comm-svc-hours/${id}`,
                     type: 'POST',
                     success: function(response) {
-                        alert('Committee service hours deleted successfully!');
-                        location.reload();
+                        notify('Committee service hours deleted successfully!');
+                        setTimeout(() => location.reload(), 900);
                     },
                     error: function(xhr, status, error) {
-                        alert('Error deleting community service hours: ' + (xhr.responseJSON?.error || error));
+                        notify('Error deleting community service hours: ' + (xhr.responseJSON?.error || error), true);
                     }
                 });
             }

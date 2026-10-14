@@ -8,144 +8,111 @@
     {% include 'navbar.html' %}
     {% import 'breadcrumbs.html' as brd %}
     {{ brd.render_Breadcrumbs([{"url": 'manage_loan_metrics', "label": "Manage Loan Metrics"}, {"url": "", "label": 'Edit Loan Product' if result.loan_product else 'Add Loan Product' }]) }}
+    {% set lp = result.loan_product %}
 
-    <div class="container mt-4">
+    <div class="container mt-2">
         {% include 'message_box.html' %}
 
-        <div class="card">
-            <div class="card-header">
-                <h2>{{ 'Edit Loan Product' if result.loan_product else 'Add Loan Product' }}</h2>
-            </div>
-            <div class="card-body">
-                <form method="POST">
+        <div class="kf-page-head">
+            <h1>{{ 'Edit loan product' if lp else 'Add loan product' }}</h1>
+            <p>Products define exposure limits and how applications for them are approved.</p>
+        </div>
 
-                    <!-- ==================== Loan Product Details ==================== -->
-                    <div class="card mb-4">
-                        <div class="card-header bg-light">
-                            <h5 class="mb-0 text-dark">Loan Product Details</h5>
+        <div class="kf-form-layout">
+            <form method="POST" class="kf-card">
+                <div class="kf-sec">Product details</div>
+                <div class="kf-body">
+                    <div class="kf-grid">
+                        <div class="kf-field">
+                            <label for="name">Product name <span class="req">*</span></label>
+                            <input type="text" id="name" name="name" class="form-control" value="{{ lp.name if lp else '' }}" required>
                         </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group mb-3">
-                                        <label for="name">Product Name <span class="text-danger">*</span></label>
-                                        <input type="text" name="name" class="form-control"
-                                               value="{{ result.loan_product.name if result.loan_product else '' }}" required>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group mb-3">
-                                        <label for="product_code">Product Code <span class="text-danger">*</span></label>
-                                        <input type="text" name="product_code" class="form-control"
-                                               value="{{ result.loan_product.product_code if result.loan_product else '' }}" required>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group mb-3">
-                                        <label for="max_exp_per_prud_reg">Maximum Exposure Per Prudential Regulations <span class="text-danger">*</span></label>
-                                        <input type="number" min="0" name="max_exp_per_prud_reg" class="form-control"
-                                               value="{{ result.loan_product.max_exp_per_prud_reg if result.loan_product else '' }}" required>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group mb-3">
-                                        <label for="gender">Gender</label>
-                                        <select name="gender" class="form-control">
-                                            <option value="" disabled {{ 'selected' if not result.loan_product or not result.loan_product.gender }}>Select...</option>
-                                            <option value="Male" {{ 'selected' if result.loan_product and result.loan_product.gender == 'Male' }}>Male</option>
-                                            <option value="Female" {{ 'selected' if result.loan_product and result.loan_product.gender == 'Female' }}>Female</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group mb-3">
-                                        <label for="allow_exceptional_approval">Allow Exceptional Approval</label>
-                                        <select name="allow_exceptional_approval" class="form-control" id="allow_exceptional_approval">
-                                            <option value="" disabled {{ 'selected' if not result.loan_product or not result.loan_product.allow_exceptional_approval }}>Select...</option>
-                                            <option value="1" {{ 'selected' if result.loan_product and result.loan_product.allow_exceptional_approval|string == '1' }}>Yes</option>
-                                            <option value="2" {{ 'selected' if result.loan_product and result.loan_product.allow_exceptional_approval|string == '2' }}>No</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="form-group mb-3">
-                                <label for="description">Description</label>
-                                <textarea name="description" class="form-control" rows="3">{{ result.loan_product.description if result.loan_product else '' }}</textarea>
-                            </div>
+                        <div class="kf-field">
+                            <label for="product_code">Product code <span class="req">*</span></label>
+                            <input type="text" id="product_code" name="product_code" class="form-control" value="{{ lp.product_code if lp else '' }}" required>
+                        </div>
+                        <div class="kf-field">
+                            <label for="max_exp_per_prud_reg">Maximum exposure (PKR) <span class="req">*</span></label>
+                            <input type="number" min="0" id="max_exp_per_prud_reg" name="max_exp_per_prud_reg" class="form-control"
+                                   value="{{ lp.max_exp_per_prud_reg if lp else '' }}" required>
+                            <span class="hint">As per prudential regulations</span>
+                        </div>
+                        <div class="kf-field">
+                            <label for="gender">Gender</label>
+                            <select id="gender" name="gender" class="form-select">
+                                <option value="" disabled {{ 'selected' if not lp or not lp.gender }}>Select...</option>
+                                <option value="Male" {{ 'selected' if lp and lp.gender == 'Male' }}>Male</option>
+                                <option value="Female" {{ 'selected' if lp and lp.gender == 'Female' }}>Female</option>
+                            </select>
+                        </div>
+                        <div class="kf-field full">
+                            <label for="description">Description</label>
+                            <textarea id="description" name="description" class="form-control" rows="3">{{ lp.description if lp else '' }}</textarea>
                         </div>
                     </div>
+                </div>
 
-                    <!-- ==================== Auto Approval Settings ==================== -->
-                    <div class="card mb-4">
-                        <div class="card-header bg-light">
-                            <h5 class="mb-0 text-dark">Auto Approval Settings</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group mb-3">
-                                        <label for="auto_approve">Auto Approve</label>
-                                        <select name="auto_approve" class="form-control">
-                                            <option value="" disabled {{ 'selected' if not result.loan_product or not result.loan_product.auto_approve }}>Select...</option>
-                                            <option value="1" {{ 'selected' if result.loan_product and result.loan_product.auto_approve|string == '1' }}>Active</option>
-                                            <option value="2" {{ 'selected' if result.loan_product and result.loan_product.auto_approve|string == '2' }}>In-Active</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group mb-3">
-                                        <label for="auto_approval_signature">Auto Approval Signature</label>
-                                        <select class="form-control" id="auto_approval_signature" name="auto_approval_signature">
-                                            <option value="">[[select user signature]]</option>
-                                            {% for user in result.user_with_signatures %}
-                                                <option value="{{ user.user_id }}"
-                                                    {% if result.loan_product and result.loan_product.auto_approval_signature == user.user_id %}selected{% endif %}>
-                                                    {{ user.name }}
-                                                </option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group mb-3">
-                                        <label for="auto_approval_max_amount">Auto Approval Max Amount</label>
-                                        <input type="number" step="0.01" class="form-control" id="auto_approval_max_amount"
-                                               name="auto_approval_max_amount"
-                                               value="{{ result.loan_product.auto_approval_max_amount if result.loan_product else '0.00' }}"
-                                               placeholder="Enter maximum amount for auto approval">
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group mb-3">
-                                        <label for="auto_approval_check_loan_metrix">Auto Approval Check Loan Metrix</label>
-                                        <select name="auto_approval_check_loan_metrix" class="form-control" id="auto_approval_check_loan_metrix">
-                                            <option value="" disabled {{ 'selected' if not result.loan_product or not result.loan_product.auto_approval_check_loan_metrix }}>Select...</option>
-                                            <option value="1" {{ 'selected' if result.loan_product and result.loan_product.auto_approval_check_loan_metrix|string == '1' }}>Yes</option>
-                                            <option value="2" {{ 'selected' if result.loan_product and result.loan_product.auto_approval_check_loan_metrix|string == '2' }}>No</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
+                <div class="kf-sec">Approval settings</div>
+                <div class="kf-body switches">
+                    <div class="kf-switch-row">
+                        <div><div class="t">Allow exceptional approval</div><div class="d">Approver decisions go to the Executive, and the email is held until the Executive approves.</div></div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="allow_exceptional_approval" name="allow_exceptional_approval" value="1"
+                                   {{ 'checked' if lp and lp.allow_exceptional_approval|string == '1' }} aria-label="Allow exceptional approval">
+                            <input type="hidden" name="allow_exceptional_approval" value="2">
                         </div>
                     </div>
-
-                    <div class="d-flex justify-content-end">
-                        <button type="submit" class="btn btn-primary">
-                            {{ 'Update Loan Product' if result.loan_product else 'Add Loan Product' }}
-                        </button>
+                    <div class="kf-switch-row">
+                        <div><div class="t">Auto approve</div><div class="d">Active: the scheduled auto-approval job may approve applications for this product.</div></div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="auto_approve" name="auto_approve" value="1"
+                                   {{ 'checked' if lp and lp.auto_approve|string == '1' }} aria-label="Auto approve">
+                            <input type="hidden" name="auto_approve" value="2">
+                        </div>
                     </div>
-                </form>
-            </div>
+                    <div class="kf-switch-row">
+                        <div><div class="t">Auto approval: check loan matrix</div><div class="d">Whether auto approval should also check the KFT loan matrix for this product.</div></div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="auto_approval_check_loan_metrix" name="auto_approval_check_loan_metrix" value="1"
+                                   {{ 'checked' if lp and lp.auto_approval_check_loan_metrix|string == '1' }} aria-label="Check loan matrix">
+                            <input type="hidden" name="auto_approval_check_loan_metrix" value="2">
+                        </div>
+                    </div>
+                    <div class="kf-grid" style="margin-top:6px">
+                        <div class="kf-field">
+                            <label for="auto_approval_signature">Auto approval signature</label>
+                            <select class="form-select" id="auto_approval_signature" name="auto_approval_signature">
+                                <option value="">Select user signature</option>
+                                {% for user in result.user_with_signatures %}
+                                    <option value="{{ user.user_id }}" {% if lp and lp.auto_approval_signature == user.user_id %}selected{% endif %}>{{ user.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="kf-field">
+                            <label for="auto_approval_max_amount">Auto approval max amount (PKR)</label>
+                            <input type="number" step="0.01" class="form-control" id="auto_approval_max_amount" name="auto_approval_max_amount"
+                                   value="{{ lp.auto_approval_max_amount if lp else '0.00' }}" placeholder="Maximum amount for auto approval">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kf-foot">
+                    <a href="{{ url_for('manage_loan_metrics') }}#loan-products" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">{{ 'Update loan product' if lp else 'Save product' }}</button>
+                </div>
+            </form>
+
+            <aside class="kf-card kf-help">
+                <h4>About exceptional approval</h4>
+                <p>Turn this on for products that need a senior sign-off.</p>
+                <ul>
+                    <li>Reviewers and Approvers work as usual.</li>
+                    <li>The decision then waits in the Executive's queue.</li>
+                    <li>The borrower is only emailed after the Executive approves.</li>
+                </ul>
+                <h4>Auto approval</h4>
+                <p>The scheduled job only approves applications up to the max amount, and signs the letters with the selected user's signature.</p>
+            </aside>
         </div>
     </div>
 </body>

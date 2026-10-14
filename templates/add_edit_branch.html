@@ -3,131 +3,135 @@
 <head>
     {% include 'head.html' %}
     <title>{{ 'Edit Branch' if result.branch_details else 'Add Branch' }}</title>
-    <style>
-        .form-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-        .form-row .form-group {
-            flex: 1;
-            min-width: 0;
-        }
-    </style>
 </head>
 <body>
     {% include 'navbar.html' %}
     {% import 'breadcrumbs.html' as brd %}
     {{ brd.render_Breadcrumbs([{"url": "manage_branches", "label": "Manage Branches"}, {"url": "", "label": 'Edit Branch' if result.branch_details else 'Add Branch'}]) }}
+    {% set rec = result.branch_details %}
 
-    <div class="container mt-4">
+    <div class="container mt-2">
         {% include 'message_box.html' %}
 
-        <div class="card">
-            <div class="card-header">
-                <h2>{{ 'Edit Branch' if result.branch_details else 'Add Branch' }}</h2>
-            </div>
-            <div class="card-body">
-                <form method="POST">
-                    <div class="form-group mb-3">
-                        <div class="form-group">
-                            <label for="bank_id">Bank</label>
-                            <select name="bank_id" id="bank_id" class="form-control form-select" required>
-                                <option value="">[[select...]]</option>
+        <div class="kf-page-head">
+            <h1>{{ 'Edit branch' if rec else 'Add branch' }}</h1>
+            <p>A partner bank branch that sends loan applications to KFT.</p>
+        </div>
+
+        <div class="kf-form-layout">
+            <form method="POST" class="kf-card">
+                <div class="kf-sec">Branch</div>
+                <div class="kf-body">
+                    <div class="kf-grid">
+                        <div class="kf-field">
+                            <label for="bank_id">Bank <span class="req">*</span></label>
+                            <select name="bank_id" id="bank_id" class="form-select" required>
+                                <option value="">Select...</option>
                                 {% for bank in result.bank_details %}
-                                    <option value="{{ bank.bank_id }}" {% if result.branch_details and result.branch_details.bank_id == bank.bank_id %}selected{% endif %}>
-                                        {{ bank.bank_code }}
-                                    </option>
+                                    <option value="{{ bank.bank_id }}" {% if rec and rec.bank_id == bank.bank_id %}selected{% endif %}>{{ bank.bank_code }}</option>
                                 {% endfor %}
                             </select>
                         </div>
-                    </div>
-                    <div class="form-row mb-3">
-                        <div class="form-group">
-                            <label for="branch_name">Branch Name</label>
-                            <input type="text" name="branch_name" class="form-control" value="{{ result.branch_details.branch_name if result.branch_details else '' }}" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="branch_code">Branch Code</label>
-                            <input type="text" name="branch_code" class="form-control" value="{{ result.branch_details.branch_code if result.branch_details else '' }}" required>
-                        </div>
-                    </div>
-                    <div class="form-row mb-3">
-                        <div class="form-group">
-                            <label for="role">Role</label>
-                            <select name="role" id="role" class="form-select form-control" required>
-                                <option value="">[[select...]]</option>
+                        <div class="kf-field">
+                            <label for="role">Branch role <span class="req">*</span></label>
+                            <select name="role" id="role" class="form-select" required>
+                                <option value="">Select...</option>
                                 {% for item in result.get_all_branch_roles %}
-                                    <option value="{{item['branch_role_id']}}" {% if result.branch_details and result.branch_details.role == item['branch_role_id'] %}selected{% endif %}>{{item['branch_role_name']}}</option>
+                                    <option value="{{ item['branch_role_id'] }}" {% if rec and rec.role == item['branch_role_id'] %}selected{% endif %}>{{ item['branch_role_name'] }}</option>
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label for="role">Branch</label>
-                            <input type="text" name="branch" class="form-control" value="{{ result.branch_details.branch if result.branch_details else '' }}" required>
+                        <div class="kf-field">
+                            <label for="branch_name">Branch name <span class="req">*</span></label>
+                            <input type="text" id="branch_name" name="branch_name" class="form-control" value="{{ rec.branch_name if rec else '' }}" required>
+                        </div>
+                        <div class="kf-field">
+                            <label for="branch_code">Branch code <span class="req">*</span></label>
+                            <input type="text" id="branch_code" name="branch_code" class="form-control" value="{{ rec.branch_code if rec else '' }}" required>
+                            <span class="hint">Must match the code in the bank's application data</span>
+                        </div>
+                        <div class="kf-field full">
+                            <label for="branch">Branch <span class="req">*</span></label>
+                            <input type="text" id="branch" name="branch" class="form-control" value="{{ rec.branch if rec else '' }}" required>
                         </div>
                     </div>
-                    <div class="form-row mb-3">
-                        <div class="form-group">
-                            <label for="area">Area</label>
-                            <input type="text" name="area" class="form-control" value="{{ result.branch_details.area if result.branch_details else '' }}" required>
+                </div>
+
+                <div class="kf-sec">Location &amp; contact</div>
+                <div class="kf-body">
+                    <div class="kf-grid">
+                        <div class="kf-field">
+                            <label for="area">Area <span class="req">*</span></label>
+                            <input type="text" id="area" name="area" class="form-control" value="{{ rec.area if rec else '' }}" required>
                         </div>
-                        <div class="form-group">
-                            <label for="area">Area Name</label>
-                            <input type="text" name="area_name" class="form-control" value="{{ result.branch_details.area_name if result.branch_details else '' }}" required>
+                        <div class="kf-field">
+                            <label for="area_name">Area name <span class="req">*</span></label>
+                            <input type="text" id="area_name" name="area_name" class="form-control" value="{{ rec.area_name if rec else '' }}" required>
+                        </div>
+                        <div class="kf-field">
+                            <label for="branch_manager">Branch manager name <span class="req">*</span></label>
+                            <input type="text" id="branch_manager" name="branch_manager" class="form-control" value="{{ rec.branch_manager if rec else '' }}" required>
+                        </div>
+                        <div class="kf-field">
+                            <label for="email">Email <span class="req">*</span></label>
+                            <input type="email" id="email" name="email" class="form-control" value="{{ rec.email if rec else '' }}" required>
                         </div>
                     </div>
-                    <div class="form-row mb-3">
-                        <div class="form-group">
-                            <label for="role">Branch Manager Name</label>
-                            <input type="text" name="branch_manager" class="form-control" value="{{ result.branch_details.branch_manager if result.branch_details else '' }}" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="email">Email</label>
-                            <input type="email" name="email" class="form-control" value="{{ result.branch_details.email if result.branch_details else '' }}" required>
-                        </div>
-                    </div>
-                    <div class="form-row mb-3">
-                        <div class="form-group">
-                            <label for="bank_distribution">Bank Distribution</label>
-                            <select name="bank_distribution" class="form-control form-select" required>
-                                <option value="">[[select...]]</option>
+                </div>
+
+                <div class="kf-sec">Distribution &amp; status</div>
+                <div class="kf-body">
+                    <div class="kf-grid three">
+                        <div class="kf-field">
+                            <label for="bank_distribution">Bank distribution <span class="req">*</span></label>
+                            <select id="bank_distribution" name="bank_distribution" class="form-select" required>
+                                <option value="">Select...</option>
                                 {% for item in result.get_all_bank_distributions %}
-                                    <option value="{{item['bank_distribution_id']}}" {% if result.branch_details and result.branch_details.bank_distribution == item['bank_distribution_id'] %} selected {% endif %}>{{item['bank_distribution_name']}}</option>
+                                    <option value="{{ item['bank_distribution_id'] }}" {% if rec and rec.bank_distribution == item['bank_distribution_id'] %} selected {% endif %}>{{ item['bank_distribution_name'] }}</option>
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label for="kft_distribution">KFT Distribution</label>
-                            <select name="kft_distribution" class="form-control" required>
-                                <option value="">[[select...]]</option>
+                        <div class="kf-field">
+                            <label for="kft_distribution">KFT distribution <span class="req">*</span></label>
+                            <select id="kft_distribution" name="kft_distribution" class="form-select" required>
+                                <option value="">Select...</option>
                                 {% for item in result.get_all_kft_distributions %}
-                                    <option value="{{item['kft_distribution_id']}}" {% if result.branch_details and result.branch_details.kft_distribution == item['kft_distribution_id'] %} selected {% endif %}>{{item['kft_distribution_name']}}</option>
+                                    <option value="{{ item['kft_distribution_id'] }}" {% if rec and rec.kft_distribution == item['kft_distribution_id'] %} selected {% endif %}>{{ item['kft_distribution_name'] }}</option>
                                 {% endfor %}
                             </select>
                         </div>
-                    </div>
-                    <div class="form-row mb-3">
-                        <div class="form-group">
-                            <label for="national_council_distribution">National Council Distribution</label>
-                            <select name="national_council_distribution" class="form-control form-select" required>
-                                <option value="">[[select...]]</option>
+                        <div class="kf-field">
+                            <label for="national_council_distribution">National council <span class="req">*</span></label>
+                            <select id="national_council_distribution" name="national_council_distribution" class="form-select" required>
+                                <option value="">Select...</option>
                                 {% for item in result.get_all_national_council_distributions %}
-                                    <option value="{{item['national_council_distribution_id']}}" {% if result.branch_details and result.branch_details.national_council_distribution == item['national_council_distribution_id'] %} selected {% endif %}>{{item['national_council_distribution_name']}}</option>
+                                    <option value="{{ item['national_council_distribution_id'] }}" {% if rec and rec.national_council_distribution == item['national_council_distribution_id'] %} selected {% endif %}>{{ item['national_council_distribution_name'] }}</option>
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label for="live_branch">Branch Live</label>
-                            <select name="live_branch" id="live_branch" class="form-control form-select" required>
-                                <option value="1" {% if result.branch_details and result.branch_details.live_branch|string == '1' %}selected{% endif %}>Active</option>
-                                <option value="2" {% if result.branch_details and result.branch_details.live_branch|string == '2' %}selected{% endif %}>In-Active</option>
-                            </select>
+                        <div class="kf-switch-row full">
+                            <div><div class="t">Branch live</div><div class="d">Only live branches are included on the Awaiting Services page and the council figures.</div></div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="live_branch" name="live_branch" value="1"
+                                       {{ 'checked' if not rec or rec.live_branch|string != '2' }} aria-label="Branch live">
+                                <input type="hidden" name="live_branch" value="2">
+                            </div>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary">{{ 'Update Branch' if result.branch_details else 'Add Branch' }}</button>
-                </form>
-            </div>
+                </div>
+
+                <div class="kf-foot">
+                    <a href="{{ url_for('manage_branches') }}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">{{ 'Update branch' if rec else 'Save branch' }}</button>
+                </div>
+            </form>
+
+            <aside class="kf-card kf-help">
+                <h4>Branch role</h4>
+                <p>The role decides which volunteers work on this branch's applications: Reviewers, Approvers and Executives see the branches whose role is assigned to them.</p>
+                <h4>National council</h4>
+                <p>Groups the branch under a regional council on the dashboard, the reports and the Awaiting Services page.</p>
+            </aside>
         </div>
     </div>
 </body>

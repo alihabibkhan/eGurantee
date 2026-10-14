@@ -4,7 +4,8 @@
   const ENT = 0, EDU = 1;
   const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  const TREND_COLORS = ['#9BB0A5', '#2E8B57', '#143D2A'];
+  // Chart colours come from the theme tokens (--c1 green, --c2 gold, --c3 sage, --c4 orange, --c5 red)
+  const C = (n) => themeVar('--c' + n, ['', '#1F6E4B', '#B8862B', '#9DB5A7', '#D9793A', '#B3392F'][n]);
   // loan tuple indexes
   const L_BRANCH = 0, L_CAT = 1, L_BEN = 2, L_YM = 3, L_DISB = 4, L_OS = 5, L_OD = 6;
 
@@ -21,6 +22,11 @@
     if (a >= 1e9) return 'PKR ' + (n / 1e9).toFixed(2) + 'B';
     if (a >= 1e6) return 'PKR ' + (n / 1e6).toFixed(1) + 'M';
     return 'PKR ' + fmtNum(n);
+  };
+  // KPI value: small "PKR" prefix as in the approved design
+  const pkrHtml = (n) => {
+    const t = fmtPKR(n);
+    return t.startsWith('PKR ') ? '<small>PKR</small>' + t.slice(4) : t;
   };
   const pct = (part, whole, digits = 1) => whole ? (part / whole * 100).toFixed(digits) + '%' : '—';
   const esc = (s) => String(s === null || s === undefined ? '' : s)
@@ -54,7 +60,7 @@
 
   function setupFilters() {
     const regionSel = $('kfd-region');
-    regionSel.innerHTML = '<option value="">All Regions</option>' +
+    regionSel.innerHTML = '<option value="">All regions</option>' +
       D.regions.map((r) => `<option value="${esc(r)}">${esc(r)}</option>`).join('');
 
     const yearSel = $('kfd-year');
@@ -79,7 +85,7 @@
       .filter((b) => withLoans.has(b.idx) && (!region || b.region === region))
       .sort((a, b) => a.name.localeCompare(b.name));
 
-    let html = '<option value="">All Branches</option>';
+    let html = '<option value="">All branches</option>';
     if (region) {
       html += list.map((b) => `<option value="${b.idx}">${esc(b.name)}</option>`).join('');
     } else {
@@ -186,17 +192,17 @@
     const s = summarize(scope);
     const dim = f.region ? 'Branch' : 'Region';
 
-    const where = f.branch !== null ? D.branches[f.branch].name : (f.region || 'All Regions');
-    const what = f.product ? f.product[0].toUpperCase() + f.product.slice(1) : 'All Products';
-    $('kfd-title').textContent = f.region
-      ? 'KFT - Khushali Foundation Trust - Regional Dashboard · ' + f.region
-      : 'KFT - Khushali Foundation Trust - Management Dashboard';
-    $('kfd-kpi-heading').textContent = 'Key Performance Indicators — ' + where + ' / ' + what;
+    const where = f.branch !== null ? D.branches[f.branch].name : (f.region || 'all regions');
+    const what = f.product ? f.product[0].toUpperCase() + f.product.slice(1) : 'all products';
+    const title = f.region ? 'KFT Regional Dashboard · ' + f.region : 'KFT Management Dashboard';
+    $('kfd-title').textContent = title;
+    $('kfd-print-title').textContent = 'KFT - Khushali Foundation Trust - ' + (f.region ? 'Regional Dashboard · ' + f.region : 'Management Dashboard');
+    $('kfd-kpi-heading').textContent = 'Key performance indicators — ' + where + ' / ' + what;
 
     renderKpis(s, scopeAllProducts);
     renderDistribution(f);
     document.querySelectorAll('.kfd-dim').forEach((el) => { el.textContent = dim; });
-    $('kfd-rank-title').textContent = (f.region ? 'Branch' : 'Regional') + ' Performance & Ranking';
+    $('kfd-rank-title').textContent = (f.region ? 'Branch' : 'Regional') + ' performance & ranking';
     document.querySelectorAll('.kfd-ry').forEach((el) => { el.textContent = RY; });
 
     renderTrendChart(scope, f);
@@ -207,8 +213,9 @@
     renderPortfolioQuality(s, scope, f);
   }
 
+  // value is built from numbers only (fmtNum / pkrHtml), so it is safe as HTML
   function setKpi(id, value, sub) {
-    $(id).textContent = value;
+    $(id).innerHTML = value;
     if (sub !== undefined) $(id + '-sub').textContent = sub;
   }
 
@@ -216,15 +223,16 @@
     const ytdRange = 'Jan – ' + MONTHS[RM - 1] + ' ' + RY;
     const curLabel = MONTHS_LONG[RM - 1] + ' ' + RY;
 
-    setKpi('kfd-k-bens', fmtNum(s.bens.size), 'Unique CNICs, since inception');
+    setKpi('kfd-k-bens', fmtNum(s.bens.size), 'Unique CNICs since inception');
     setKpi('kfd-k-loans', fmtNum(s.loans), 'Cumulative loan count');
-    setKpi('kfd-k-disb', fmtPKR(s.disb), 'PKR, since inception');
-    setKpi('kfd-k-os', fmtPKR(s.os), fmtNum(s.active) + ' active loans');
-    setKpi('kfd-k-npl', fmtPKR(s.arrearsAmt), pct(s.arrearsAmt, s.os, 2) + ' of outstanding · ' + fmtNum(s.arrearsCases) + ' loans (30+ days)');
-    setKpi('kfd-k-avg', fmtPKR(s.loans ? s.disb / s.loans : 0), 'PKR per loan');
-    setKpi('kfd-k-ytd-disb', fmtPKR(s.ytdDisb), ytdRange + ' · ' + fmtNum(s.ytdLoans) + ' loans');
+    setKpi('kfd-k-disb', pkrHtml(s.disb), 'Since inception');
+    setKpi('kfd-k-os', pkrHtml(s.os), fmtNum(s.active) + ' active loans');
+    setKpi('kfd-k-npl', pkrHtml(s.arrearsAmt));
+    $('kfd-k-npl-sub').innerHTML = '<span class="down">' + pct(s.arrearsAmt, s.os, 2) + '</span> of outstanding · ' + fmtNum(s.arrearsCases) + ' loans (30+ days)';
+    setKpi('kfd-k-avg', pkrHtml(s.loans ? s.disb / s.loans : 0), 'Per loan');
+    setKpi('kfd-k-ytd-disb', pkrHtml(s.ytdDisb), ytdRange + ' · ' + fmtNum(s.ytdLoans) + ' loans');
     setKpi('kfd-k-ytd-bens', fmtNum(s.ytdBens.size), ytdRange);
-    setKpi('kfd-k-cur-disb', fmtPKR(s.curDisb), curLabel + ' · ' + fmtNum(s.curLoans) + ' loans');
+    setKpi('kfd-k-cur-disb', pkrHtml(s.curDisb), curLabel + ' · ' + fmtNum(s.curLoans) + ' loans');
     setKpi('kfd-k-cur-bens', fmtNum(s.curBens.size), curLabel);
 
     let ent = 0, edu = 0, total = 0;
@@ -232,8 +240,8 @@
       total += l[L_DISB];
       if (l[L_CAT] === ENT) ent += l[L_DISB]; else if (l[L_CAT] === EDU) edu += l[L_DISB];
     });
-    setKpi('kfd-k-ent', fmtPKR(ent), pct(ent, total) + ' of total disbursement (SI)');
-    setKpi('kfd-k-edu', fmtPKR(edu), pct(edu, total) + ' of total disbursement (SI)');
+    setKpi('kfd-k-ent', pkrHtml(ent), pct(ent, total) + ' of total disbursement (SI)');
+    setKpi('kfd-k-edu', pkrHtml(edu), pct(edu, total) + ' of total disbursement (SI)');
   }
 
   function renderDistribution(f) {
@@ -248,17 +256,21 @@
       })
       .sort((a, b) => a.label.localeCompare(b.label));
 
+    // share = % of loans disbursed since inception; the bar is scaled to the largest council
+    const totalLoans = rows.reduce((a, r) => a + r.loans, 0);
+    const maxLoans = Math.max(1, ...rows.map((r) => r.loans));
     $('kfd-dist-grid').innerHTML = rows.map((r) => `
-      <div class="kfd-dist-card${isHighlighted(f, r.key) ? ' selected' : ''}" data-key="${esc(r.key)}">
-        <div class="kfd-dist-name">${esc(r.label)}</div>
-        <div class="v">${fmtNum(r.bens)}</div><div class="l">Beneficiaries</div>
-        <div class="kfd-dist-row">
-          <div><div class="v">${fmtNum(r.loans)}</div><div class="l">Loan Disbursed</div></div>
-          <div><div class="v">${fmtNum(r.active)}</div><div class="l">Active Loan</div></div>
+      <button type="button" class="rc${isHighlighted(f, r.key) ? ' selected' : ''}" data-key="${esc(r.key)}">
+        <div class="rc-top"><span class="rc-name">${esc(r.label)}</span><span class="rc-share">${pct(r.loans, totalLoans)}</span></div>
+        <div class="rc-main"><b>${fmtNum(r.bens)}</b><span>beneficiaries</span></div>
+        <div class="rc-bar"><i style="width:${Math.max(r.loans / maxLoans * 100, 2)}%"></i></div>
+        <div class="rc-stats">
+          <div><b>${fmtNum(r.loans)}</b><span>Loans disbursed</span></div>
+          <div><b>${fmtNum(r.active)}</b><span>Active loans</span></div>
         </div>
-      </div>`).join('') || '<div class="kfd-empty">No data for the selected filters</div>';
+      </button>`).join('') || '<div class="kfd-empty">No data for the selected filters</div>';
 
-    $('kfd-dist-grid').querySelectorAll('.kfd-dist-card').forEach((el) => {
+    $('kfd-dist-grid').querySelectorAll('.rc').forEach((el) => {
       el.onclick = () => drillInto(f, el.dataset.key);
     });
   }
@@ -278,8 +290,27 @@
     if (charts[key]) { charts[key].destroy(); delete charts[key]; }
   }
 
+  // Axis text, gridlines and slice borders follow the app's light / dark theme (kft-theme.css tokens)
+  function themeVar(name, fallback) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+  }
+  function applyChartTheme() {
+    Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+    Chart.defaults.font.size = 11.5;
+    Chart.defaults.color = themeVar('--ink-3', '#64756B');
+    Chart.defaults.borderColor = themeVar('--grid', 'rgba(0,0,0,0.1)');
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    Chart.defaults.plugins.legend.labels.boxWidth = 8;
+    Object.assign(Chart.defaults.plugins.tooltip, {
+      backgroundColor: themeVar('--ink', '#17211C'), titleColor: themeVar('--bg', '#fff'), bodyColor: themeVar('--bg', '#fff'),
+      padding: 10, cornerRadius: 6,
+    });
+  }
+  const sliceBorder = () => themeVar('--surface', '#fff');
+
   function makeChart(key, canvasId, config) {
     destroyChart(key);
+    applyChartTheme();
     try {
       charts[key] = new Chart($(canvasId).getContext('2d'), config);
     } catch (e) {
@@ -288,7 +319,8 @@
   }
 
   const pkrTooltip = { callbacks: { label: (c) => (c.dataset.label ? c.dataset.label + ': ' : '') + fmtPKR(c.raw) } };
-  const pkrAxis = { ticks: { callback: (v) => fmtPKR(v) } };
+  const pkrAxis = { border: { display: false }, ticks: { callback: (v) => fmtPKR(v) } };
+  const catAxis = { grid: { display: false } };
 
   function renderTrendChart(scope, f) {
     const years = trendYears();
@@ -301,9 +333,10 @@
     // months after the reporting month in the reporting year have no data yet
     for (let m = RM; m < 12; m++) series[RY][m] = null;
 
-    $('kfd-trend-title').textContent = 'Monthly Disbursement Trend — ' +
+    $('kfd-trend-title').textContent = '· ' +
       years.map((y) => y === RY && RM < 12 ? y + ' YTD' : y).join(' vs ');
 
+    const trendColors = [C(3), C(2), C(1)];
     makeChart('trend', 'kfd-ch-trend', {
       type: 'line',
       data: {
@@ -311,16 +344,16 @@
         datasets: years.map((y, i) => ({
           label: y === RY && RM < 12 ? y + ' YTD' : String(y),
           data: series[y],
-          borderColor: TREND_COLORS[i],
-          backgroundColor: 'transparent',
-          borderWidth: y === f.focusYear ? 3.5 : 1.75,
-          tension: 0.3, pointRadius: 2, spanGaps: false,
+          borderColor: trendColors[i],
+          backgroundColor: trendColors[i],
+          borderWidth: y === f.focusYear ? 3 : 1.75,
+          tension: 0.35, pointRadius: y === f.focusYear ? 3 : 2, spanGaps: false,
         })),
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom', labels: { boxWidth: 14, font: { size: 11 } } }, tooltip: pkrTooltip },
-        scales: { y: pkrAxis },
+        plugins: { tooltip: pkrTooltip },
+        scales: { x: catAxis, y: pkrAxis },
       },
     });
   }
@@ -335,12 +368,12 @@
       type: 'doughnut',
       data: {
         labels: ['Enterprise', 'Education'],
-        datasets: [{ data: [ent, edu], backgroundColor: ['#1F5C3F', '#C99A2E'], borderWidth: 2, borderColor: '#fff' }],
+        datasets: [{ data: [ent, edu], backgroundColor: [C(1), C(2)], borderWidth: 3, borderColor: sliceBorder() }],
       },
       options: {
-        responsive: true, maintainAspectRatio: false,
+        responsive: true, maintainAspectRatio: false, cutout: '62%',
         plugins: {
-          legend: { position: 'bottom', labels: { boxWidth: 14, font: { size: 12 } } },
+          legend: { position: 'bottom' },
           tooltip: { callbacks: { label: (c) => c.label + ': ' + fmtPKR(c.raw) + ' (' + pct(c.raw, total) + ')' } },
         },
       },
@@ -355,7 +388,7 @@
   function horizontalBar(key, canvasId, rows, valueFn, color, highlightColor, f, label) {
     const sorted = rows.slice().sort((a, b) => valueFn(b) - valueFn(a));
     const canvas = $(canvasId);
-    canvas.parentElement.style.height = Math.max(260, sorted.length * 26 + 60) + 'px';
+    canvas.parentElement.style.height = Math.max(270, sorted.length * 26 + 60) + 'px';
     makeChart(key, canvasId, {
       type: 'bar',
       data: {
@@ -363,12 +396,13 @@
         datasets: [{
           label, data: sorted.map(valueFn),
           backgroundColor: sorted.map((r) => isHighlighted(f, r.key) ? highlightColor : color),
+          borderRadius: 4, maxBarThickness: 16,
         }],
       },
       options: {
         indexAxis: 'y', responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => fmtPKR(c.raw) } } },
-        scales: { x: pkrAxis },
+        scales: { x: pkrAxis, y: catAxis },
         onClick: (evt, els) => { if (els.length) drillInto(f, sorted[els[0].index].key); },
       },
     });
@@ -376,24 +410,24 @@
 
   function renderGroupBars(f) {
     const rows = groupRows(f);
-    horizontalBar('groupSI', 'kfd-ch-group-si', rows, (r) => r.s.disb, '#1F5C3F', '#C99A2E', f, 'Disbursed SI (PKR)');
-    horizontalBar('groupYTD', 'kfd-ch-group-ytd', rows, (r) => r.s.ytdDisb, '#2E8B57', '#B4453A', f, 'YTD Disbursed (PKR)');
+    horizontalBar('groupSI', 'kfd-ch-group-si', rows, (r) => r.s.disb, C(1), C(2), f, 'Disbursed SI (PKR)');
+    horizontalBar('groupYTD', 'kfd-ch-group-ytd', rows, (r) => r.s.ytdDisb, C(2), C(1), f, 'YTD Disbursed (PKR)');
   }
 
   function renderRankingTable(f) {
     const rows = groupRows(f).sort((a, b) => b.s.disb - a.s.disb);
     const total = rows.reduce((a, r) => a + r.s.disb, 0);
+    const maxDisb = rows.length ? rows[0].s.disb : 0;
     const tbody = $('kfd-rank-body');
     tbody.innerHTML = rows.map((r, i) => {
       const rank = i + 1;
-      const cls = rank <= 3 ? 'rank-' + rank : 'rank-n';
       return `<tr class="${isHighlighted(f, r.key) ? 'selected-row' : ''}" data-i="${i}">
-        <td><span class="rank-badge ${cls}">${rank}</span></td>
-        <td>${esc(r.label)}</td>
+        <td><span class="rank${rank <= 3 ? ' r' + rank : ''}">${rank}</span></td>
+        <td class="strong">${esc(r.label)}</td>
         <td class="num">${fmtNum(r.s.bens.size)}</td>
         <td class="num">${fmtNum(r.s.loans)}</td>
         <td class="num">${fmtNum(r.s.disb)}</td>
-        <td class="num">${pct(r.s.disb, total)}</td>
+        <td><div class="share"><div class="bar"><i style="width:${maxDisb ? r.s.disb / maxDisb * 100 : 0}%"></i></div><span>${pct(r.s.disb, total)}</span></div></td>
         <td class="num">${fmtNum(r.s.ytdBens.size)}</td>
         <td class="num">${fmtNum(r.s.ytdLoans)}</td>
         <td class="num">${fmtNum(r.s.ytdDisb)}</td>
@@ -421,37 +455,37 @@
     const cards = [];
     pairs.forEach(([y1, y2, m]) => {
       const a = periodTotals(scope, y1, m), b = periodTotals(scope, y2, m);
-      const basis = m === 12 ? 'Full Year' : 'Jan–' + MONTHS[m - 1] + ', comparable';
-      cards.push([`${y1} → ${y2} Disbursement Growth (${basis})`, growth(a.disb, b.disb)]);
-      cards.push([`${y1} → ${y2} Loan Count Growth (${basis})`, growth(a.loans, b.loans)]);
-      cards.push([`${y1} → ${y2} Beneficiaries Growth (${basis})`, growth(a.bens, b.bens)]);
+      const basis = `${y1} → ${y2} · ` + (m === 12 ? 'full year' : 'Jan–' + MONTHS[m - 1] + ', comparable');
+      cards.push(['Disbursement growth', basis, growth(a.disb, b.disb)]);
+      cards.push(['Loan count growth', basis, growth(a.loans, b.loans)]);
+      cards.push(['Beneficiaries growth', basis, growth(a.bens, b.bens)]);
     });
-    $('kfd-yoy').innerHTML = cards.map(([lbl, g]) => `
-      <div class="yoy-card">
-        <div class="lbl">${lbl}</div>
-        <div class="val ${g === null ? '' : g >= 0 ? 'pos' : 'neg'}">${g === null ? '—' : (g >= 0 ? '+' : '') + g.toFixed(1) + '%'}</div>
+    $('kfd-yoy').innerHTML = cards.map(([lbl, basis, g]) => `
+      <div class="kc yoy">
+        <div class="l">${lbl}<small>${basis}</small></div>
+        <div class="v ${g === null ? 'na' : g >= 0 ? '' : 'neg'}">${g === null ? '—' : (g >= 0 ? '+' : '') + g.toFixed(1) + '%'}</div>
       </div>`).join('');
   }
 
   function renderPortfolioQuality(s, scope, f) {
-    $('kfd-pq-title').textContent = 'Portfolio Quality — Arrears & Write-offs (' + MONTHS_LONG[RM - 1] + ' ' + RY + ')';
-    setKpi('kfd-pq-os', fmtPKR(s.os), 'Total principal outstanding');
-    setKpi('kfd-pq-30', fmtPKR(s.b30), pct(s.b30, s.os, 2) + ' of outstanding');
-    setKpi('kfd-pq-60', fmtPKR(s.b60), pct(s.b60, s.os, 2) + ' of outstanding');
-    setKpi('kfd-pq-180', fmtPKR(s.b180), pct(s.b180, s.os, 2) + ' of outstanding');
+    $('kfd-pq-title').textContent = 'Portfolio quality — arrears & write-offs (' + MONTHS_LONG[RM - 1] + ' ' + RY + ')';
+    setKpi('kfd-pq-os', pkrHtml(s.os), 'Total principal outstanding');
+    setKpi('kfd-pq-30', pkrHtml(s.b30), pct(s.b30, s.os, 2) + ' of outstanding');
+    setKpi('kfd-pq-60', pkrHtml(s.b60), pct(s.b60, s.os, 2) + ' of outstanding');
+    setKpi('kfd-pq-180', pkrHtml(s.b180), pct(s.b180, s.os, 2) + ' of outstanding');
     setKpi('kfd-pq-cases', fmtNum(s.arrearsCases), fmtPKR(s.arrearsAmt) + ' outstanding (30+ days)');
     setKpi('kfd-pq-wo', fmtNum(s.writeOffCases), fmtPKR(s.b180) + ' outstanding (180+ days)');
 
     makeChart('aging', 'kfd-ch-aging', {
       type: 'bar',
       data: {
-        labels: ['30-59 Days', '60-179 Days', '180+ Days'],
-        datasets: [{ label: 'Outstanding Principal (PKR)', data: [s.b30, s.b60, s.b180], backgroundColor: ['#C99A2E', '#E08E45', '#B4453A'] }],
+        labels: ['30–59 days', '60–179 days', '180+ days'],
+        datasets: [{ label: 'Outstanding Principal (PKR)', data: [s.b30, s.b60, s.b180], backgroundColor: [C(2), C(4), C(5)], borderRadius: 6, maxBarThickness: 56 }],
       },
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => fmtPKR(c.raw) } } },
-        scales: { y: pkrAxis },
+        scales: { x: catAxis, y: pkrAxis },
       },
     });
 
@@ -464,16 +498,16 @@
       type: 'line',
       data: {
         labels: months.map((m) => { const [y, mo] = m.split('-'); return MONTHS[Number(mo) - 1] + ' ' + y.slice(2); }),
-        datasets: [{ label: 'Arrears Outstanding (PKR)', data: totals, borderColor: '#B4453A', backgroundColor: 'rgba(180,69,58,0.08)', fill: true, tension: 0.25, pointRadius: 3 }],
+        datasets: [{ label: 'Arrears Outstanding (PKR)', data: totals, borderColor: C(5), backgroundColor: C(5) + '1F', fill: true, tension: 0.3, pointRadius: 3 }],
       },
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => fmtPKR(c.raw) } } },
-        scales: { y: pkrAxis },
+        scales: { x: catAxis, y: pkrAxis },
       },
     });
 
-    horizontalBar('arrearsGroup', 'kfd-ch-arrears-group', groupRows(f), (r) => r.s.arrearsAmt, '#B4453A', '#C99A2E', f, 'Current Arrears (PKR)');
+    horizontalBar('arrearsGroup', 'kfd-ch-arrears-group', groupRows(f), (r) => r.s.arrearsAmt, C(5), C(2), f, 'Current Arrears (PKR)');
 
     let ent = 0, edu = 0, entN = 0, eduN = 0;
     scope.forEach((l) => {
@@ -482,11 +516,11 @@
     });
     makeChart('arrearsSector', 'kfd-ch-arrears-sector', {
       type: 'doughnut',
-      data: { labels: ['Enterprise', 'Education'], datasets: [{ data: [ent, edu], backgroundColor: ['#1F5C3F', '#C99A2E'], borderWidth: 2, borderColor: '#fff' }] },
+      data: { labels: ['Enterprise', 'Education'], datasets: [{ data: [ent, edu], backgroundColor: [C(1), C(2)], borderWidth: 3, borderColor: sliceBorder() }] },
       options: {
-        responsive: true, maintainAspectRatio: false,
+        responsive: true, maintainAspectRatio: false, cutout: '62%',
         plugins: {
-          legend: { position: 'bottom', labels: { boxWidth: 14, font: { size: 12 } } },
+          legend: { position: 'bottom' },
           tooltip: { callbacks: { label: (c) => c.label + ': ' + fmtPKR(c.raw) + ' (' + [entN, eduN][c.dataIndex] + ' cases)' } },
         },
       },
@@ -512,7 +546,7 @@
     $('kfd-listing-section').style.display = f.region ? 'block' : 'none';
     if (!f.region) return;
     const rows = listingRows(f);
-    $('kfd-listing-count').textContent = fmtNum(rows.length) + ' loans in arrears (30+ days)';
+    $('kfd-listing-count').textContent = '· ' + fmtNum(rows.length) + ' loans, 30+ days';
     $('kfd-listing-body').innerHTML = rows.map((r) => `<tr>
         <td>${esc(r.sector_code)}</td><td>${esc(r.branch_name)}</td><td>${esc(r.gender)}</td><td>${esc(r.mobile_no)}</td>
         <td>${esc(r.loan_title)}</td><td>${esc(r.loan_no)}</td><td>${esc(r.product_code)}</td><td>${esc(r.booked_on)}</td>
@@ -588,10 +622,12 @@
       btn.addEventListener('click', () => setView(btn.dataset.dashboardView));
     });
 
-    let saved = 'new';
-    try { saved = localStorage.getItem(VIEW_KEY) || 'new'; } catch (e) { /* storage unavailable */ }
-    setView(saved);
+    // Task 004: the New / Classic switch is hidden, so always open the new dashboard
+    // (a saved 'classic' choice would otherwise leave users stuck on the classic view)
+    setView('new');
   });
 
   window.addEventListener('beforeprint', resizeCharts);
+  // Redraw the charts in the new colours when the user switches light / dark mode (event fired by navbar.html)
+  window.addEventListener('kft-theme-change', () => applyFilters());
 })();

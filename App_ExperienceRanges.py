@@ -47,24 +47,21 @@ def add_edit_experience_range(experience_range_id=None):
             current_timestamp = str(datetime.now())
 
             if experience_range_id:
-                update_query = f"""
-                    UPDATE tbl_experience_ranges 
-                    SET label = '{label}', min_years = '{min_years}', max_years = '{max_years}', 
-                        status = '{str(1)}', modified_by = '{current_user_id}', modified_date = '{current_timestamp}'
-                    WHERE experience_range_id = '{experience_range_id}'
+                update_query = """
+                    UPDATE tbl_experience_ranges
+                    SET label = %s, min_years = %s, max_years = %s,
+                        status = '1', modified_by = %s, modified_date = %s
+                    WHERE experience_range_id = %s
                 """
-                execute_command(update_query)
+                execute_command(update_query, params=(label, min_years, max_years, current_user_id, current_timestamp, experience_range_id))
                 flash('Experience range updated successfully.', 'success')
             else:
-                insert_query = f"""
+                insert_query = """
                     INSERT INTO tbl_experience_ranges (
                         label, min_years, max_years, status, created_by, created_date, modified_by, modified_date
-                    ) VALUES (
-                        '{label}', '{min_years}', '{max_years}', '{str(1)}', '{current_user_id}', '{current_timestamp}', 
-                        '{current_user_id}', '{current_timestamp}'
-                    )
+                    ) VALUES (%s, %s, %s, '1', %s, %s, %s, %s)
                 """
-                execute_command(insert_query)
+                execute_command(insert_query, params=(label, min_years, max_years, current_user_id, current_timestamp, current_user_id, current_timestamp))
                 flash('Experience range added successfully.', 'success')
 
             return redirect(url_for('manage_loan_metrics') + '#experience-ranges')
@@ -89,12 +86,12 @@ def delete_experience_range():
 
         experience_range_id = request.args.get('experience_range_id')
         if experience_range_id:
-            delete_query = f"""
-                UPDATE tbl_experience_ranges 
+            delete_query = """
+                UPDATE tbl_experience_ranges
                 SET is_active = '0', status = '0'
-                WHERE experience_range_id = '{experience_range_id}'
+                WHERE experience_range_id = %s
             """
-            execute_command(delete_query)
+            execute_command(delete_query, params=(experience_range_id,))
             flash('Experience range deleted successfully.', 'success')
         else:
             flash('Invalid experience range ID.', 'danger')

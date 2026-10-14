@@ -1,1133 +1,443 @@
+{#
+  KFT app shell: sidebar + top bar + announcement strip (approved design, see design_preview/index.html).
+  Styles live in static/assets/css/kft-theme.css. Every menu item and permission check below is
+  unchanged from the previous navbar - only the markup and look changed.
+  Previous version: backup/ui_redesign_2026-10-01/templates/navbar.html
+#}
+<script>document.body.classList.add('kft-shell');</script>
+
 <style>
-  /* Importing Google Fonts - Poppins */
-  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
-
-  /* General Reset and Body Styling */
-  * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: "Poppins", sans-serif;
-  }
-
-  body {
-      min-height: 100vh;
-      background: #FFFFF;  /* #E9F0D5; Light blue background for a calm, welfare-oriented feel */
-  }
-
-  body.sidebar-expanded {
-      position: relative;
-      left: 16rem;
-  }
-
-  .header.header-expanded{
-      transition: all 0.4s ease;
-      margin-left: 33px;
-      margin-right: 205px;
-      width: 100vw;
-  }
-
-  .alt-marquee.alt-marquee-expanded{
-        width: 100vw;
-        margin-left: 33px;
-  }
-
-  /* Sidebar Styling */
-  .sidebar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: 10;
-      width: 380px;
-      height: 100vh;
-      background: #151A2D;
-      transition: all 0.4s ease;
-  }
-
-  .sidebar.collapsed {
-      width: 85px;
-  }
-
-  .sidebar .sidebar-header {
-      display: flex;
-      position: relative;
-      padding: 20px 18px;
-      align-items: center;
-      justify-content: space-between;
-  }
-
-  .sidebar-header .header-logo img {
-      width: 50px;
-      height: 46px;
-      display: block;
-      object-fit: initial;
-      border-radius: 50%;
-  }
-
-  .sidebar-header .sidebar-toggler,
-  .sidebar-menu-button {
-      position: absolute;
-      right: 20px;
-      height: 35px;
-      width: 35px;
-      color: #151A2D;
-      border: none;
-      cursor: pointer;
-      display: flex;
-      background: #EEF2FF;
-      align-items: center;
-      justify-content: center;
-      border-radius: 8px;
-      transition: 0.4s ease;
-  }
-
-  .sidebar.collapsed .sidebar-header .sidebar-toggler {
-      transform: translate(-4px, 65px);
-  }
-
-  .sidebar-header .sidebar-toggler span,
-  .sidebar-menu-button span {
-      font-size: 1.75rem;
-      transition: 0.4s ease;
-  }
-
-  .sidebar.collapsed .sidebar-header .sidebar-toggler span {
-      transform: rotate(180deg);
-  }
-
-  .sidebar-header .sidebar-toggler:hover {
-      background: #d9e1fd;
-  }
-
-  .sidebar-nav .nav-list {
-      list-style: none;
-      display: flex;
-      gap: 4px;
-      padding: 0 15px;
-      flex-direction: column;
-      transform: translateY(15px);
-      transition: 0.4s ease;
-  }
-
-  .sidebar .sidebar-nav .primary-nav {
-      overflow-y: auto;
-      scrollbar-width: thin;
-      padding-bottom: 20px;
-      height: calc(100vh - 227px);
-      scrollbar-color: transparent transparent;
-  }
-
-  .sidebar .sidebar-nav .primary-nav:hover {
-      scrollbar-color: #EEF2FF transparent;
-  }
-
-  .sidebar.collapsed .sidebar-nav .primary-nav {
-      overflow: unset;
-      transform: translateY(65px);
-  }
-
-  .sidebar-nav .nav-item .nav-link {
-      color: #fff;
-      display: flex;
-      gap: 12px;
-      white-space: nowrap;
-      border-radius: 8px;
-      padding: 11px 15px;
-      align-items: center;
-      text-decoration: none;
-      border: 1px solid #151A2D;
-      transition: 0.4s ease;
-  }
-
-  .sidebar-nav .nav-item:is(:hover, .open)>.nav-link:not(.dropdown-title) {
-      color: #151A2D;
-      background: #EEF2FF;
-  }
-
-  .sidebar .nav-link .nav-label {
-      transition: opacity 0.3s ease;
-  }
-
-  .sidebar.collapsed .nav-link :where(.nav-label, .dropdown-icon) {
-      opacity: 0;
-      pointer-events: none;
-  }
-
-  .sidebar.collapsed .nav-link .dropdown-icon {
-      transition: opacity 0.3s 0s ease;
-  }
-
-  .sidebar-nav .secondary-nav {
-      position: absolute;
-      bottom: 35px;
-      width: 100%;
-      background: #151A2D;
-  }
-
-  .sidebar-nav .nav-item {
-      position: relative;
-  }
-
-  /* Dropdown Stylings */
-  .sidebar-nav .dropdown-container .dropdown-icon {
-      margin: 0 -4px 0 auto;
-      transition: transform 0.4s ease, opacity 0.3s 0.2s ease;
-  }
-
-  .sidebar-nav .dropdown-container.open .dropdown-icon {
-      transform: rotate(180deg);
-  }
-
-  .sidebar-nav .custom-dropdown-menu {
-      height: 0;
-      overflow-y: hidden;
-      list-style: none;
-      padding-left: 15px;
-      transition: height 0.4s ease;
-  }
-
-  .sidebar.collapsed .custom-dropdown-menu {
-      position: absolute;
-      top: -10px;
-      left: 100%;
-      opacity: 0;
-      height: auto !important;
-      padding-right: 10px;
-      overflow-y: unset;
-      pointer-events: none;
-      border-radius: 0 10px 10px 0;
-      background: #151A2D;
-      transition: 0s;
-  }
-
-  .sidebar.collapsed .custom-dropdown-menu:has(.dropdown-link) {
-      padding: 7px 10px 7px 24px;
-  }
-
-  .sidebar.sidebar.collapsed .nav-item:hover>.custom-dropdown-menu {
-      opacity: 1;
-      pointer-events: auto;
-      transform: translateY(12px);
-      transition: all 0.4s ease;
-  }
-
-  .sidebar.sidebar.collapsed .nav-item:hover>.custom-dropdown-menu:has(.dropdown-link) {
-      transform: translateY(10px);
-  }
-
-  .custom-dropdown-menu .nav-item .nav-link {
-      color: #F1F4FF;
-      padding: 9px 15px;
-  }
-
-  .sidebar.collapsed .custom-dropdown-menu .nav-link {
-      padding: 7px 15px;
-  }
-
-  .custom-dropdown-menu .nav-item .nav-link.dropdown-title {
-      display: none;
-      color: #fff;
-      padding: 9px 15px;
-  }
-
-  .custom-dropdown-menu:has(.dropdown-link) .nav-item .dropdown-title {
-      font-weight: 500;
-      padding: 7px 15px;
-  }
-
-  .sidebar.collapsed .custom-dropdown-menu .nav-item .dropdown-title {
-      display: block;
-  }
-
-  .sidebar-menu-button {
-      display: none;
-  }
-
-  /* Sub-Dropdown Stylings */
-  .sidebar-nav .sub-dropdown-container .sub-dropdown-icon {
-      margin: 0 -4px 0 auto;
-      transition: transform 0.4s ease;
-  }
-
-  .sidebar-nav .sub-dropdown-container.open .sub-dropdown-icon {
-      transform: rotate(180deg);
-  }
-
-  .sidebar-nav .sub-dropdown-menu {
-      height: 0;
-      overflow-y: hidden;
-      list-style: none;
-      padding-left: 20px;
-      transition: height 0.4s ease;
-  }
-
-  .sidebar.collapsed .sub-dropdown-menu {
-      position: absolute;
-      top: -10px;
-      left: 100%;
-      opacity: 0;
-      height: auto !important;
-      padding: 7px 10px 7px 24px;
-      overflow-y: unset;
-      pointer-events: none;
-      border-radius: 0 10px 10px 0;
-      background: #151A2D;
-      transition: 0s;
-  }
-
-  .sidebar.collapsed .sub-dropdown-container:hover>.sub-dropdown-menu {
-      opacity: 1;
-      pointer-events: auto;
-      transform: translateY(10px);
-      transition: all 0.4s ease;
-  }
-
-  .sub-dropdown-menu .nav-item .nav-link {
-      color: #F1F4FF;
-      padding: 7px 15px;
-  }
-
-  .sidebar.collapsed .sub-dropdown-menu .nav-link {
-      padding: 7px 15px;
-  }
-
-  /* Dashboard Parent Card Styling */
-  .dashboard-parent-card {
-      background: #f8f9fa;
-      border-radius: 1rem;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-      padding: 2rem;
-      margin: 2rem 0;
-      width: 100%;
-      max-width: 100%;
-      animation: fadeIn 0.8s ease-out;
-  }
-
-  /* Dashboard Metric Card Styling */
-  .dashboard-metric-card {
-      background: #ffffff;
-      border: 1px solid #e0e0e0;
-      border-radius: 0.5rem;
-      padding: 1rem;
-      text-align: center;
-      min-height: 150px;
-      display: flex;
-      flex-direction: row;
-      justify-content: space-between;
-      align-items: center;
-      transition: box-shadow 0.3s ease;
-      width: 100%;
-  }
-
-  .dashboard-metric-card:hover {
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
-  }
-
-  .dashboard-metric-card .metric-content {
-      text-align: left;
-      flex: 1;
-  }
-
-  .dashboard-metric-card h2 {
-      color: #2d3748;
-      font-size: 1rem;
-      font-weight: 600;
-      margin-bottom: 1.25rem;
-  }
-
-  .dashboard-metric-card h3 {
-      color: #1a202c;
-      font-size: 1.25rem;
-      font-weight: 700;
-      margin: 0;
-  }
-
-  .dashboard-metric-card p {
-      color: #718096;
-      font-size: 0.70rem;
-      margin: 0;
-  }
-
-  .dashboard-metric-card .no-data {
-      color: #a0aec0;
-      font-style: italic;
-      font-size: 0.9rem;
-  }
-
-  .dashboard-metric-card .icon {
-      font-size: 1.5rem;
-      color: #718096;
-      margin-right: 1rem;
-  }
-
-  .metrics-container {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      gap: 0.5rem;
-  }
-
-  .metrics-container .row {
-      width: 100%;
-      margin-bottom: 0;
-  }
-
-  .metrics-container .col {
-      flex: 1;
-      min-width: 0;
-      padding: 0;
-  }
-
-  .metrics-left {
-      flex: 1;
-      min-width: 160px;
-  }
-
-  .metrics-right {
-      flex: 1;
-      display: flex;
-      justify-content: space-between;
-      min-width: 160px;
-  }
-
-  /* Custom style for currency readability */
-  .currency {
-      font-family: 'Arial', sans-serif;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-  }
-
-  /* Button Styling */
-  .btn-primary {
-      background: #597E6E;
-      border-color: linear-gradient(135deg, #38bdf8, #818cf8);
-      color: #ffffff;
-      border-radius: 0.5rem;
-      //padding: 0.75rem 1.5rem;
-      transition: background-color 0.3s ease, transform 0.2s ease;
-  }
-
-  .btn-primary:hover {
-      background: #97B6A8;
-      border-color: linear-gradient(135deg, #38bdf8, #818cf8);
-      transform: scale(1.05);
-  }
-
-  /* Animation */
-  @keyframes fadeIn {
-      from {
-          opacity: 0;
-          transform: translateY(20px);
-      }
-      to {
-          opacity: 1;
-          transform: translateY(0);
-      }
-  }
-
-  /* Responsive Media Queries */
+  /* Classic dashboard cards (used by dashboard.html "Classic Dashboard") - recoloured to the KFT tokens */
+  .dashboard-parent-card { background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow-1);
+                           padding: 2rem; margin: 2rem 0; width: 100%; max-width: 100%; }
+  .dashboard-metric-card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1rem; text-align: center; min-height: 150px;
+                           display: flex; flex-direction: row; justify-content: space-between; align-items: center; transition: box-shadow .2s ease; width: 100%; }
+  .dashboard-metric-card:hover { box-shadow: var(--shadow-2); }
+  .dashboard-metric-card .metric-content { text-align: left; flex: 1; }
+  .dashboard-metric-card h2 { color: var(--ink-2); font-size: 1rem; font-weight: 600; margin-bottom: 1.25rem; }
+  .dashboard-metric-card h3 { color: var(--ink); font-size: 1.25rem; font-weight: 700; margin: 0; }
+  .dashboard-metric-card p { color: var(--ink-3); font-size: .72rem; margin: 0; }
+  .dashboard-metric-card .no-data { color: var(--ink-3); font-style: italic; font-size: .9rem; }
+  .dashboard-metric-card .icon { font-size: 1.5rem; color: var(--ink-3); margin-right: 1rem; }
+  .metrics-container { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem; }
+  .metrics-container .row { width: 100%; margin-bottom: 0; }
+  .metrics-container .col { flex: 1; min-width: 0; padding: 0; }
+  .metrics-left { flex: 1; min-width: 160px; }
+  .metrics-right { flex: 1; display: flex; justify-content: space-between; min-width: 160px; }
+  .currency { font-weight: 600; letter-spacing: .3px; }
   @media (max-width: 768px) {
-      .sidebar-menu-button {
-          position: fixed;
-          left: 20px;
-          top: 20px;
-          height: 40px;
-          width: 42px;
-          display: flex;
-          color: #F1F4FF;
-          background: #151A2D;
-      }
-      .sidebar.collapsed {
-          width: 270px;
-          left: -270px;
-      }
-      .sidebar.collapsed .sidebar-header .sidebar-toggler {
-          transform: none;
-      }
-      .sidebar.collapsed .sidebar-nav .primary-nav {
-          transform: translateY(15px);
-      }
-      .dashboard-parent-card {
-          margin: 1rem 0;
-          padding: 1.5rem;
-      }
-      .dashboard-metric-card {
-          min-height: 120px;
-          flex-direction: column;
-          text-align: center;
-      }
-      .dashboard-metric-card .icon {
-          margin-right: 0;
-          margin-bottom: 0.5rem;
-      }
-      .dashboard-metric-card h2 {
-          font-size: 0.9rem;
-      }
-      .dashboard-metric-card h3 {
-          font-size: 1.1rem;
-      }
-      .dashboard-metric-card p {
-          font-size: 0.75rem;
-      }
+    .dashboard-parent-card { margin: 1rem 0; padding: 1.5rem; }
+    .dashboard-metric-card { min-height: 120px; flex-direction: column; text-align: center; }
+    .dashboard-metric-card .icon { margin-right: 0; margin-bottom: .5rem; }
   }
-
-  @media screen and (min-width: 1350px) {
-      body {
-          margin-left: 5rem;
-      }
-  }
-
-  .card-header {
-      background-color: #162E2A; /* Deep olive green header */
-      color: #ffffff; /* White text */
-  }
-
-  h1.text-muted {
-      color: #162E2A !important; /* Deep olive green for main heading */
-  }
+  .kft-link .ico.material-symbols-rounded { font-size: 20px; width: 20px; line-height: 1; }
+  .kft-icon-btn .material-symbols-rounded { font-size: 20px; }
 </style>
 
-<style>
-    .header {
-        background-color: #151A2D;
-        color: white;
-        padding: 25px 20px;
-    }
-    .username {
-        font-weight: bold;
-    }
-    .datetime {
-        font-size: 0.9rem;
-    }
-</style>
+{% set role_names = {'1': 'Reviewer', '2': 'Approver', '3': 'Executive Approver', '4': 'Administrator', '5': 'Executive'} %}
+{% set user_name = session['name'] or 'User' %}
 
-<!-- Mobile Sidebar Menu Button -->
-<button class="sidebar-menu-button">
-  <span class="material-symbols-rounded">menu</span>
-</button>
-<aside class="sidebar collapsed">
-  <!-- Sidebar Header -->
-  <header class="sidebar-header">
-    <a href="{{url_for('index')}}" class="header-logo">
-      <img src="{{ url_for('static', filename='images/kft_logo_new_design.png') }}"/>
-    </a>
-    <button class="sidebar-toggler">
-      <span class="material-symbols-rounded">chevron_left</span>
-    </button>
-  </header>
-  <nav class="sidebar-nav">
-    <!-- Primary Top Nav -->
-    <ul class="nav-list primary-nav">
-      <li class="nav-item">
-        <a href="{{url_for('index')}}" class="nav-link">
-          <span class="material-symbols-rounded">dashboard</span>
-          <span class="nav-label">Dashboard</span>
-        </a>
-        <ul class="custom-dropdown-menu">
-          <li class="nav-item"><a class="nav-link dropdown-title" href="{{url_for('index')}}">Dashboard</a></li>
+<aside class="kft-sidebar" id="kftSidebar" aria-label="Main menu">
+  <a href="{{ url_for('index') }}" class="kft-brand" title="Dashboard">
+    <span class="logo"><img src="{{ url_for('static', filename='images/kft_logo_new_design.png') }}" alt="KFT logo"></span>
+    <span class="txt"><b>Khushali Foundation</b><span>eGuarantee System</span></span>
+  </a>
+
+  <nav class="kft-nav">
+    <ul>
+      <li><a href="{{ url_for('index') }}" class="kft-link" data-tip="Dashboard"><span class="ico material-symbols-rounded">dashboard</span><span class="label">Dashboard</span></a></li>
+
+      <li class="kft-group">
+        <button type="button" class="kft-link" data-tip="Home"><span class="ico material-symbols-rounded">home</span><span class="label">Home</span><span class="chev material-symbols-rounded">chevron_right</span></button>
+        <ul class="kft-sub">
+          <li><a href="#" class="kft-link"><span class="label">Chairman Message</span></a></li>
+          <li><a href="#" class="kft-link"><span class="label">Vision, Mission & Goals</span></a></li>
+          <li><a href="#" class="kft-link"><span class="label">Board of Trustee</span></a></li>
+          <li><a href="#" class="kft-link"><span class="label">Board of Director</span></a></li>
+          <li><a href="#" class="kft-link"><span class="label">Committees</span></a></li>
+          <li><a href="#" class="kft-link"><span class="label">Governance Manual</span></a></li>
+          <li><a href="#" class="kft-link"><span class="label">Partners Institutions</span></a></li>
         </ul>
       </li>
-      <!-- Dropdown -->
-      <li class="nav-item dropdown-container">
-        <a href="#" class="nav-link custom-dropdown-toggle">
-          <i class="fa-classic fa-solid fa-home fa-xl"></i>
-          <span class="nav-label">Home</span>
-          <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
-        </a>
-        <ul class="custom-dropdown-menu">
-          <li class="nav-item"><a class="nav-link dropdown-title">Home</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Chairman Message</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Vision, Mission & Goals</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Board of Trustee</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Board of Director</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Committees</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Governance Manual</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Partners Institutions</a></li>
-        </ul>
-      </li>
-      <!-- Dropdown with Sub-Dropdown (Static Height: 500px) -->
-      <li class="nav-item dropdown-container" data-parent-close-height="176" data-parent-height="382">
-        <a href="#" class="nav-link custom-dropdown-toggle">
-          <i class="fa-classic fa-solid fa-wallet fa-xl"></i>
-          <span class="nav-label">Loan Portfolio</span>
-          <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
-        </a>
-        <ul class="custom-dropdown-menu">
-          <li class="nav-item"><a class="nav-link dropdown-title">Loan Portfolio</a></li>
-          <li class="nav-item"><a href="{{url_for('manage_pre_disbursement')}}" class="nav-link dropdown-link">Loan Application Analysis</a></li>
-          <li class="nav-item"><a href="{{url_for('manage_approval_letters')}}" class="nav-link dropdown-link">Manage Approval Letters</a></li>
+
+      <li class="kft-nav-group"><span>Work</span></li>
+
+      <li class="kft-group">
+        <button type="button" class="kft-link" data-tip="Loan Portfolio"><span class="ico material-symbols-rounded">account_balance_wallet</span><span class="label">Loan Portfolio</span><span class="chev material-symbols-rounded">chevron_right</span></button>
+        <ul class="kft-sub">
+          <li><a href="{{ url_for('manage_pre_disbursement') }}" class="kft-link"><span class="label">Loan Application Analysis</span></a></li>
+          <li><a href="{{ url_for('manage_approval_letters') }}" class="kft-link"><span class="label">Manage Approval Letters</span></a></li>
           {% if session['rights']|string in ['1', '2', '3', '4', '5'] or PermissionHelper.has_permission(logged_in_user, "/application-assistant") %}
-            <li class="nav-item"><a href="{{url_for('application_assistant')}}" class="nav-link dropdown-link">Application Tracker</a></li>
+            <li><a href="{{ url_for('application_assistant') }}" class="kft-link"><span class="label">Application Tracker</span></a></li>
           {% endif %}
-          <li class="nav-item sub-dropdown-container">
-            <a href="#" class="nav-link dropdown-link sub-custom-dropdown-toggle">
-              <span class="">Loan Portfolio Reports</span>
-              <span class="sub-dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
-            </a>
-            <ul class="sub-dropdown-menu">
-              <li class="nav-item"><a class="nav-link dropdown-title">Loan Portfolio Reports</a></li>
+          <li class="kft-group">
+            <button type="button" class="kft-link"><span class="label">Loan Portfolio Reports</span><span class="chev material-symbols-rounded">chevron_right</span></button>
+            <ul class="kft-sub">
               {# Gross / Net Loans Reports #}
               {% if session['rights']|string in ['2', '3', '4', '5'] or PermissionHelper.has_permission(logged_in_user, "/post-disbursement-report") %}
-                <li class="nav-item">
-                  <a href="{{url_for('post_disbursement_report')}}" class="nav-link">Gross / Net Loans Reports</a>
-                </li>
+                <li><a href="{{ url_for('post_disbursement_report') }}" class="kft-link"><span class="label">Gross / Net Loans Reports</span></a></li>
               {% endif %}
-
               {# Loan Projections Report #}
               {% if session['rights']|string in ['2', '3', '4', '5'] or PermissionHelper.has_permission(logged_in_user, "/loan-projection-report") %}
-                <li class="nav-item">
-                  <a href="{{url_for('loan_projection_report')}}" class="nav-link">Loan Projections Report</a>
-                </li>
+                <li><a href="{{ url_for('loan_projection_report') }}" class="kft-link"><span class="label">Loan Projections Report</span></a></li>
               {% endif %}
-
               {# Disagreed Loans Report #}
               {% if session['rights']|string in ['2', '3', '4', '5'] or PermissionHelper.has_permission(logged_in_user, "/view-rejected-applications") %}
-                <li class="nav-item">
-                  <a href="{{url_for('view_rejected_applications')}}" class="nav-link">Disagreed Loans Report</a>
-                </li>
+                <li><a href="{{ url_for('view_rejected_applications') }}" class="kft-link"><span class="label">Disagreed Loans Report</span></a></li>
               {% endif %}
-
+              {# Exception Report (Agreed / Disagreed with exception) #}
+              {% if session['rights']|string in ['2', '3', '4', '5'] or PermissionHelper.has_permission(logged_in_user, "/exception-report") %}
+                <li><a href="{{ url_for('exception_report') }}" class="kft-link"><span class="label">Exception Report</span></a></li>
+              {% endif %}
               {# Loan Budget Vs Disbursed #}
               {% if session['rights']|string in ['2', '3', '4', '5'] or PermissionHelper.has_permission(logged_in_user, "/loan-budget-vs-disbursed") %}
-                <li class="nav-item">
-                  <a href="#" class="nav-link">Loan Budget Vs Disbursed</a>
-                </li>
+                <li><a href="#" class="kft-link"><span class="label">Loan Budget Vs Disbursed</span></a></li>
               {% endif %}
-              <li class="nav-item"><a href="#" class="nav-link">Non Performance Loan Report</a></li>
+              <li><a href="#" class="kft-link"><span class="label">Non Performance Loan Report</span></a></li>
             </ul>
           </li>
         </ul>
       </li>
-      <!-- Dropdown -->
-      <li class="nav-item dropdown-container">
-        <a href="#" class="nav-link custom-dropdown-toggle">
-          <i class="fa-classic fa-solid fa-users fa-xl"></i>
-          <span class="nav-label">Volunteers</span>
-          <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
-        </a>
-        <ul class="custom-dropdown-menu">
-          <li class="nav-item"><a class="nav-link dropdown-title">Volunteers</a></li>
-          <li class="nav-item"><a href="{{url_for('profile')}}" class="nav-link dropdown-link">Profile</a></li>
+
+      <li class="kft-group">
+        <button type="button" class="kft-link" data-tip="Volunteers"><span class="ico material-symbols-rounded">group</span><span class="label">Volunteers</span><span class="chev material-symbols-rounded">chevron_right</span></button>
+        <ul class="kft-sub">
+          <li><a href="{{ url_for('profile') }}" class="kft-link"><span class="label">Profile</span></a></li>
           {# Roles & Service Term Update #}
           {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/roles-service-term-update") %}
-            <li class="nav-item">
-              <a href="#" class="nav-link dropdown-link">Roles & Service Term Update</a>
-            </li>
+            <li><a href="#" class="kft-link"><span class="label">Roles & Service Term Update</span></a></li>
           {% endif %}
-          <li class="nav-item"><a href="{{url_for('manage_self_update_community')}}" class="nav-link dropdown-link">Self Update Committee Hours</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Volunteer Report</a></li>
+          <li><a href="{{ url_for('manage_self_update_community') }}" class="kft-link"><span class="label">Self Update Committee Hours</span></a></li>
+          <li><a href="#" class="kft-link"><span class="label">Volunteer Report</span></a></li>
         </ul>
       </li>
-      <!-- Dropdown with Sub-Dropdown (Static Height: 1000px) -->
-      <li class="nav-item dropdown-container" data-parent-close-height="216"  data-parent-height="378">
-        <a href="#" class="nav-link custom-dropdown-toggle">
-          <i class="fa-solid fa-coins fa-xl"></i>
-          <span class="nav-label">Financial Management</span>
-          <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
-        </a>
-        <ul class="custom-dropdown-menu">
-          <li class="nav-item"><a class="nav-link dropdown-title">Financial Management</a></li>
 
+      <li class="kft-nav-group"><span>Organisation</span></li>
+
+      <li class="kft-group">
+        <button type="button" class="kft-link" data-tip="Financial Management"><span class="ico material-symbols-rounded">payments</span><span class="label">Financial Management</span><span class="chev material-symbols-rounded">chevron_right</span></button>
+        <ul class="kft-sub">
           {% if session['rights']|string == '3' or session['rights']|string == '4' or PermissionHelper.has_permission(logged_in_user, "/manage-bank-entries") %}
-            <li class="nav-item"><a href="{{url_for('manage_bank_entries')}}" class="nav-link dropdown-link">Bank Data Entry</a></li>
+            <li><a href="{{ url_for('manage_bank_entries') }}" class="kft-link"><span class="label">Bank Data Entry</span></a></li>
           {% endif %}
-
           {# Bank Reconciliation #}
           {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/bank-reconciliation") %}
-            <li class="nav-item">
-              <a href="#" class="nav-link dropdown-link">Bank Reconciliation</a>
-            </li>
+            <li><a href="#" class="kft-link"><span class="label">Bank Reconciliation</span></a></li>
           {% endif %}
-
-          <li class="nav-item sub-dropdown-container">
-            <a href="#" class="nav-link dropdown-link sub-custom-dropdown-toggle">
-              <span class="">Financial Reports</span>
-              <span class="sub-dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
-            </a>
-            <ul class="sub-dropdown-menu">
-              <li class="nav-item"><a class="nav-link dropdown-title">Financial Reports</a></li>
+          <li class="kft-group">
+            <button type="button" class="kft-link"><span class="label">Financial Reports</span><span class="chev material-symbols-rounded">chevron_right</span></button>
+            <ul class="kft-sub">
               {# Bank Account Statement #}
               {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/bank-account-statement") %}
-                <li class="nav-item">
-                  <a href="#" class="nav-link dropdown-link">Bank Account Statement</a>
-                </li>
+                <li><a href="#" class="kft-link"><span class="label">Bank Account Statement</span></a></li>
               {% endif %}
-
               {# Loan to Value Report #}
               {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/loan-to-value-report") %}
-                <li class="nav-item">
-                  <a href="#" class="nav-link dropdown-link">Loan to Value Report</a>
-                </li>
+                <li><a href="#" class="kft-link"><span class="label">Loan to Value Report</span></a></li>
               {% endif %}
-
               {% if session['rights']|string == '3' or session['rights']|string == '4' or PermissionHelper.has_permission(logged_in_user, "/fund-projection-report") %}
-                <li class="nav-item"><a href="{{url_for('fund_projection_report')}}" class="nav-link dropdown-link">Funds Projection Analysis</a></li>
+                <li><a href="{{ url_for('fund_projection_report') }}" class="kft-link"><span class="label">Funds Projection Analysis</span></a></li>
               {% endif %}
-
               {% if session['rights']|string == '3' or session['rights']|string == '4' or PermissionHelper.has_permission(logged_in_user, "/fund-projected-vs-disbursement") %}
-                <li class="nav-item"><a href="{{url_for('fund_projected_vs_disbursement')}}" class="nav-link dropdown-link">Funds Projected Vs Actual</a></li>
+                <li><a href="{{ url_for('fund_projected_vs_disbursement') }}" class="kft-link"><span class="label">Funds Projected Vs Actual</span></a></li>
               {% endif %}
-
             </ul>
           </li>
           {# Data Archive #}
           {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/data-archive") %}
-            <li class="nav-item">
-              <a href="#" class="nav-link dropdown-link">Data Archive</a>
-            </li>
+            <li><a href="#" class="kft-link"><span class="label">Data Archive</span></a></li>
           {% endif %}
         </ul>
       </li>
 
-      <!-- Dropdown -->
-      <li class="nav-item dropdown-container">
-        <a href="#" class="nav-link custom-dropdown-toggle">
-          <i class="fa-solid fa-list-check fa-xl"></i>
-          <span class="nav-label">Risk Management</span>
-          <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
-        </a>
-        <ul class="custom-dropdown-menu">
-          {# Risk Management - Title #}
-          {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/risk-management") %}
-            <li class="nav-item"><a class="nav-link dropdown-title">Risk Management</a></li>
-          {% endif %}
-
+      <li class="kft-group">
+        <button type="button" class="kft-link" data-tip="Risk Management"><span class="ico material-symbols-rounded">shield</span><span class="label">Risk Management</span><span class="chev material-symbols-rounded">chevron_right</span></button>
+        <ul class="kft-sub">
           {# TAT Exception Reports #}
           {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/tat-exception-reports") %}
-            <li class="nav-item"><a href="#" class="nav-link dropdown-link">TAT Exception Reports</a></li>
+            <li><a href="#" class="kft-link"><span class="label">TAT Exception Reports</span></a></li>
           {% endif %}
-
           {# Loan Matrix Exceptions Report #}
           {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/loan-matrix-exceptions-report") %}
-            <li class="nav-item"><a href="#" class="nav-link dropdown-link">Loan Matrix Exceptions Report</a></li>
+            <li><a href="#" class="kft-link"><span class="label">Loan Matrix Exceptions Report</span></a></li>
           {% endif %}
         </ul>
       </li>
 
-      <!-- Dropdown -->
-      <li class="nav-item dropdown-container">
-        <a href="#" class="nav-link custom-dropdown-toggle">
-          <i class="fa-solid fa-handshake fa-xl"></i>
-          <span class="nav-label">Meetings</span>
-          <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
-        </a>
-        <ul class="custom-dropdown-menu">
-          <li class="nav-item"><a class="nav-link dropdown-title" href="{{url_for('view_meeting_calendar')}}">Meetings</a></li>
-          <!--<li class="nav-item"><a href="#" class="nav-link dropdown-link">Calendars</a></li>-->
+      <li class="kft-group">
+        <button type="button" class="kft-link" data-tip="Meetings"><span class="ico material-symbols-rounded">event</span><span class="label">Meetings</span><span class="chev material-symbols-rounded">chevron_right</span></button>
+        <ul class="kft-sub">
+          <li><a href="{{ url_for('view_meeting_calendar') }}" class="kft-link"><span class="label">Meetings Calendar</span></a></li>
+          <li><a href="{{ url_for('view_my_meetings') }}" class="kft-link"><span class="label">My Meetings</span></a></li>
           {# Meeting Minutes Update #}
           {% if session['rights']|string in ['2', '3', '4', '5'] or PermissionHelper.has_permission(logged_in_user, "/meeting-minutes-update") %}
-            <li class="nav-item">
-              <a href="#" class="nav-link dropdown-link">Meeting Minutes Update</a>
-            </li>
+            <li><a href="#" class="kft-link"><span class="label">Meeting Minutes Update</span></a></li>
           {% endif %}
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Meeting Action Items List</a></li>
-        </ul>
-      </li>
-      <!-- Dropdown -->
-      <li class="nav-item dropdown-container">
-        <a href="#" class="nav-link custom-dropdown-toggle">
-          <i class="fa-brands fa-squarespace fa-xl"></i>
-          <span class="nav-label">Research & Development</span>
-          <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
-        </a>
-        <ul class="custom-dropdown-menu">
-          <li class="nav-item"><a class="nav-link dropdown-title">Research & Development</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">KFT Regional Newsletters</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Bank Product Lines</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Council Organization</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">SAJDA Best Practices</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Other Program Best Practices</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Pakistan Poverty</a></li>
-        </ul>
-      </li>
-      <!-- Dropdown -->
-      <li class="nav-item dropdown-container">
-        <a href="#" class="nav-link custom-dropdown-toggle">
-          <i class="fa-solid fa-compact-disc fa-xl"></i>
-          <span class="nav-label">Program Impact</span>
-          <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
-        </a>
-        <ul class="custom-dropdown-menu">
-          <li class="nav-item"><a class="nav-link dropdown-title">Program Impact</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Cash flow / Baseline Data</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Student Academic Profile</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Impact Monitoring by region</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Success stories</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Graphs, trends, map</a></li>
-          <li class="nav-item"><a href="#" class="nav-link dropdown-link">Pakistan Poverty</a></li>
+          <li><a href="#" class="kft-link"><span class="label">Meeting Action Items List</span></a></li>
         </ul>
       </li>
 
-      <!-- Dropdown -->
-      <li class="nav-item dropdown-container">
-        <a href="#" class="nav-link custom-dropdown-toggle">
-          <i class="fa-solid fa-gear fa-xl"></i>
-          <span class="nav-label">Settings</span>
-          <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
-        </a>
-        <ul class="custom-dropdown-menu">
-          <li class="nav-item"><a class="nav-link dropdown-title">Settings</a></li>
+      <li class="kft-group">
+        <button type="button" class="kft-link" data-tip="Research & Development"><span class="ico material-symbols-rounded">science</span><span class="label">Research & Development</span><span class="chev material-symbols-rounded">chevron_right</span></button>
+        <ul class="kft-sub">
+          <li><a href="#" class="kft-link"><span class="label">KFT Regional Newsletters</span></a></li>
+          <li><a href="#" class="kft-link"><span class="label">Bank Product Lines</span></a></li>
+          <li><a href="#" class="kft-link"><span class="label">Council Organization</span></a></li>
+          <li><a href="#" class="kft-link"><span class="label">SAJDA Best Practices</span></a></li>
+          <li><a href="#" class="kft-link"><span class="label">Other Program Best Practices</span></a></li>
+          <li><a href="#" class="kft-link"><span class="label">Pakistan Poverty</span></a></li>
+        </ul>
+      </li>
+
+      <li class="kft-group">
+        <button type="button" class="kft-link" data-tip="Program Impact"><span class="ico material-symbols-rounded">volunteer_activism</span><span class="label">Program Impact</span><span class="chev material-symbols-rounded">chevron_right</span></button>
+        <ul class="kft-sub">
+          <li><a href="#" class="kft-link"><span class="label">Cash flow / Baseline Data</span></a></li>
+          <li><a href="#" class="kft-link"><span class="label">Student Academic Profile</span></a></li>
+          <li><a href="#" class="kft-link"><span class="label">Impact Monitoring by region</span></a></li>
+          <li><a href="#" class="kft-link"><span class="label">Success stories</span></a></li>
+          <li><a href="#" class="kft-link"><span class="label">Graphs, trends, map</span></a></li>
+          <li><a href="#" class="kft-link"><span class="label">Pakistan Poverty</span></a></li>
+        </ul>
+      </li>
+
+      <li class="kft-nav-group"><span>Administration</span></li>
+
+      <li class="kft-group">
+        <button type="button" class="kft-link" data-tip="Settings"><span class="ico material-symbols-rounded">settings</span><span class="label">Settings</span><span class="chev material-symbols-rounded">chevron_right</span></button>
+        <ul class="kft-sub">
           {# Bank Setup #}
           {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/manage-bank-details") %}
-            <li class="nav-item"><a href="{{url_for('manage_bank_details')}}" class="nav-link">Bank Setup</a></li>
+            <li><a href="{{ url_for('manage_bank_details') }}" class="kft-link"><span class="label">Bank Setup</span></a></li>
           {% endif %}
-
           {# Branch Setup #}
           {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/manage-branches") %}
-            <li class="nav-item"><a href="{{url_for('manage_branches')}}" class="nav-link">Branch Setup</a></li>
+            <li><a href="{{ url_for('manage_branches') }}" class="kft-link"><span class="label">Branch Setup</span></a></li>
           {% endif %}
-
           {# Announcements Setup #}
           {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/manage-announcements") %}
-            <li class="nav-item"><a href="{{url_for('manage_announcements')}}" class="nav-link">Announcements Setup</a></li>
+            <li><a href="{{ url_for('manage_announcements') }}" class="kft-link"><span class="label">Announcements Setup</span></a></li>
           {% endif %}
-
           {# Management Report Configuration #}
           {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/management-report-configuration") %}
-            <li class="nav-item"><a href="{{url_for('management_report_configuration')}}" class="nav-link">Management Report Configuration</a></li>
+            <li><a href="{{ url_for('management_report_configuration') }}" class="kft-link"><span class="label">Management Report Configuration</span></a></li>
           {% endif %}
-
           {# Loan Administration - Title #}
           {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/loan-administration") %}
-            <li class="nav-item"><a class="nav-link dropdown-title">Loan Administration</a></li>
+            <li class="kft-sub-title">Loan Administration</li>
           {% endif %}
-
           {# Loan Matrix Parameters #}
           {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/manage_loan_metrics") %}
-            <li class="nav-item"><a href="{{url_for('manage_loan_metrics')}}" class="nav-link">Loan Matrix Parameters</a></li>
+            <li><a href="{{ url_for('manage_loan_metrics') }}" class="kft-link"><span class="label">Loan Matrix Parameters</span></a></li>
           {% endif %}
-
           {# Loan Annual Budgets #}
           {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/manage-budget") %}
-            <li class="nav-item"><a href="{{url_for('manage_budget')}}" class="nav-link">Loan Annual Budgets</a></li>
+            <li><a href="{{ url_for('manage_budget') }}" class="kft-link"><span class="label">Loan Annual Budgets</span></a></li>
           {% endif %}
-
           {# Loan Assessment File Uploading #}
           {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/manage-file") %}
-            <li class="nav-item"><a href="{{url_for('manage_file')}}" class="nav-link">Loan Assessment File Uploading</a></li>
+            <li><a href="{{ url_for('manage_file') }}" class="kft-link"><span class="label">Loan Assessment File Uploading</span></a></li>
           {% endif %}
-
           {# Loan-Analysis Auto Upload Monitor #}
           {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/reports/pre-disbursement-cron") %}
-            <li class="nav-item"><a href="{{url_for('pre_disbursement_cron_report')}}" class="nav-link">Loan-Analysis Auto Upload Monitor</a></li>
+            <li><a href="{{ url_for('pre_disbursement_cron_report') }}" class="kft-link"><span class="label">Loan-Analysis Auto Upload Monitor</span></a></li>
           {% endif %}
-
           {# Images Auto Upload Monitor #}
           {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/reports/image-zip-cron") %}
-            <li class="nav-item"><a href="{{url_for('image_zip_cron_report')}}" class="nav-link">Images Auto Upload Monitor</a></li>
+            <li><a href="{{ url_for('image_zip_cron_report') }}" class="kft-link"><span class="label">Images Auto Upload Monitor</span></a></li>
           {% endif %}
-
           {# Post Disbursement Monitor #}
           {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/reports/post-disb-email-cron") %}
-            <li class="nav-item"><a href="{{url_for('post_disb_email_cron_report')}}" class="nav-link">Post Disbursement Upload Monitor</a></li>
+            <li><a href="{{ url_for('post_disb_email_cron_report') }}" class="kft-link"><span class="label">Post Disbursement Upload Monitor</span></a></li>
           {% endif %}
-
           {# Student Finance Auto Approved Monitor #}
           {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/reports/auto-approval-log") %}
-            <li class="nav-item"><a href="{{url_for('auto_approval_log_report')}}" class="nav-link">Student Finance Auto Approved Monitor</a></li>
+            <li><a href="{{ url_for('auto_approval_log_report') }}" class="kft-link"><span class="label">Student Finance Auto Approved Monitor</span></a></li>
           {% endif %}
-
           {# Manage Web Permissions #}
           {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/manage-web-permissions") %}
-            <li class="nav-item"><a href="{{url_for('manage_web_permissions')}}" class="nav-link">Manage Web Permissions</a></li>
+            <li><a href="{{ url_for('manage_web_permissions') }}" class="kft-link"><span class="label">Manage Web Permissions</span></a></li>
           {% endif %}
-
           {# Volunteers Permissions #}
           {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/manage-user-permissions") %}
-            <li class="nav-item"><a href="{{url_for('manage_user_permissions')}}" class="nav-link">Volunteers Permissions</a></li>
+            <li><a href="{{ url_for('manage_user_permissions') }}" class="kft-link"><span class="label">Volunteers Permissions</span></a></li>
           {% endif %}
-
           {# Volunteers Setup #}
           {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/manage_users") %}
-            <li class="nav-item"><a href="{{url_for('manage_users')}}" class="nav-link dropdown-link">Volunteers Setup</a></li>
+            <li><a href="{{ url_for('manage_users') }}" class="kft-link"><span class="label">Volunteers Setup</span></a></li>
           {% endif %}
-
           {# Meeting Setup #}
           {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/manage-meeting-setup") %}
-            <li class="nav-item"><a href="{{url_for('manage_meeting_setup')}}" class="nav-link dropdown-link">Meeting Setup</a></li>
+            <li><a href="{{ url_for('manage_meeting_setup') }}" class="kft-link"><span class="label">Meeting Setup</span></a></li>
           {% endif %}
-
           {# Partner Organization #}
           {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/partner-organization") %}
-            <li class="nav-item"><a href="#" class="nav-link">Partner Organization</a></li>
+            <li><a href="#" class="kft-link"><span class="label">Partner Organization</span></a></li>
           {% endif %}
-        </ul>
-      </li>
-    </ul>
-    <!-- Secondary Bottom Nav -->
-    <ul class="nav-list secondary-nav">
-      <li class="nav-item">
-        <a href="{{url_for('logout')}}" class="nav-link">
-          <i class="fa-solid fa-arrow-right-from-bracket fa-xl"></i>
-          <span class="nav-label">Sign Out</span>
-        </a>
-        <ul class="custom-dropdown-menu">
-          <li class="nav-item"><a class="nav-link dropdown-title" href="{{url_for('logout')}}">Sign Out</a></li>
         </ul>
       </li>
     </ul>
   </nav>
+
+  <div class="kft-sidebar-foot">
+    <a href="{{ url_for('logout') }}" class="kft-link" data-tip="Sign out"><span class="ico material-symbols-rounded">logout</span><span class="label">Sign out</span></a>
+    <button type="button" class="kft-link kft-collapse-btn" data-nav-toggle data-tip="Expand menu"><span class="ico material-symbols-rounded chev">chevron_left</span><span class="label">Collapse menu</span></button>
+  </div>
 </aside>
+<div class="kft-backdrop" data-nav-close></div>
+<div class="kft-flyout" id="kftFlyout" role="menu"></div>
+<div class="kft-tip" id="kftTip"></div>
 
-
-<header class="header">
-    <div class="container-fluid">
-        <div class="d-flex justify-content-between align-items-center">
-            <div class="username">
-                <!-- Placeholder for username from session -->
-                Welcome, <span id="username">{{session['name']}}</span>
-            </div>
-            <div class="datetime" id="currentDateTime">
-                <!-- Date and time will be populated by JavaScript -->
-            </div>
-        </div>
-    </div>
+<header class="kft-topbar">
+  <button type="button" class="kft-icon-btn" data-nav-toggle title="Show / hide menu labels"><span class="material-symbols-rounded">menu</span></button>
+  <div class="kft-welcome">Welcome, <b id="username">{{ user_name }}</b></div>
+  <div class="right">
+    <span class="kft-clock" id="currentDateTime"></span>
+    <button type="button" class="kft-icon-btn kft-theme-btn" data-theme-toggle title="Switch light / dark mode">
+      <span class="material-symbols-rounded moon">dark_mode</span><span class="material-symbols-rounded sun">light_mode</span>
+    </button>
+    <a href="{{ url_for('profile') }}" class="kft-user" title="My profile">
+      <span class="kft-avatar">{{ (user_name.split()|map('first')|join)[:2]|upper }}</span>
+      <span class="who"><span class="n d-block">{{ user_name }}</span><span class="r d-block">{{ role_names.get(session['rights']|string, 'User') }}</span></span>
+    </a>
+  </div>
 </header>
 
-<!-- Single Text Left-to-Right Marquee -->
+{# Announcements: scrolling marquee inside the new notice strip. Pauses on hover/focus and stops for reduced-motion users (WCAG 2.2.2). #}
 {% if announcments_data %}
-    <style>
-        .dynamic-marquee {
-            background: #4B7043;
-            color: white;
-            padding: 14px 0;
-            margin: 0;
-            overflow: hidden;
-            white-space: nowrap;
-            font-size: 1.15rem;
-            font-weight: 500;
-            width: 100%;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-        }
-
-        .marquee-wrapper {
-            display: inline-block;
-            padding-left: 100%;
-            animation: scroll-left 18s linear infinite;
-            padding-right: 60rem; /* extra space so it loops nicely */
-        }
-
-        @keyframes scroll-left {
-            0%   { transform: translateX(0); }
-            100% { transform: translateX(-100%); }
-        }
-
-        .dynamic-marquee:hover .marquee-wrapper {
-            animation-play-state: paused;
-        }
-
-        .marquee-item {
-            display: inline-block;
-            margin-right: 6rem;          /* space between repeated messages */
-            padding: 0 2rem;
-        }
-
-        /* Respect user preference for reduced motion */
-        @media (prefers-reduced-motion: reduce) {
-            .marquee-wrapper {
-                animation: none !important;
-                transform: translateX(0) !important;
-            }
-        }
-    </style>
-
-    <section class="dynamic-marquee alt-marquee">
-        <div class="marquee-wrapper">
-            {% for item in announcments_data %}
-                <span class="marquee-item" {% if item.style %}style="{{ item.style }}"{% endif %}>
-                    {{ item.content | safe }}
-                </span>
-            {% endfor %}
-        </div>
-    </section>
-
-{% else %}
-    <!-- Optional: silent fallback or small welcome message -->
-    <!-- <div style="height: 46px;"></div> -->
+  <section class="kft-notice" id="kftNotice" role="status">
+    <span class="material-symbols-rounded" style="font-size:18px">campaign</span>
+    <div class="track" tabindex="0" title="Hover to pause">
+      <div class="items">
+        {% for item in announcments_data %}
+          <span class="item" {% if item.style %}style="{{ item.style }}"{% endif %}>{{ item.content | safe }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    <button type="button" class="x" title="Hide announcements for this session" aria-label="Hide announcements">&times;</button>
+  </section>
 {% endif %}
 
 <script>
-    // Function to update date and time
-    function updateDateTime() {
-        const now = new Date();
-        const options = {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: true,
-            timeZone: 'Asia/Karachi' // Set to PKT as per current date
-        };
-        const dateTimeString = now.toLocaleString('en-US', options);
-        document.getElementById('currentDateTime').textContent = dateTimeString;
-    }
+(function () {
+  const root = document.documentElement;
+  const sidebar = document.getElementById('kftSidebar');
+  const flyout = document.getElementById('kftFlyout');
+  const tip = document.getElementById('kftTip');
+  const isMobile = () => window.matchMedia('(max-width: 860px)').matches;
+  const save = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
 
-    // Update date and time immediately and every second
-    updateDateTime();
-
-    const date = new Date();
-    const year = date.getFullYear(); // gets the current year, e.g., 2025
-    document.getElementById('currentDateSpan').textContent = year;
-</script>
-
-
-<script>
-  const sidebar = document.querySelector('.sidebar');
-  const alt_marquee = document.querySelector('.alt-marquee');
-  const header = document.querySelector('.header');
-  const body = document.body;
-
-  function updateBodyPosition() {
-    if (!sidebar.classList.contains('collapsed')) {
-      body.classList.add('sidebar-expanded');
-      header.classList.add('header-expanded');
-      alt_marquee.classList.add('alt-marquee-expanded');
-    } else {
-      body.classList.remove('sidebar-expanded');
-      header.classList.remove('header-expanded');
-      alt_marquee.classList.remove('alt-marquee-expanded');
-    }
+  // Clock (Pakistan time)
+  const clock = document.getElementById('currentDateTime');
+  function updateDateTime() {
+    clock.textContent = new Date().toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Karachi' });
   }
+  updateDateTime(); setInterval(updateDateTime, 30000);
+  const yearSpan = document.getElementById('currentDateSpan');
+  if (yearSpan) yearSpan.textContent = new Date().getFullYear();
 
-  // Toggle the visibility of a dropdown or sub-dropdown menu
-  const toggleMenu = (container, menu, isOpen, isSubmenu = false) => {
-    console.log("Toggling menu...");
-    console.log("Container:", container);
-    console.log("Menu:", menu);
-    console.log("Is Open:", isOpen);
-    console.log("Is Submenu:", isSubmenu);
-
-    container.classList.toggle("open", isOpen);
-
-    const height = isOpen ? `${menu.scrollHeight}px` : '0';
-
-    console.log("Calculated height:", height);
-
-    menu.style.height = height;
-
-    // If this is a sub-dropdown, apply a static height to the parent dropdown if specified
-    if (isSubmenu && isOpen) {
-      const parentDropdown = container.closest('.custom-dropdown-menu');
-      if (parentDropdown) {
-        const parentContainer = parentDropdown.closest('.dropdown-container');
-        const parentMenu = parentContainer.querySelector('.custom-dropdown-menu');
-
-        // Use data-parent-height if available, otherwise fall back to scrollHeight
-        const staticHeight = parentContainer.dataset.parentHeight || parentMenu.scrollHeight;
-        parentMenu.style.height = `${staticHeight}px`;
-      }
-    }
-
-    // If closing a sub-dropdown, reset parent dropdown height to its natural scrollHeight
-    if (isSubmenu && !isOpen) {
-      const parentDropdown = container.closest('.custom-dropdown-menu');
-      if (parentDropdown) {
-        const parentContainer = parentDropdown.closest('.dropdown-container');
-        const parentMenu = parentContainer.querySelector('.custom-dropdown-menu');
-        const closeHeight = parentContainer.dataset.parentCloseHeight || parentMenu.scrollHeight;
-        console.log('closeHeight:- ', closeHeight)
-        parentMenu.style.height = `${closeHeight}px`;
-      }
-    }
-  };
-
-  // Close all open dropdowns and sub-dropdowns
-  const closeAllMenus = () => {
-    document.querySelectorAll(".dropdown-container.open, .sub-dropdown-container.open").forEach((openContainer) => {
-      const menu = openContainer.querySelector(".custom-dropdown-menu, .sub-dropdown-menu");
-      toggleMenu(openContainer, menu, false);
-    });
-  };
-
-  // Attach click event to all dropdown toggles
-  document.querySelectorAll(".custom-dropdown-toggle").forEach((dropdownToggle) => {
-    dropdownToggle.addEventListener("click", (e) => {
-      e.preventDefault();
-      const dropdown = dropdownToggle.closest(".dropdown-container");
-      const menu = dropdown.querySelector(".custom-dropdown-menu");
-      const isOpen = dropdown.classList.contains("open");
-      closeAllMenus(); // Close all open dropdowns and sub-dropdowns
-      toggleMenu(dropdown, menu, !isOpen); // Toggle current dropdown visibility
-    });
+  // Hide groups whose items were all removed by permission checks
+  sidebar.querySelectorAll('.kft-group').forEach((g) => {
+    if (!g.querySelector('.kft-sub a.kft-link')) g.style.display = 'none';
+  });
+  sidebar.querySelectorAll('.kft-group').forEach((g) => {   // second pass: a group left with only hidden sub-groups
+    const visible = [...g.querySelectorAll(':scope > .kft-sub > li')].some((li) => li.style.display !== 'none' && !li.classList.contains('kft-sub-title'));
+    if (!visible) g.style.display = 'none';
   });
 
-  // Attach click event to all sub-dropdown toggles
-  document.querySelectorAll(".sub-custom-dropdown-toggle").forEach((subDropdownToggle) => {
-    subDropdownToggle.addEventListener("click", (e) => {
-      e.preventDefault();
-      const subDropdown = subDropdownToggle.closest(".sub-dropdown-container");
-      const menu = subDropdown.querySelector(".sub-dropdown-menu");
-      const isOpen = subDropdown.classList.contains("open");
-      // Close other sub-dropdowns within the same dropdown
-      subDropdown.closest(".custom-dropdown-menu").querySelectorAll(".sub-dropdown-container.open").forEach((openSub) => {
-        if (openSub !== subDropdown) {
-          const subMenu = openSub.querySelector(".sub-dropdown-menu");
-          toggleMenu(openSub, subMenu, false, true);
-        }
-      });
-      toggleMenu(subDropdown, menu, !isOpen, true); // Toggle current sub-dropdown visibility
-    });
-  });
-
-  // Attach click event to sidebar toggle buttons
-  document.querySelectorAll(".sidebar-toggler, .sidebar-menu-button").forEach((button) => {
-    button.addEventListener("click", () => {
-      closeAllMenus(); // Close all open dropdowns and sub-dropdowns
-      //document.querySelector(".sidebar").classList.toggle("collapsed"); // Toggle collapsed class on sidebar
-      sidebar.classList.toggle("collapsed"); // Toggle collapsed class on sidebar
-      updateBodyPosition(); // Update body class based on sidebar state
-    });
-  });
-
-  updateBodyPosition();
-
-  // Collapse sidebar by default on small screens
-  if (window.innerWidth <= 1024) document.querySelector(".sidebar").classList.add("collapsed");
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-
-    function hideEmptyDropdowns() {
-        const dropdownContainers = document.querySelectorAll('.dropdown-container');
-
-        dropdownContainers.forEach(container => {
-            const menu = container.querySelector('.custom-dropdown-menu');
-            if (!menu) return;
-
-            const allItems = menu.querySelectorAll('li.nav-item');
-
-            let hasVisibleItem = false;
-
-            allItems.forEach(item => {
-                const link = item.querySelector('a');
-
-                // Skip if it's a dropdown-title (heading)
-                if (link && link.classList.contains('dropdown-title')) {
-                    return; // Ignore headings
-                }
-
-                // Check if this item is visible (not hidden by Jinja if condition)
-                if (item.style.display !== 'none' &&
-                    window.getComputedStyle(item).display !== 'none') {
-                    hasVisibleItem = true;
-                }
-            });
-
-            // Hide entire dropdown if no real menu items are visible
-            if (!hasVisibleItem) {
-                container.style.display = 'none';
-            } else {
-                container.style.display = ''; // Reset to default
-            }
-        });
+  // Highlight the current page and open its groups
+  const here = window.location.pathname.replace(/\/+$/, '').toLowerCase();
+  sidebar.querySelectorAll('a.kft-link[href]').forEach((a) => {
+    const href = a.getAttribute('href');
+    if (!href || href === '#') return;
+    const path = new URL(href, window.location.origin).pathname.replace(/\/+$/, '').toLowerCase();
+    if (path && path === here) {
+      a.classList.add('active');
+      let g = a.closest('.kft-group');
+      while (g) { g.classList.add('open', 'has-active'); g = g.parentElement.closest('.kft-group'); }
     }
+  });
 
-    // Run on page load
-    hideEmptyDropdowns();
+  // Expand / collapse the menu (remembered); on phones the menu slides in instead
+  function syncCollapseLabel() {
+    const expanded = root.classList.contains('nav-expanded');
+    sidebar.querySelectorAll('.kft-collapse-btn .label').forEach((l) => { l.textContent = expanded ? 'Collapse menu' : 'Expand menu'; });
+    sidebar.querySelectorAll('.kft-collapse-btn').forEach((b) => { b.dataset.tip = expanded ? 'Collapse menu' : 'Expand menu'; });
+  }
+  document.querySelectorAll('[data-nav-toggle]').forEach((b) => b.addEventListener('click', () => {
+    if (isMobile()) { root.classList.toggle('nav-mobile-open'); return; }
+    const expanded = root.classList.toggle('nav-expanded');
+    save('kft-nav', expanded ? 'expanded' : 'collapsed');
+    closeFlyout(); syncCollapseLabel();
+    window.dispatchEvent(new Event('resize'));   // let charts / DataTables re-measure
+  }));
+  document.querySelectorAll('[data-nav-close]').forEach((b) => b.addEventListener('click', () => root.classList.remove('nav-mobile-open')));
+  syncCollapseLabel();
 
-    // Optional: Re-check if needed (e.g., after dynamic permission changes)
-    // window.hideEmptyDropdowns = hideEmptyDropdowns;
-});
+  // Group buttons: accordion when expanded, flyout next to the icon when collapsed
+  function closeFlyout() { flyout.classList.remove('open'); flyout.innerHTML = ''; }
+  sidebar.querySelectorAll('.kft-group > .kft-link').forEach((btn) => btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const group = btn.parentElement;
+    const collapsedRail = !root.classList.contains('nav-expanded') && !isMobile();
+    if (collapsedRail && !group.parentElement.closest('.kft-group')) {
+      const wasOpen = flyout.classList.contains('open') && flyout.dataset.for === btn.dataset.tip;
+      closeFlyout();
+      if (wasOpen) return;
+      const sub = group.querySelector(':scope > .kft-sub').cloneNode(true);
+      sub.querySelectorAll('.kft-group').forEach((g) => g.classList.add('open'));
+      flyout.innerHTML = `<div class="kft-flyout-title">${btn.dataset.tip}</div>`;
+      flyout.appendChild(sub);
+      const r = btn.getBoundingClientRect();
+      flyout.style.left = (r.right + 8) + 'px';
+      flyout.style.top = Math.max(8, Math.min(r.top, window.innerHeight - 320)) + 'px';
+      flyout.dataset.for = btn.dataset.tip;
+      flyout.classList.add('open');
+      tip.style.display = 'none';
+      return;
+    }
+    const open = !group.classList.contains('open');
+    if (!group.parentElement.closest('.kft-group')) {   // one top-level group open at a time
+      sidebar.querySelectorAll('.kft-nav > ul > .kft-group.open').forEach((g) => { if (g !== group) g.classList.remove('open'); });
+    }
+    group.classList.toggle('open', open);
+  }));
+  flyout.addEventListener('click', (e) => {   // nested groups inside the flyout
+    const b = e.target.closest('.kft-group > .kft-link');
+    if (b) { e.stopPropagation(); b.parentElement.classList.toggle('open'); }
+  });
+  document.addEventListener('click', (e) => { if (!flyout.contains(e.target)) closeFlyout(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeFlyout(); root.classList.remove('nav-mobile-open'); } });
+
+  // Tooltips for the collapsed icon rail
+  sidebar.addEventListener('mouseover', (e) => {
+    const l = e.target.closest('.kft-link[data-tip]');
+    if (!l || root.classList.contains('nav-expanded') || isMobile() || flyout.classList.contains('open')) { tip.style.display = 'none'; return; }
+    const r = l.getBoundingClientRect();
+    tip.textContent = l.dataset.tip; tip.style.left = (r.right + 8) + 'px'; tip.style.top = (r.top + r.height / 2 - 13) + 'px'; tip.style.display = 'block';
+  });
+  sidebar.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+
+  // Light / dark mode (remembered; also drives Bootstrap's own dark mode)
+  document.querySelectorAll('[data-theme-toggle]').forEach((b) => b.addEventListener('click', () => {
+    const dark = root.getAttribute('data-theme') !== 'dark';
+    root.setAttribute('data-theme', dark ? 'dark' : 'light');
+    root.setAttribute('data-bs-theme', dark ? 'dark' : 'light');
+    save('kft-theme', dark ? 'dark' : 'light');
+    window.dispatchEvent(new CustomEvent('kft-theme-change', { detail: { dark } }));
+  }));
+
+  // Announcements can be hidden for the rest of the browser session
+  const notice = document.getElementById('kftNotice');
+  if (notice) {
+    const key = 'kft-notice-hidden:' + notice.querySelector('.items').textContent.trim().slice(0, 80);
+    try { if (sessionStorage.getItem(key)) notice.classList.add('hidden'); } catch (e) {}
+    notice.querySelector('.x').addEventListener('click', () => { notice.classList.add('hidden'); try { sessionStorage.setItem(key, '1'); } catch (e) {} });
+    // Keep the marquee at a steady reading speed (~70px/s) whatever the text length
+    const items = notice.querySelector('.items');
+    const setSpeed = () => { items.style.animationDuration = Math.max(12, items.scrollWidth / 70) + 's'; };
+    setSpeed();
+    window.addEventListener('resize', setSpeed);
+  }
+})();
 </script>

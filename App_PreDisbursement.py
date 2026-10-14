@@ -1,5 +1,6 @@
 from imports import *
 from application import application
+from decimal import Decimal
 
 
 @application.route('/manage-pre-disbursement')
@@ -47,6 +48,68 @@ def view_rejected_applications():
 
     return redirect(url_for('login'))
 
+
+# Exception Report (task 002): Approver, Executive Approver, Admin, Executive, or anyone with the page permission
+def can_view_exception_report():
+    return is_login() and (get_current_user_role() in ['2', '3', '4', '5']
+                           or PermissionHelper.has_permission(get_current_user_id(), "/exception-report"))
+
+
+def _exception_report_filters(data):
+    keys = ['date_from', 'date_to', 'status', 'decided_by', 'reviewed_by', 'region', 'branch', 'product',
+            'limit_min', 'limit_max', 'email']
+    filters = {k: str(data.get(k)).strip() for k in keys if data.get(k) not in (None, '')}
+    for k in ['limit_min', 'limit_max']:
+        if k in filters:
+            try:
+                float(filters[k])
+            except ValueError:
+                filters.pop(k)
+    filters['include_recommended'] = str(data.get('include_recommended')).lower() in ['1', 'true', 'yes', 'on']
+    return filters
+
+
+@application.route('/exception-report')
+def exception_report():
+    try:
+        if can_view_exception_report():
+            # Filter lists come from every exception row the user can see (including recommended ones)
+            rows = get_exception_report({'include_recommended': True})
+            options = lambda id_key, name_key: sorted({(str(r[id_key]), r[name_key]) for r in rows if r[id_key] is not None and r[name_key]},
+                                                      key=lambda x: x[1])
+            content = {
+                'deciders': options('decided_by_id', 'decided_by'),
+                'reviewers': options('reviewed_by_id', 'reviewed_by'),
+                'regions': options('region_id', 'region'),
+                'branches': options('branch_id', 'branch'),
+                'products': sorted({r['product'] for r in rows if r['product']}),
+            }
+            return render_template('exception_report.html', result=content)
+        if is_login():
+            return redirect(url_for('index'))
+    except Exception as e:
+        print('exception-report exception:- ', str(e))
+    return redirect(url_for('login'))
+
+
+@application.route('/exception-report/data', methods=['POST'])
+def exception_report_data():
+    if not can_view_exception_report():
+        return jsonify({'success': False, 'error': 'Not allowed'}), 403
+    try:
+        filters = _exception_report_filters(request.get_json(silent=True) or {})
+        records = get_exception_report(filters)
+        for r in records:
+            for k, v in r.items():
+                if isinstance(v, (datetime, date)):
+                    r[k] = v.isoformat() if v.year > 1900 else None
+                elif isinstance(v, Decimal):
+                    r[k] = float(v)
+        return jsonify({'success': True, 'records': records,
+                        'total_decisions': get_exception_report_total_decisions(filters)})
+    except Exception as e:
+        print('exception-report/data exception:- ', str(e))
+        return jsonify({'success': False, 'error': 'Could not load the report'}), 500
 
 
 @application.route('/update-pre-disbursement-temp', methods=['POST'])
@@ -103,15 +166,17 @@ def update_pre_disbursement_temp():
 
         # Prepare update query with f-strings
         update_field, date_field = status_fields[status]
+        # update_field / date_field come from the fixed status_fields map above (never from the request);
+        # all values are passed as parameters to prevent SQL injection.
         query = f"""
             UPDATE tbl_pre_disbursement_temp
-            SET status = '{status}', Notes = '{notes}', KFT_Approved_Loan_Limit = '{amount_accepted}',
-                {update_field} = '{approved_by}', {date_field} = '{approved_date}'
-            WHERE pre_disb_temp_id = '{pre_disb_temp_id}'
+            SET status = %s, Notes = %s, KFT_Approved_Loan_Limit = %s,
+                {update_field} = %s, {date_field} = %s
+            WHERE CAST(pre_disb_temp_id AS VARCHAR) = %s
         """
 
         # Execute update query
-        execute_command(query)
+        execute_command(query, params=(status, notes, amount_accepted, approved_by, approved_date, str(pre_disb_temp_id)))
         print(f"Executed update query for pre_disb_temp_id: {pre_disb_temp_id}")
 
         # Handle rejected status (status = '3')
@@ -126,19 +191,13 @@ def update_pre_disbursement_temp():
                     modified_by,
                     modified_date
                 )
-                SELECT
-                    '{pre_disb_temp_id}',
-                    '{status}',
-                    1,
-                    '{approved_by}',
-                    '{approved_date}',
-                    '{approved_by}',
-                    '{approved_date}'
+                SELECT %s, %s, 1, %s, %s, %s, %s
                 WHERE NOT EXISTS (
-                    SELECT 1 FROM tbl_pre_disb_rejected_app WHERE post_disb_id = '{pre_disb_temp_id}'
+                    SELECT 1 FROM tbl_pre_disb_rejected_app WHERE CAST(post_disb_id AS VARCHAR) = %s
                 )
             """
-            execute_command(insert_query)
+            execute_command(insert_query, params=(str(pre_disb_temp_id), status, approved_by, approved_date,
+                                                  approved_by, approved_date, str(pre_disb_temp_id)))
             print(f"Inserted rejected app record for post_disb_id: {pre_disb_temp_id}")
 
         # Exceptional-approval products: reviewer/approver decisions go to the executive approver,
@@ -153,34 +212,36 @@ def update_pre_disbursement_temp():
             # A reviewer/approver final decision puts the application in the executive's queue
             # (exec_approval_pending = 1); any other change takes it out until it is decided again.
             if get_current_user_role() in ['3', '4', '5'] and status in ['2', '3', '9', '10']:
-                exec_query = f"""
+                exec_query = """
                     UPDATE tbl_pre_disbursement_temp
-                    SET exec_approved_by = '{approved_by}', exec_approved_date = '{approved_date}',
+                    SET exec_approved_by = %s, exec_approved_date = %s,
                         exec_approval_pending = NULL
-                    WHERE pre_disb_temp_id = '{pre_disb_temp_id}'
+                    WHERE CAST(pre_disb_temp_id AS VARCHAR) = %s
                 """
+                exec_params = (approved_by, approved_date, str(pre_disb_temp_id))
             else:
-                pending = '1' if awaiting_executive and status in ['2', '3', '9', '10'] else 'NULL'
-                exec_query = f"""
+                pending = 1 if awaiting_executive and status in ['2', '3', '9', '10'] else None
+                exec_query = """
                     UPDATE tbl_pre_disbursement_temp
                     SET exec_approved_by = NULL, exec_approved_date = NULL,
-                        exec_approval_pending = {pending}
-                    WHERE pre_disb_temp_id = '{pre_disb_temp_id}'
+                        exec_approval_pending = %s
+                    WHERE CAST(pre_disb_temp_id AS VARCHAR) = %s
                 """
-            execute_command(exec_query)
+                exec_params = (pending, str(pre_disb_temp_id))
+            execute_command(exec_query, params=exec_params)
 
         if status in ['3', '10'] and not awaiting_executive:
             from Model_Email import send_email
-            query = f"""
+            query = """
                 select pdt."Application_No", pdt."Borrower_Name", pdt."Requested_Loan_Amount", pdt."LoanProductCode", u1.email as reviewed_by_email, u2.email as rejected_by_email,
                 b.email, b.branch, b.branch_name
                 from tbl_pre_disbursement_temp pdt
-                INNER JOIN tbl_branches b ON pdt."Branch_Name" LIKE CONCAT('%', b.branch_code, '%') AND b.live_branch = '1'
+                INNER JOIN tbl_branches b ON pdt."Branch_Name" LIKE CONCAT('%%', b.branch_code, '%%') AND b.live_branch = '1'
                 LEFT JOIN tbl_users u1 ON u1.user_id = pdt.reviewed_by
                 LEFT JOIN tbl_users u2 ON u2.user_id = pdt.rejected_by
-                where pdt.pre_disb_temp_id = '{str(pre_disb_temp_id)}' and pdt.status IN ('3', '10')
+                where CAST(pdt.pre_disb_temp_id AS VARCHAR) = %s and pdt.status IN ('3', '10')
             """
-            result = fetch_records(query)
+            result = fetch_records(query, params=(str(pre_disb_temp_id),))
 
             if len(result) > 0:
                 result = result[0]
@@ -313,18 +374,20 @@ def update_pre_disbursement_temp():
 def approval_letter(app_no):
     print('app_no:- ', app_no)
     try:
+        if not is_login():
+            return redirect(url_for('login'))
         # query = f"""
         #     SELECT Borrower_Name, Application_No, Loan_Amount, ApplicationDate, Father_Husband_Name, CNIC, approved_date
         #     FROM tbl_pre_disbursement_temp
         #     WHERE pre_disb_temp_id = '{str(app_no)}' AND status = '2'
         # """
 
-        query = f"""
+        query = """
             SELECT "Borrower_Name", "Application_No", "Loan_Amount", KFT_Approved_Loan_Limit, "ApplicationDate", "Father_Husband_Name", "CNIC", "approved_date", "email_status" 
             FROM tbl_pre_disbursement_temp 
-            WHERE "pre_disb_temp_id" = '{str(app_no)}' AND "status" IN ('2', '9')
+            WHERE CAST("pre_disb_temp_id" AS VARCHAR) = %s AND "status" IN ('2', '9')
         """
-        record = fetch_records(query)
+        record = fetch_records(query, params=(str(app_no),))
         print(record)
 
         if not record:
@@ -362,22 +425,22 @@ def approval_letter(app_no):
 
 @application.route('/get_application_images')
 def get_application_images():
+    if not is_login():
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     application_no = request.args.get('application_no')
     if not application_no:
         return jsonify({'success': False, 'error': 'Missing application_no'}), 400
 
-    # Using f-string as requested (but note: not ideal for security)
-    # In production, strongly prefer parameterized queries
-    images = fetch_records(f"""
+    images = fetch_records("""
         SELECT 
             pd_ai_id,
             cnic,
             customer_name,
             created_date
         FROM tbl_pre_disbursement_application_images
-        WHERE application_no = '{application_no}'
+        WHERE application_no = %s
         ORDER BY created_date DESC
-    """)
+    """, params=(application_no,))
 
     result = []
     for img in images or []:
@@ -397,6 +460,8 @@ def get_application_images():
 
 @application.route('/pre_image/<int:image_id>')
 def serve_pre_image(image_id):
+    if not is_login():
+        return "Unauthorized", 401
     # Again using f-string as requested
     rows = fetch_records(f"""
         SELECT image_data
@@ -468,13 +533,13 @@ def print_approval_letter(app_no):
     """Print-friendly version of approval letter"""
     try:
         if is_login():
-            query = f"""
+            query = """
                 SELECT "Borrower_Name", "Application_No", "Loan_Amount", KFT_Approved_Loan_Limit, 
                        "ApplicationDate", "Father_Husband_Name", "CNIC", "approved_date", "email_status" 
                 FROM tbl_pre_disbursement_temp 
-                WHERE "pre_disb_temp_id" = '{str(app_no)}' AND "status" IN ('2', '9')
+                WHERE CAST("pre_disb_temp_id" AS VARCHAR) = %s AND "status" IN ('2', '9')
             """
-            record = fetch_records(query)
+            record = fetch_records(query, params=(str(app_no),))
 
             if not record:
                 abort(404, description="Approved record not found")
@@ -514,13 +579,13 @@ def download_approval_letter(app_no):
             return redirect(url_for('login'))
 
         # Fetch your data
-        query = f"""
+        query = """
             SELECT "Borrower_Name", "Application_No", "Loan_Amount", KFT_Approved_Loan_Limit, 
                    "ApplicationDate", "Father_Husband_Name", "CNIC", "approved_date", "email_status" 
             FROM tbl_pre_disbursement_temp 
-            WHERE "pre_disb_temp_id" = '{str(app_no)}' AND "status" IN ('2', '9')
+            WHERE CAST("pre_disb_temp_id" AS VARCHAR) = %s AND "status" IN ('2', '9')
         """
-        record = fetch_records(query)
+        record = fetch_records(query, params=(str(app_no),))
 
         if not record:
             return jsonify({'error': 'Record not found'}), 404

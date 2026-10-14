@@ -6,13 +6,36 @@ from application import application
 def manage_post_disbursement():
     try:
         if is_login():
-            # print('record fetch post disbursement:- ', len(get_all_post_disbursement_info()))
-            content = {'get_all_post_disbursement_info': get_all_post_disbursement_info()}
-            return render_template('manage_post_disbursement.html', result=content)
+            # The rows are loaded by the page from /manage_post_disbursement/data (the full list is ~60k rows)
+            return render_template('manage_post_disbursement.html', result={})
     except Exception as e:
         print(e)
         print('manage post disbursement exception:- ', str(e.__dict__))
     return redirect(url_for('login'))
+
+
+@application.route('/manage_post_disbursement/data')
+def manage_post_disbursement_data():
+    """Same records as before, as compact arrays (much smaller than HTML rows):
+    [id, mis_date, branch_code, branch_name, loan_no, loan_title, cnic, disbursed, outstanding, loan_status, overdue_days]"""
+    if not is_login():
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    try:
+        def iso(d):
+            return d.isoformat()[:10] if hasattr(d, 'isoformat') else (str(d)[:10] if d else None)
+        def num(v):
+            try:
+                return float(v) if v not in (None, '') else None
+            except (TypeError, ValueError):
+                return None
+        rows = [[r['id'], iso(r['mis_date']), r['branch_code'], r['branch_name'], r['loan_no'], r['loan_title'], r['cnic'],
+                 num(r['disbursed_amount']), num(r['principal_outstanding']), r['loan_status'],
+                 int(num(r['overdue_days']) or 0)]
+                for r in get_all_post_disbursement_info()]
+        return jsonify({'success': True, 'rows': rows})
+    except Exception as e:
+        print('manage post disbursement data exception:- ', str(e))
+        return jsonify({'success': False, 'error': 'Could not load the records'}), 500
 
 
 @application.route('/get_disbursement_details/<int:post_disb_id>')
@@ -118,6 +141,8 @@ def get_disbursement_details(post_disb_id):
 @application.route('/get_on_going_loan_details')
 def get_on_going_loan_details():
     try:
+        if not is_login():
+            return jsonify({'success': False, 'error': 'Unauthorized'}), 401
         # Get CNIC from query parameter
         cnic = request.args.get('cnic')
         if not cnic:
@@ -127,19 +152,19 @@ def get_on_going_loan_details():
         current_time = datetime.now().strftime('%Y-%m-%d')
 
         # Query to fetch on-going loan details
-        query = f"""
+        query = """
             SELECT DISTINCT loan_no, cnic, loan_closed_on, mis_date, disbursed_amount, product_code,
             booked_on, markup_outstanding, principal_outstanding, loan_closed_on, overdue_days,
             loan_status, purpose
             FROM tbl_post_disbursement
-            WHERE CNIC = '{cnic}'
+            WHERE CNIC = %s
             group by mis_date, loan_no, cnic, loan_closed_on, disbursed_amount, product_code,
             booked_on, markup_outstanding, principal_outstanding, loan_closed_on, overdue_days,
             loan_status, purpose
             ORDER BY mis_date
             DESC LIMIT 3;
         """
-        result = fetch_records(query)
+        result = fetch_records(query, params=(cnic,))
         print(result)
         # Convert result to list of dictionaries
         records = []
@@ -201,12 +226,16 @@ def post_disbursement_report():
 @application.route('/get_post_disbursement_report_data', methods=['POST'])
 def get_post_disbursement_report_data():
     try:
+        if not (is_login() and (is_admin() or is_executive_approver() or PermissionHelper.has_permission(get_current_user_id(), "/post_disbursement_report"))):
+            return jsonify({'success': False, 'error': 'Unauthorized'}), 401
         filters = request.get_json()
+        params = []
         query = """
             SELECT 
                 p.id,
                 p.mis_date,
                 p.area,
+                p.sector_code,
                 p.branch_code,
                 p.branch_name,
                 p.cnic,
@@ -241,16 +270,18 @@ def get_post_disbursement_report_data():
             WHERE 1=1
         """
 
-        # Apply filters using f-strings
+        # Apply filters: values are passed as parameters (never pasted into the SQL)
         if filters.get('mis_date'):
-            query += f" AND DATE(p.mis_date) = '{filters['mis_date']}'"
+            query += " AND DATE(p.mis_date) = %s"
+            params.append(filters['mis_date'])
 
         if filters.get('product_code'):
-            product_codes = "', '".join(filters['product_code'])
-            query += f" AND p.product_code IN ('{product_codes}')"
+            query += " AND p.product_code = ANY(%s)"
+            params.append([str(v) for v in filters['product_code']])
 
         if filters.get('gender'):
-            query += f" AND p.gender = '{filters['gender']}'"
+            query += " AND p.gender = %s"
+            params.append(filters['gender'])
 
         if filters.get('disbursed_amount_min'):
             query += f" AND p.disbursed_amount >= {float(filters['disbursed_amount_min'])}"
@@ -271,29 +302,13 @@ def get_post_disbursement_report_data():
         if filters.get('overdue_days_max'):
             query += f" AND COALESCE(p.overdue_days, 0) <= {int(float(filters['overdue_days_max']))}"
 
-        if filters.get('loan_status'):
-            loan_statuses = "', '".join(filters['loan_status'])
-            query += f" AND p.loan_status IN ('{loan_statuses}')"
-
-        if filters.get('branch'):
-            branches = "', '".join(filters['branch'])
-            query += f" AND b.branch IN ('{branches}')"
-
-        if filters.get('bank_area'):
-            bank_areas = "', '".join(filters['bank_area'])
-            query += f" AND b.area IN ('{bank_areas}')"
-
-        if filters.get('bank_distribution'):
-            bank_distributions = "', '".join(filters['bank_distribution'])
-            query += f" AND b.bank_distribution IN ('{bank_distributions}')"
-
-        if filters.get('nc_distribution'):
-            nc_distributions = "', '".join(filters['nc_distribution'])
-            query += f" AND b.national_council_distribution IN ('{nc_distributions}')"
-
-        if filters.get('kft_distribution'):
-            kft_distributions = "', '".join(filters['kft_distribution'])
-            query += f" AND b.kft_distribution IN ('{kft_distributions}')"
+        for key, column in [('loan_status', 'p.loan_status'), ('branch', 'b.branch'), ('bank_area', 'b.area'),
+                            ('bank_distribution', 'CAST(b.bank_distribution AS VARCHAR)'),
+                            ('nc_distribution', 'CAST(b.national_council_distribution AS VARCHAR)'),
+                            ('kft_distribution', 'CAST(b.kft_distribution AS VARCHAR)')]:
+            if filters.get(key):
+                query += f" AND {column} = ANY(%s)"
+                params.append([str(v) for v in filters[key]])
 
         # Sorting
         sort_field = {
@@ -311,9 +326,13 @@ def get_post_disbursement_report_data():
         elif filters.get('purpose'):
             query += f" ORDER BY p.purpose {sort_field.get(filters['purpose'], 'ASC')}"
 
-        print(query)
-
-        rows = fetch_records(query)
+        rows = fetch_records(query, params=tuple(params))
+        # Task 004: Sector code and Sector show Education / Enterprise from the product code (same list as the dashboard);
+        # an unknown product code keeps the sector code from the MIS file
+        for r in rows or []:
+            category = get_product_category(r.get('product_code'))
+            r['sector_code'] = SECTOR_NAMES.get(category, r.get('sector_code'))
+            r['sector'] = SECTOR_NAMES.get(category, r.get('sector'))   # 'Enterprise', not 'Enterprise - Trading' etc.
 
         return jsonify({'success': True, 'records': rows})
     except Exception as e:

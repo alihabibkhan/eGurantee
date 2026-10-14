@@ -7,31 +7,51 @@
 <body>
     {% include 'navbar.html' %}
     {% import 'breadcrumbs.html' as brd %}
-    {{ brd.render_Breadcrumbs([{"url": 'manage_branches', "label": "Manage Branches"}, {"url": "", "label": 'Edit KFT Distribution' if result.kft_distribution_details else 'Add KFT Distribution' }]) }}
+    {{ brd.render_Breadcrumbs([{"url": "manage_branches", "label": "Manage Branches"}, {"url": "", "label": 'Edit KFT Distribution' if result.kft_distribution_details else 'Add KFT Distribution' }]) }}
+    {% set rec = result.kft_distribution_details %}
 
-    <div class="container mt-4">
+    <div class="container mt-2">
         {% include 'message_box.html' %}
 
-        <div class="card">
-            <div class="card-header">
-                <h2>{{ 'Edit KFT Distribution' if result.kft_distribution_details else 'Add KFT Distribution' }}</h2>
-            </div>
-            <div class="card-body">
-                <form method="POST">
-                    <div class="form-group mb-3">
-                        <label for="kft_distribution_name">Name</label>
-                        <input type="text" name="kft_distribution_name" id="kft_distribution_name" class="form-control" value="{{ result.kft_distribution_details.kft_distribution_name if result.kft_distribution_details else '' }}" required>
+        <div class="kf-page-head">
+            <h1>{{ 'Edit KFT distribution' if rec else 'Add KFT distribution' }}</h1>
+            <p>KFT groupings that branches can be assigned to.</p>
+        </div>
+
+        <div class="kf-form-layout">
+            <form method="POST" class="kf-card">
+                <div class="kf-sec">Details</div>
+                <div class="kf-body">
+                    <div class="kf-grid">
+                        <div class="kf-field">
+                            <label for="kft_distribution_name">Name <span class="req">*</span></label>
+                            <input type="text" id="kft_distribution_name" name="kft_distribution_name" class="form-control" value="{{ rec.kft_distribution_name if rec else '' }}" required>
+                        </div>
                     </div>
-                    <div class="form-group mb-3">
-                        <label for="is_active">Active</label>
-                        <select name="is_active" id="is_active" class="form-control" required>
-                            <option value="1" {% if result.kft_distribution_details and result.kft_distribution_details.is_active == 1 %} selected {% endif %}>Yes</option>
-                            <option value="2" {% if result.kft_distribution_details and result.kft_distribution_details.is_active == 2 %} selected {% endif %}>No</option>
-                        </select>
+                </div>
+                <div class="kf-sec">Status</div>
+                <div class="kf-body switches">
+                    <div class="kf-switch-row">
+                        <div><div class="t">Active</div><div class="d">Inactive entries are kept for history but should no longer be used.</div></div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" value="1"
+                                   {{ 'checked' if not rec or rec.is_active == 1 }} aria-label="Active">
+                            <input type="hidden" name="is_active" value="2">
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-primary">{{ 'Update KFT Distribution' if result.kft_distribution_details else 'Add KFT Distribution' }}</button>
-                </form>
-            </div>
+                </div>
+
+                <div class="kf-foot">
+                    <a href="{{ url_for('manage_branches') }}#kft-distributions" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">{{ 'Update KFT distribution' if rec else 'Save KFT distribution' }}</button>
+                </div>
+            </form>
+
+            <aside class="kf-card kf-help">
+                <h4>KFT distributions</h4>
+                <p>Branches are linked to a KFT distribution on the branch form.</p>
+                <p>Turn Active off instead of deleting an entry that is no longer used.</p>
+            </aside>
         </div>
     </div>
 </body>

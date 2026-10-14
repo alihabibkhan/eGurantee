@@ -8,31 +8,47 @@
     {% include 'navbar.html' %}
     {% import 'breadcrumbs.html' as brd %}
     {{ brd.render_Breadcrumbs([{"url": "manage_meeting_setup", "label": "Manage Meeting Setup"}, {"url": "", "label": 'Edit Meeting Frequency' if result.meeting_freq_details else 'Add Meeting Frequency' }]) }}
+    {% set rec = result.meeting_freq_details %}
 
-    <div class="container mt-4">
+    <div class="container mt-2">
         {% include 'message_box.html' %}
 
-        <div class="card">
-            <div class="card-header">
-                <h2>{{ 'Edit Meeting Frequency' if result.meeting_freq_details else 'Add Meeting Frequency' }}</h2>
-            </div>
-            <div class="card-body">
-                <form method="POST">
-                    <div class="form-group mb-3">
-                        <label for="meeting_freq_title">Title</label>
-                        <input type="text" name="meeting_freq_title" class="form-control" value="{{ result.meeting_freq_details.meeting_freq_title if result.meeting_freq_details else '' }}" required>
+        <div class="kf-page-head">
+            <h1>{{ 'Edit meeting frequency' if rec else 'Add meeting frequency' }}</h1>
+            <p>How often a type of meeting should be held.</p>
+        </div>
+
+        <div class="kf-form-layout">
+            <form method="POST" class="kf-card">
+                <div class="kf-sec">Details</div>
+                <div class="kf-body">
+                    <div class="kf-grid">
+                        <div class="kf-field full">
+                            <label for="meeting_freq_title">Title <span class="req">*</span></label>
+                            <input type="text" id="meeting_freq_title" name="meeting_freq_title" class="form-control" value="{{ rec.meeting_freq_title if rec else '' }}" required>
+                        </div>
+                        <div class="kf-field">
+                            <label for="min_freq">Minimum frequency <span class="req">*</span></label>
+                            <input type="number" id="min_freq" name="min_freq" class="form-control" value="{{ rec.min_freq if rec else '' }}" required>
+                        </div>
+                        <div class="kf-field">
+                            <label for="max_freq">Maximum frequency <span class="req">*</span></label>
+                            <input type="number" id="max_freq" name="max_freq" class="form-control" value="{{ rec.max_freq if rec else '' }}" required>
+                        </div>
                     </div>
-                    <div class="form-group mb-3">
-                        <label for="min_freq">Minimum Frequency</label>
-                        <input type="number" name="min_freq" class="form-control" value="{{ result.meeting_freq_details.min_freq if result.meeting_freq_details else '' }}" required>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="max_freq">Maximum Frequency</label>
-                        <input type="number" name="max_freq" class="form-control" value="{{ result.meeting_freq_details.max_freq if result.meeting_freq_details else '' }}" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">{{ 'Update Meeting Frequency' if result.meeting_freq_details else 'Add Meeting Frequency' }}</button>
-                </form>
-            </div>
+                </div>
+
+                <div class="kf-foot">
+                    <a href="{{ url_for('manage_meeting_setup') }}#meeting-frequencies" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">{{ 'Update meeting frequency' if rec else 'Save meeting frequency' }}</button>
+                </div>
+            </form>
+
+            <aside class="kf-card kf-help">
+                <h4>Meeting setup</h4>
+                <p>How often a type of meeting should be held.</p>
+                <p>The list is managed on the <a href="{{ url_for('manage_meeting_setup') }}#meeting-frequencies">Meeting Setup</a> page.</p>
+            </aside>
         </div>
     </div>
 </body>
