@@ -627,6 +627,11 @@ def get_auto_approval_log(start_date, end_date):
             approved_date,
             status,
             remarks,
+            steps,
+            is_exception,
+            exception_reason,
+            challan_amount,
+            sent_to_executive,
             created_date
         FROM tbl_auto_approval_log
         WHERE created_date >= %s 

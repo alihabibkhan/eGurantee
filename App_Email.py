@@ -1,5 +1,14 @@
 from imports import *
+import hmac
 from application import application
+
+
+def _is_internal_call():
+    # The auto-approval job has no login session: it sends the shared secret INTERNAL_API_KEY
+    # (environment variable, same value on the web app and the job) in the X-Internal-Key header.
+    expected = os.getenv('INTERNAL_API_KEY', '')
+    sent = request.headers.get('X-Internal-Key', '')
+    return bool(expected) and hmac.compare_digest(expected.encode(), sent.encode())
 
 
 @application.route('/send-email', methods=['POST'])
@@ -7,7 +16,8 @@ def send_email():
     try:
         # if not is_login() and not (is_admin() or is_executive_approver() or is_approver()):
         #     return jsonify({'success': False, 'error': 'Unauthorized'}), 401
-        if not is_login():
+        internal_call = _is_internal_call()
+        if not internal_call and not is_login():
             return jsonify({'success': False, 'error': 'Unauthorized'}), 401
         data = request.get_json()
         pre_disb_temp_id = data.get('app_no')
@@ -17,7 +27,7 @@ def send_email():
         if not pre_disb_temp_id or not recipient_email or '@' not in recipient_email:
             return jsonify({'success': False, 'error': 'Invalid application number or email'}), 400
 
-        if str(session.get('rights')) in ['1', '2'] and requires_executive_approval(pre_disb_temp_id):
+        if not internal_call and str(session.get('rights')) in ['1', '2'] and requires_executive_approval(pre_disb_temp_id):
             return jsonify({'success': False, 'error': 'This product requires Executive approval before the email can be sent'}), 403
 
         # Values are passed as parameters (never pasted into the SQL) to prevent SQL injection;
@@ -50,6 +60,8 @@ def send_email():
             base64_image = base64.b64encode(image_file.read()).decode('utf-8')
         logo_base64 = f'data:image/png;base64,{base64_image}'
 
+        if internal_call and not user_id:
+            return jsonify({'success': False, 'error': 'user_id (signatory) is required'}), 400
         sign_user_id = str(user_id) if user_id else str(get_current_user_id())
 
         # Convert User sign to base64

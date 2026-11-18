@@ -18,6 +18,20 @@
         .aa-charts .kf-sec { font-size: 14px; }
         .aa-chart { position: relative; height: 260px; }
         #aa-grid td.wrap { white-space: normal; min-width: 220px; max-width: 360px; }
+        /* decision trail (same look as the Application Tracker timeline) */
+        .aa-steps { list-style: none; margin: 0 0 0 6px; padding: 0; }
+        .aa-steps li { position: relative; padding: 0 0 14px 24px; }
+        .aa-steps li::before { content: ""; position: absolute; left: 0; top: 5px; width: 10px; height: 10px; border-radius: 50%; background: var(--green-600); box-shadow: 0 0 0 3px var(--green-100); }
+        .aa-steps li::after { content: ""; position: absolute; left: 4px; top: 17px; bottom: -3px; width: 2px; background: var(--line); }
+        .aa-steps li:last-child::after { display: none; }
+        .aa-steps li.fail::before { background: var(--bad); box-shadow: 0 0 0 3px var(--bad-bg); }
+        .aa-steps li.exception::before { background: #B8862B; box-shadow: 0 0 0 3px var(--gold-100); }
+        .aa-steps li.info::before, .aa-steps li.skipped::before { background: var(--ink-3); box-shadow: 0 0 0 3px var(--neutral-bg); }
+        .aa-steps .t1 { font-weight: 600; font-size: 13px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .aa-steps .t2 { font-size: 12.5px; color: var(--ink-3); }
+        .aa-sum { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 16px; margin-bottom: 14px; font-size: 13px; }
+        .aa-sum dt { font-size: 11px; font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: .4px; }
+        .aa-sum dd { margin: 0 0 4px; }
         @media (max-width: 1000px) { .aa-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .aa-charts { grid-template-columns: minmax(0, 1fr); } }
     </style>
 </head>
@@ -62,6 +76,22 @@
         <div id="aa-grid" class="mb-4"></div>
     </div>
 
+    <!-- Decision trail: through which steps the loan passed -->
+    <div class="modal fade" id="aa-trail" tabindex="-1" aria-labelledby="aa-trail-title" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="aa-trail-title">Decision trail</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="aa-trail-body"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         const esc = KFTGrid.escape;
         const css = (v, f) => getComputedStyle(document.documentElement).getPropertyValue(v).trim() || f;
@@ -72,6 +102,12 @@
         const statusPill = (s) => s ? `<span class="kft-pill ${pillClass[kind(s)]}">${esc(String(s).toUpperCase())}</span>` : '';
         const money = (n) => Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
         let trendChart = null, pieChart = null;
+        let records = [];
+        const flagPills = (r) => (Number(r.is_exception) === 1 ? ' <span class="kft-pill gold" title="' + esc(r.exception_reason || '') + '">Exception</span>' : '')
+            + (Number(r.sent_to_executive) === 1 ? ' <span class="kft-pill info">Executive</span>' : '');
+        const stepLabel = { pass: 'Passed', fail: 'Failed', exception: 'Exception', info: 'Info', skipped: 'Skipped' };
+        const stepPill = { pass: 'ok', fail: 'bad', exception: 'gold', info: 'neutral', skipped: 'neutral' };
+        const parseSteps = (r) => { try { const s = JSON.parse(r.steps || '[]'); return Array.isArray(s) ? s : []; } catch (e) { return []; } };
 
         const grid = KFTGrid.create(document.getElementById('aa-grid'), {
             storageKey: 'auto-approval-log', exportName: 'Student_Finance_Auto_Approval', pageSize: 25,
@@ -88,8 +124,10 @@
                 { key: 'approved_by', label: 'Approved by', hidden: true },
                 { key: 'approved_date', label: 'Decision date', type: 'date', value: (r) => iso(r.approved_date || r.created_date),
                   exportValue: (r) => fmtDateTime(r.approved_date || r.created_date), render: (r) => esc(fmtDateTime(r.approved_date || r.created_date)) },
-                { key: 'status', label: 'Status', filter: true, filterLabel: 'statuses', value: (r) => String(r.status || '').toUpperCase(), render: (r) => statusPill(r.status) },
+                { key: 'status', label: 'Status', filter: true, filterLabel: 'statuses', value: (r) => String(r.status || '').toUpperCase(), render: (r) => statusPill(r.status) + flagPills(r) },
                 { key: 'remarks', label: 'Remarks', className: 'wrap' },
+                { key: 'trail', label: '', act: true, sortable: false, export: false,
+                  render: (r) => `<button type="button" class="icon-btn" title="Show the steps this loan passed through" data-trail="${esc(r.log_id)}"><i class="bi bi-signpost-split"></i></button>` },
             ],
             onView: summarise,
         });
@@ -153,7 +191,8 @@
                 const res = await fetch(`/api/reports/auto-approval-log?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
                 const json = await res.json();
                 if (!json.success) throw new Error(json.error || 'Failed to load data');
-                grid.setRows(json.data || []);
+                records = json.data || [];
+                grid.setRows(records);
                 grid.setChips([{ label: `Period: ${start} – ${end}` }]);
                 document.getElementById('aa-range').textContent = `${start} – ${end}`;
             } catch (err) {
@@ -164,6 +203,33 @@
                 grid.setLoading(false);
             }
         }
+
+        // ---- Decision trail ----
+        document.getElementById('aa-grid').addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-trail]');
+            if (!btn) return;
+            const r = records.find((x) => String(x.log_id) === btn.dataset.trail);
+            if (!r) return;
+            const steps = parseSteps(r);
+            const item = (label, value) => `<div><dt>${esc(label)}</dt><dd>${value || '<span class="text-muted">—</span>'}</dd></div>`;
+            document.getElementById('aa-trail-title').textContent = `Application ${r.application_no || ''}`;
+            document.getElementById('aa-trail-body').innerHTML = `
+                <dl class="aa-sum">
+                    ${item('Borrower', esc(r.borrower_name))}
+                    ${item('Branch', esc(r.branch_name))}
+                    ${item('Loan amount', r.loan_amount == null ? '' : 'PKR ' + money(r.loan_amount))}
+                    ${item('Fee challan amount', r.challan_amount == null ? '' : 'PKR ' + money(r.challan_amount))}
+                    ${item('Outcome', statusPill(r.status) + flagPills(r))}
+                    ${item('Decision date', esc(fmtDateTime(r.approved_date || r.created_date)))}
+                </dl>
+                ${steps.length ? `<ul class="aa-steps">${steps.map((s) => `
+                    <li class="${esc(s.result)}">
+                        <div class="t1">${esc(s.step)} <span class="kft-pill ${stepPill[s.result] || 'neutral'}">${esc(stepLabel[s.result] || s.result)}</span></div>
+                        <div class="t2">${esc(s.detail)}</div>
+                    </li>`).join('')}</ul>`
+                    : `<div class="text-muted">No step-by-step trail was recorded for this decision.${r.remarks ? '<br>' + esc(r.remarks) : ''}</div>`}`;
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('aa-trail')).show();
+        });
 
         document.addEventListener('DOMContentLoaded', loadData);
         document.getElementById('aa-filters').addEventListener('submit', (e) => { e.preventDefault(); loadData(); });

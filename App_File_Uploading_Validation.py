@@ -306,15 +306,20 @@ def process_zip_application_images(zip_file, user_id=None):
             if len(parts) >= 3:
                 customer_name = parts[2].replace('_', ' ').strip().title()
 
+            # Optional 4th part tells what the picture is, e.g. economics_picture1 = the fee challan
+            image_type = parts[3].strip().lower() if len(parts) >= 4 and parts[3].strip() else None
+
             # Prepare escaped values
             app_no_esc = application_no.replace("'", "''")
             cnic_esc   = cnic.replace("'", "''") if cnic else None
             name_esc   = customer_name.replace("'", "''") if customer_name else None
+            type_esc   = image_type.replace("'", "''") if image_type else None
 
             insert_rows.append({
                 'application_no': app_no_esc,
                 'cnic': cnic_esc,
                 'customer_name': name_esc,
+                'image_type': type_esc,
                 'image_data_hex': image_bytes.hex(),
                 'created_by': str(user_id),
                 'modified_by': str(user_id),
@@ -343,12 +348,14 @@ def process_zip_application_images(zip_file, user_id=None):
             for row in insert_rows:
                 cnic_sql = f"'{row['cnic']}'" if row['cnic'] else 'NULL'
                 name_sql = f"'{row['customer_name']}'" if row['customer_name'] else 'NULL'
+                type_sql = f"'{row['image_type']}'" if row['image_type'] else 'NULL'
 
                 values_clauses.append(f"""
                     (
                         '{row['application_no']}',
                         {cnic_sql},
                         {name_sql},
+                        {type_sql},
                         decode('{row['image_data_hex']}', 'hex'),
                         1,
                         {row['created_by']},
@@ -358,7 +365,7 @@ def process_zip_application_images(zip_file, user_id=None):
 
             insert_query = f"""
             INSERT INTO tbl_pre_disbursement_application_images (
-                application_no, cnic, customer_name, image_data, status, created_by, modified_by
+                application_no, cnic, customer_name, image_type, image_data, status, created_by, modified_by
             ) VALUES
             {','.join(values_clauses)}
             """

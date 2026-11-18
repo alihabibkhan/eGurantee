@@ -7,6 +7,7 @@ import json
 import logging
 from typing import Dict, List, Optional, Tuple
 from Model_Email import send_email
+from challan_checker import check_challan
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -337,6 +338,14 @@ class StudentFinanceAutoApprover:
                             <td>{summary['metrics_approved']}</td>
                         </tr>
                         <tr>
+                            <th>Approved With Matrix Exception</th>
+                            <td>{summary.get('exception_approved', 0)}</td>
+                        </tr>
+                        <tr>
+                            <th>Sent to Executive (Third-Level Approval)</th>
+                            <td>{summary.get('executive_sent', 0)}</td>
+                        </tr>
+                        <tr>
                             <th>Total Not Approved (Manual Review Required)</th>
                             <td><strong style="color: #ef4444;">{summary['total_failed']}</strong></td>
                         </tr>
@@ -586,6 +595,8 @@ class StudentFinanceAutoApprover:
     Total Auto-Approved: {summary['total_approved']}
       ├─ Salary/Salaried Bypass: {summary['salary_approved']}
       └─ Full Metrics Check Pass: {summary['metrics_approved']}
+    Approved With Matrix Exception: {summary.get('exception_approved', 0)}
+    Sent to Executive (Third-Level Approval): {summary.get('executive_sent', 0)}
     Total Not Approved (Manual Review Required): {summary['total_failed']}
 
     {'=' * 80}
@@ -647,7 +658,7 @@ class StudentFinanceAutoApprover:
         Borrower: {app.get('borrower_name', 'N/A')}
         Gender: {app.get('gender', 'N/A')}
         Branch: {app.get('branch', 'N/A')}
-        Amount: {app.get('amount', 0):,.2f}
+        Amount: {self._num(app.get('amount')):,.2f}
         Nature: {app.get('nature_of_business', 'N/A')}
         Type: {app.get('approval_type', 'N/A')}
         Approved By: {app.get('approver', 'N/A')}
@@ -807,7 +818,7 @@ class StudentFinanceAutoApprover:
                         app.get('application_no', 'N/A'),
                         app.get('borrower_name', 'N/A'),
                         app.get('branch', 'N/A'),
-                        f"{app.get('amount', 0):,.0f}",
+                        f"{self._num(app.get('amount')):,.0f}",
                         app.get('nature_of_business', 'N/A')[:30],
                         app.get('approval_type', 'N/A')
                     ])
@@ -996,12 +1007,15 @@ class StudentFinanceAutoApprover:
                 pdt."uploaded_date",
                 pdt."approved_date",
                 pdt."email_status",
+                pdt.loan_per_exposure,
                 lp.product_code,
                 lp.name as product_name,
                 lp.max_exp_per_prud_reg,
                 lp.gender as product_gender,
                 lp.auto_approval_max_amount,
-                lp.auto_approval_signature
+                lp.auto_approval_signature,
+                lp.auto_approval_check_loan_metrix,
+                lp.allow_exceptional_approval
             FROM tbl_pre_disbursement_temp pdt
             INNER JOIN tbl_loan_products lp ON lp.product_code = pdt."LoanProductCode" and pdt."Gender" = lp.gender
             WHERE 
@@ -1057,279 +1071,224 @@ class StudentFinanceAutoApprover:
         return combined_metrics
 
     # ============================================================
-    # OPTIONAL LOAN METRICS CHECKS (These are optional)
+    # LOAN MATRIX CHECKS
+    # Same calculations as the Loan Application Analysis screen (templates/manage_pre_disbursement.html).
+    # A failed check is an EXCEPTION, not a rejection: the loan is still approved, with status 9
+    # (Agreed - With Exception).
     # ============================================================
 
-    def check_paid_off_requirement(self, record: Dict, loan_metric: Dict) -> Tuple[bool, str]:
-        """OPTIONAL: Check if the paid-off requirement is met for repeat loans"""
-        loan_cycle = int(record.get('Loan_Cycle', 1))
+    @staticmethod
+    def _step(step: str, result: str, detail: str) -> Dict:
+        """One line of the decision trail. result: pass | fail | exception | info | skipped"""
+        return {'step': step, 'result': result, 'detail': detail}
 
-        if loan_cycle <= 1:
-            return True, "First cycle loan - paid off check not applicable"
-
-        cnic = record.get('CNIC', '').replace("'", "''")
-        query = f"""
-            SELECT 
-                disbursed_amount,
-                principal_outstanding,
-                markup_outstanding,
-                loan_status
-            FROM tbl_post_disbursement
-            WHERE cnic = '{cnic}'
-            ORDER BY booked_on DESC
-            LIMIT 1
-        """
-
-        ongoing_loan = fetch_records(query)
-
-        if not ongoing_loan or len(ongoing_loan) == 0:
-            logger.info(f"No previous loan record found for CNIC {cnic} - paid off check passed by default")
-            return True, "✓ No previous loan found - paid off check not applicable"
-
-        ongoing = ongoing_loan[0]
-        existing_loan_limit = float(ongoing.get('disbursed_amount', 0))
-        outstanding = float(ongoing.get('principal_outstanding', 0)) + float(ongoing.get('markup_outstanding', 0))
-
-        required_paid_off_percent = float(loan_metric.get('required_paid_off', 0)) / 100
-        required_paid_off = existing_loan_limit * required_paid_off_percent
-        actual_paid_off = existing_loan_limit - outstanding
-
-        if actual_paid_off >= required_paid_off:
-            return True, f"✓ Paid-off requirement met: {actual_paid_off:.2f} >= {required_paid_off:.2f}"
-        else:
-            return False, f"✗ Paid-off requirement not met: {actual_paid_off:.2f} < {required_paid_off:.2f}"
-
-    def check_loan_ceiling_requirement(self, record: Dict, loan_metric: Dict) -> Tuple[bool, str]:
-        """OPTIONAL: Check if loan amount is within the global loan ceiling"""
-        requested_amount = float(record.get('Loan_Amount', 0))
-        max_ceiling = float(loan_metric.get('global_loan_ceiling', 0))
-
-        min_loan = float(loan_metric.get('min_loan_amount', 0))
-        max_loan = float(loan_metric.get('max_loan_amount', 0))
-
-        if min_loan > 0 and requested_amount < min_loan:
-            return False, f"✗ Loan amount {requested_amount:.2f} below minimum {min_loan:.2f}"
-
-        if max_loan > 0 and requested_amount > max_loan:
-            return False, f"✗ Loan amount {requested_amount:.2f} exceeds maximum {max_loan:.2f}"
-
-        if requested_amount <= max_ceiling:
-            return True, f"✓ Loan amount {requested_amount:.2f} within ceiling {max_ceiling:.2f}"
-        else:
-            return False, f"✗ Loan amount {requested_amount:.2f} exceeds ceiling {max_ceiling:.2f}"
-
-    def check_repeat_increment_requirement(self, record: Dict, loan_metric: Dict) -> Tuple[bool, str]:
-        """OPTIONAL: Check if repeat loan increment meets KFT matrix requirements"""
-        loan_cycle = int(record.get('Loan_Cycle', 1))
-
-        if loan_cycle <= 1:
-            return True, "First cycle loan - repeat increment check not applicable"
-
-        cnic = record.get('CNIC', '').replace("'", "''")
-        query = f"""
-            SELECT 
-                disbursed_amount
-            FROM tbl_post_disbursement
-            WHERE cnic = '{cnic}'
-            ORDER BY booked_on DESC
-            LIMIT 1
-        """
-
-        ongoing_loan = fetch_records(query)
-
-        if not ongoing_loan or len(ongoing_loan) == 0:
-            logger.info(f"No previous loan record found for CNIC {cnic} - repeat increment check passed by default")
-            return True, "✓ No previous loan found - repeat increment check not applicable"
-
-        previous_loan_amount = float(ongoing_loan[0].get('disbursed_amount', 0))
-        current_loan_amount = float(record.get('Loan_Amount', 0))
-        increment_percent = float(loan_metric.get('repeat_increment', 0))
-
-        max_allowed_increment = previous_loan_amount * (increment_percent / 100)
-        actual_increment = current_loan_amount - previous_loan_amount
-
-        if actual_increment <= max_allowed_increment:
-            return True, f"✓ Increment {actual_increment:.2f} within allowed {max_allowed_increment:.2f}"
-        else:
-            return False, f"✗ Increment {actual_increment:.2f} exceeds allowed {max_allowed_increment:.2f}"
-
-    def check_prudential_regulation(self, record: Dict, loan_metric: Dict) -> Tuple[bool, str]:
-        """OPTIONAL: Check if loan exposure is within prudential regulations"""
-        cnic = record.get('CNIC', '').replace("'", "''")
-        max_exposure = float(loan_metric.get('max_exp_per_prud_reg', 0))
-
-        query = f"""
-            SELECT COALESCE(SUM(disbursed_amount), 0) as total_exposure
-            FROM tbl_post_disbursement
-            WHERE cnic = '{cnic}'
-            AND loan_status NOT IN ('Closed', 'Settled')
-        """
-
-        existing_exposure_result = fetch_records(query)
-        existing_exposure = float(
-            existing_exposure_result[0].get('total_exposure', 0)) if existing_exposure_result else 0
-
-        requested_amount = float(record.get('Loan_Amount', 0))
-        total_exposure = existing_exposure + requested_amount
-
-        if total_exposure <= max_exposure:
-            return True, f"✓ Total exposure {total_exposure:.2f} within limit {max_exposure:.2f}"
-        else:
-            return False, f"✗ Total exposure {total_exposure:.2f} exceeds limit {max_exposure:.2f}"
-
-    def check_dbr_requirement(self, record: Dict) -> Tuple[bool, str]:
-        """OPTIONAL: Check if Debt Burden Ratio (DBR) is acceptable (<= 50%)"""
-        dbr = record.get('Dbr', 0)
-
+    @staticmethod
+    def _num(value) -> float:
         try:
-            dbr_value = float(dbr) if dbr else 0
-        except (ValueError, TypeError):
-            dbr_value = 0
+            return float(value) if value not in (None, '') else 0.0
+        except (TypeError, ValueError):
+            return 0.0
 
-        if dbr_value <= 50:
-            return True, f"✓ DBR {dbr_value:.2f}% within acceptable limit"
-        else:
-            return False, f"✗ DBR {dbr_value:.2f}% exceeds acceptable limit"
-
-    def check_credit_history(self, record: Dict) -> Tuple[bool, str]:
-        """OPTIONAL: Check if credit history is acceptable"""
-        credit_history = record.get('credit_history_ecib', '').lower() if record.get('credit_history_ecib') else ''
-
-        if credit_history in ['good', 'clean', 'satisfactory', 'no default']:
-            return True, f"✓ Credit history is {credit_history}"
-        elif credit_history in ['bad', 'default', 'written off']:
-            return False, f"✗ Credit history is {credit_history} - not acceptable"
-        else:
-            return True, f"✓ Credit history is {credit_history or 'unknown'} - acceptable"
-
-    def check_loan_metrics_for_non_salary(self, record: Dict, business_type: str, experience_level: str) -> Tuple[
-        bool, List[str]]:
+    def get_ongoing_loans(self, cnic: str) -> List[Dict]:
+        """Previous loans of the borrower, latest first (same query as /get_on_going_loan_details)."""
+        query = """
+            SELECT DISTINCT loan_no, cnic, loan_closed_on, mis_date, disbursed_amount, product_code,
+            booked_on, markup_outstanding, principal_outstanding, loan_closed_on, overdue_days,
+            loan_status, purpose
+            FROM tbl_post_disbursement
+            WHERE CNIC = %s
+            group by mis_date, loan_no, cnic, loan_closed_on, disbursed_amount, product_code,
+            booked_on, markup_outstanding, principal_outstanding, loan_closed_on, overdue_days,
+            loan_status, purpose
+            ORDER BY mis_date
+            DESC LIMIT 3;
         """
-        OPTIONAL: Run ALL loan metric checks for non-salary applicants.
-        If any check fails, the application can still be approved.
-        Only the auto_approval_max_amount check is mandatory.
-        """
-        messages = []
+        return fetch_records(query, params=(cnic,)) or []
 
-        product_code = record.get('LoanProductCode')
+    def check_loan_matrix(self, record: Dict, ongoing: List[Dict]) -> Tuple[List[Dict], List[str]]:
+        """Returns (steps, exception_reasons)."""
+        steps, exceptions = [], []
         gender = record.get('Gender')
+        product_code = record.get('LoanProductCode')
 
-        logger.info(f"Fetching loan metrics for Product: {product_code}, Gender: {gender}")
+        metrics = get_loan_metric_by_product_code_and_gender(gender=gender, product_code=product_code)
+        if not metrics:
+            steps.append(self._step('Loan matrix', 'skipped',
+                                    f"No loan matrix is set up for {product_code} / {gender}"))
+            return steps, exceptions
+        metric = metrics[0]  # the screen uses the first matrix row of the product and gender
 
-        loan_metric = self.get_loan_metrics_for_product(
-            product_code,
-            gender,
-            business_type,
-            experience_level
-        )
+        # 1) Requirement to pay off the existing loan (repeat borrowers only)
+        try:
+            cycle = int(record.get('Loan_Cycle') or 1)
+        except (TypeError, ValueError):
+            cycle = 1
+        required_percent = self._num(metric.get('required_paid_off'))
+        if cycle <= 1:
+            steps.append(self._step('Pay-off of existing loan', 'info', 'Not applicable - first loan cycle'))
+        else:
+            loan_index = 0 if cycle == 2 else 1
+            previous = ongoing[loan_index] if len(ongoing) > loan_index else None
+            if previous is None:
+                steps.append(self._step('Pay-off of existing loan', 'info',
+                                        f"Previous loan details not found for cycle {cycle} - could not be checked"))
+            else:
+                existing_limit = self._num(previous.get('disbursed_amount'))
+                outstanding = self._num(previous.get('markup_outstanding'))
+                paid_off = existing_limit - outstanding
+                required = existing_limit * required_percent / 100
+                gap = paid_off - required
+                detail = (f"Paid off {paid_off:,.0f} vs required {required:,.0f} "
+                          f"({required_percent:g}% of {existing_limit:,.0f})")
+                if gap < 0:
+                    exceptions.append('Pay Off Requirement Not Met')
+                    steps.append(self._step('Pay-off of existing loan', 'exception', detail + ' - requirement not met'))
+                else:
+                    steps.append(self._step('Pay-off of existing loan', 'pass', detail))
 
-        if not loan_metric:
-            messages.append(f"⚠️ No matching loan metrics found - skipping optional checks")
-            logger.warning(f"No loan metrics found, skipping optional checks")
-            return True, messages
+        # 2) Loan limit per KFT matrix (increment over the previous loan)
+        loan_amount = self._num(record.get('Loan_Amount'))
+        previous_amount = self._num(ongoing[-1].get('disbursed_amount')) if ongoing else 0.0
+        repeat_percent = self._num(metric.get('repeat_increment'))
+        allowed = previous_amount * repeat_percent / 100 if previous_amount else 0.0
+        if not allowed:
+            steps.append(self._step('Loan limit per matrix', 'info',
+                                    'Not applicable - no previous loan to compare with'))
+        else:
+            detail = f"Approved {loan_amount:,.0f} vs limit {allowed:,.0f} ({repeat_percent:g}% of previous {previous_amount:,.0f})"
+            if allowed - loan_amount < 0:
+                exceptions.append('Loan Limit Exceeded')
+                steps.append(self._step('Loan limit per matrix', 'exception', detail + ' - limit exceeded'))
+            else:
+                steps.append(self._step('Loan limit per matrix', 'pass', detail))
 
-        logger.info(f"Using gender-specific loan metrics: {loan_metric}")
-
-        # Check 1: DBR (Optional)
-        dbr_pass, dbr_msg = self.check_dbr_requirement(record)
-        messages.append(dbr_msg)
-        if not dbr_pass:
-            logger.info(f"DBR check failed (optional): {dbr_msg}")
-
-        # Check 2: Credit History (Optional)
-        credit_pass, credit_msg = self.check_credit_history(record)
-        messages.append(credit_msg)
-        if not credit_pass:
-            logger.info(f"Credit history check failed (optional): {credit_msg}")
-
-        # Check 3: Loan Ceiling (Optional)
-        ceiling_pass, ceiling_msg = self.check_loan_ceiling_requirement(record, loan_metric)
-        messages.append(ceiling_msg)
-        if not ceiling_pass:
-            logger.info(f"Loan ceiling check failed (optional): {ceiling_msg}")
-
-        # Check 4: Prudential Regulation (Optional)
-        prudential_pass, prudential_msg = self.check_prudential_regulation(record, loan_metric)
-        messages.append(prudential_msg)
-        if not prudential_pass:
-            logger.info(f"Prudential regulation check failed (optional): {prudential_msg}")
-
-        # Check 5: Paid-off requirement (Optional)
-        paid_off_pass, paid_off_msg = self.check_paid_off_requirement(record, loan_metric)
-        messages.append(paid_off_msg)
-        if not paid_off_pass:
-            logger.info(f"Paid-off requirement check failed (optional): {paid_off_msg}")
-
-        # Check 6: Repeat increment requirement (Optional)
-        increment_pass, increment_msg = self.check_repeat_increment_requirement(record, loan_metric)
-        messages.append(increment_msg)
-        if not increment_pass:
-            logger.info(f"Repeat increment check failed (optional): {increment_msg}")
-
-        # ALWAYS return True for optional checks - they don't block approval
-        return True, messages
+        # 3) Aggregated exposure per eCIB - shown on the screen for information, it does not raise an exception
+        max_exposure = self._num(metric.get('max_exp_per_prud_reg'))
+        cushion = self._num(record.get('loan_per_exposure'))
+        steps.append(self._step('Exposure per eCIB', 'info',
+                                f"Prudential maximum {max_exposure:,.0f}, cushion for new loan {cushion:,.0f}, "
+                                f"aggregated outstanding {max_exposure - cushion:,.0f}"))
+        return steps, exceptions
 
     def evaluate_application(self, record: Dict) -> Tuple[bool, List[str], str, Dict]:
         """
-        Evaluate if application meets all auto-approval criteria.
+        Decide whether the application can be auto-approved.
 
-        MANDATORY: auto_approval_max_amount check
-        OPTIONAL: All loan metrics checks (they don't block approval)
+        MANDATORY: auto_approval_max_amount, and the amount must match the fee challan image.
+        MATRIX (when switched on for the product): a failed check does not stop the approval,
+        it makes it an approval WITH EXCEPTION.
 
-        Returns (approved, messages, approval_type, predictions)
+        Returns (approved, messages, approval_type, predictions). predictions also carries the
+        step-by-step trail ('steps'), the matrix 'exceptions' and the 'challan' result.
         """
         nature_of_business = record.get('Nature_Of_Business', '')
         experience_start_date = record.get('experiense_start_date')
         gender = record.get('Gender', '')
+        application_no = record.get('Application_No')
 
-        # Auto-predict business type
         business_type = self.predict_business_type(nature_of_business)
-
-        # Auto-predict experience level
         experience_level = self.predict_experience_level(experience_start_date)
 
+        steps = [self._step('Eligibility', 'pass',
+                            'Student Finance application under review; auto-approval is active for the product')]
         predictions = {
             'original_nature': nature_of_business,
             'predicted_business_type': business_type,
             'experience_start_date': experience_start_date,
             'predicted_experience_level': experience_level,
             'calculated_years': self.calculate_experience_years(experience_start_date),
-            'gender': gender
+            'gender': gender,
+            'steps': steps,
+            'exceptions': [],
+            'challan': None
         }
 
-        # ============================================================
-        # MANDATORY CHECK: Auto-Approval Max Amount
-        # ============================================================
+        # MANDATORY: auto-approval max amount
         max_amount = self.get_auto_approval_max_amount()
         amount_pass, amount_msg = self.check_auto_approval_max_amount(record, max_amount)
-
         if not amount_pass:
-            logger.error(f"Application {record.get('Application_No')} failed mandatory amount check: {amount_msg}")
+            logger.error(f"Application {application_no} failed mandatory amount check: {amount_msg}")
+            steps.append(self._step('Auto-approval limit', 'fail', amount_msg.lstrip('✗ ')))
+            steps.append(self._step('Decision', 'fail', 'Left under review for manual processing'))
             return False, [amount_msg], 'Amount_Limit_Failed', predictions
+        steps.append(self._step('Auto-approval limit', 'pass', amount_msg.lstrip('✓ ')))
 
-        # ============================================================
-        # OPTIONAL: Loan Metrics Checks (Don't block approval)
-        # ============================================================
-        if nature_of_business and nature_of_business.lower() in ['salary', 'salaried']:
-            logger.info(
-                f"Application {record.get('Application_No')} has {nature_of_business} - auto-approving without metrics check")
-            return True, [
-                "✓ Salary/Salaried category - automatic approval without loan metrics check",
-                amount_msg
-            ], 'Salary_Bypass', predictions
+        # Loan matrix (switch on the loan product)
+        messages = [amount_msg]
+        if str(record.get('auto_approval_check_loan_metrix')) == '1':
+            ongoing = self.get_ongoing_loans(record.get('CNIC', ''))
+            matrix_steps, exceptions = self.check_loan_matrix(record, ongoing)
+            steps.extend(matrix_steps)
+            predictions['exceptions'] = exceptions
+            messages.extend(f"{s['step']}: {s['detail']}" for s in matrix_steps)
+        else:
+            steps.append(self._step('Loan matrix', 'skipped', 'Loan matrix check is switched off for this product'))
 
-        # For non-salary, run optional loan metrics checks (they don't block approval)
-        logger.info(
-            f"Application {record.get('Application_No')} (Gender: {gender}) has {nature_of_business} - running optional loan metrics check")
-        logger.info(f"Predicted Business Type: {business_type}, Experience Level: {experience_level}")
+        # MANDATORY: amount on the fee challan
+        challan = check_challan(application_no, record.get('Loan_Amount'))
+        predictions['challan'] = challan
+        if not challan['passed']:
+            steps.append(self._step('Fee challan', 'fail', challan['detail']))
+            steps.append(self._step('Decision', 'fail', 'Left under review for manual processing'))
+            return False, messages + [challan['detail']], 'Challan_Check_Failed', predictions
+        steps.append(self._step('Fee challan', 'pass', challan['detail']))
+        messages.append(challan['detail'])
 
-        # Run optional checks - they always return True
-        _, messages = self.check_loan_metrics_for_non_salary(record, business_type, experience_level)
+        approval_type = 'Salary_Bypass' if str(nature_of_business).lower() in ['salary', 'salaried'] else 'Full_Metrics'
+        if predictions['exceptions']:
+            steps.append(self._step('Decision', 'exception',
+                                    'Approved with exception: ' + ' & '.join(predictions['exceptions'])))
+        else:
+            steps.append(self._step('Decision', 'pass', 'Approved - all checks passed'))
+        return True, messages, approval_type, predictions
 
-        # Add the amount check message to the list
-        messages.insert(0, amount_msg)
+    def get_executive_recipients(self, branch_name: str) -> List[str]:
+        """Executive Approvers (all branches) and Executives of this application's branch."""
+        query = """
+            SELECT DISTINCT u.email
+            FROM tbl_users u
+            WHERE u.active = '1' AND u.email IS NOT NULL AND u.email != ''
+              AND (
+                  CAST(u.rights AS VARCHAR) = '3'
+                  OR (CAST(u.rights AS VARCHAR) = '5' AND EXISTS (
+                      SELECT 1 FROM tbl_branches b
+                      WHERE %s LIKE CONCAT('%%', b.branch_code, '%%') AND b.live_branch = '1'
+                        AND b.role = ANY (u.assigned_branch)
+                  ))
+              )
+        """
+        return [r['email'] for r in (fetch_records(query, params=(branch_name,)) or [])]
 
-        return True, messages, 'Full_Metrics', predictions
+    def send_executive_notification(self, record: Dict, exceptions: List[str]) -> Tuple[bool, str]:
+        """Third-level approval: tell the executives the application is waiting in their bucket."""
+        recipients = self.get_executive_recipients(record.get('Branch_Name', ''))
+        if self.dry_run:
+            logger.info(f"🔍 [DRY RUN] Would notify {len(recipients)} executive(s) about {record.get('Application_No')}")
+            return True, f"[DRY RUN] Would notify {len(recipients)} executive(s)"
+        if not recipients:
+            return False, 'No executive approver found to notify'
+
+        exception_text = ' & '.join(exceptions) if exceptions else 'None'
+        html = f"""
+            <div style="font-family: Arial, sans-serif; color: #333; max-width: 640px;">
+                <h3 style="color: #1e3a8a;">Student Finance application waiting for Executive approval</h3>
+                <p>This application was approved by the auto-approval job. Because the product needs
+                third-level approval, it is now in the Executive bucket (Pending Applications).</p>
+                <table style="border-collapse: collapse; width: 100%;">
+                    <tr><th align="left" style="border: 1px solid #ddd; padding: 6px;">Application No</th><td style="border: 1px solid #ddd; padding: 6px;">{record.get('Application_No')}</td></tr>
+                    <tr><th align="left" style="border: 1px solid #ddd; padding: 6px;">Borrower</th><td style="border: 1px solid #ddd; padding: 6px;">{record.get('Borrower_Name')}</td></tr>
+                    <tr><th align="left" style="border: 1px solid #ddd; padding: 6px;">Branch</th><td style="border: 1px solid #ddd; padding: 6px;">{record.get('Branch_Name')}</td></tr>
+                    <tr><th align="left" style="border: 1px solid #ddd; padding: 6px;">Approved amount</th><td style="border: 1px solid #ddd; padding: 6px;">PKR {self._num(record.get('Loan_Amount')):,.0f}</td></tr>
+                    <tr><th align="left" style="border: 1px solid #ddd; padding: 6px;">Status</th><td style="border: 1px solid #ddd; padding: 6px;">{'Agreed (With Exception)' if exceptions else 'Agreed'}</td></tr>
+                    <tr><th align="left" style="border: 1px solid #ddd; padding: 6px;">Matrix exception</th><td style="border: 1px solid #ddd; padding: 6px;">{exception_text}</td></tr>
+                </table>
+                <p>The approval letter will go to the branch once an Executive confirms the decision.</p>
+            </div>
+        """
+        subject = (f"[KFT] Executive approval needed - Student Finance application "
+                   f"{record.get('Application_No')}" + (' (With Exception)' if exceptions else ''))
+        sent = send_email(subject=subject, email_list=recipients, message='', html_message=html)
+        return (True, f"Executive(s) notified ({len(recipients)})") if sent else (False, 'Executive notification email failed')
 
     def send_approval_email(self, pre_disb_temp_id: int, approved_by: int, recipient_email: str, application_no: str) -> \
     Tuple[bool, str]:
@@ -1345,7 +1304,7 @@ class StudentFinanceAutoApprover:
         try:
             import requests
 
-            email_url = "http://localhost:8000/send-email"
+            email_url = os.getenv('SEND_EMAIL_URL', "http://localhost:8000/send-email")
 
             payload = {
                 "app_no": str(pre_disb_temp_id),
@@ -1353,7 +1312,9 @@ class StudentFinanceAutoApprover:
                 "user_id": approved_by
             }
 
-            response = requests.post(email_url, json=payload, headers={'Content-Type': 'application/json'}, timeout=30)
+            response = requests.post(email_url, json=payload, timeout=30,
+                                     headers={'Content-Type': 'application/json',
+                                              'X-Internal-Key': os.getenv('INTERNAL_API_KEY', '')})
 
             if response.status_code == 200:
                 result = response.json()
@@ -1396,29 +1357,50 @@ class StudentFinanceAutoApprover:
         predicted_experience_level = predictions.get('predicted_experience_level', '').replace("'", "''")
         gender = predictions.get('gender', '').replace("'", "''")
 
+        # Matrix exception -> 9 (Agreed - With Exception), otherwise 2 (Agreed)
+        exceptions = predictions.get('exceptions') or []
+        new_status = '9' if exceptions else '2'
+        # Third-level approval: the decision waits in the executive bucket and the branch email is held
+        third_level = str(record.get('allow_exceptional_approval')) == '1'
+        steps = predictions.setdefault('steps', [])
+        steps.append(self._step('Status set', 'exception' if exceptions else 'pass',
+                                'Agreed (With Exception)' if exceptions else 'Agreed'))
+
         if self.dry_run:
             logger.info(f"🔍 [DRY RUN] Would auto-approve application {application_no}")
             logger.info(f"  - Gender: {gender}")
-            logger.info(f"  - Status would change from '{record.get('status')}' to '2'")
+            logger.info(f"  - Status would change from '{record.get('status')}' to '{new_status}'")
             logger.info(f"  - Approved by: {approver['name']}")
             logger.info(f"  - Approval date: {formatted_datetime}")
             logger.info(f"  - Approval type: {approval_type}")
 
-            branch_email = self.get_branch_email(branch_name)
-            if branch_email:
-                logger.info(f"  - Would send email to branch: {branch_email}")
-                logger.info(f"  - Would update email_status to 2")
+            if third_level:
+                logger.info("  - Third-level approval: would go to the executive bucket and notify the executives")
+                _, exec_message = self.send_executive_notification(record, exceptions)
+                steps.append(self._step('Third-level approval', 'info', 'Sent to the Executive bucket - ' + exec_message))
             else:
-                logger.warning(f"  - No branch email found for {branch_name}")
+                branch_email = self.get_branch_email(branch_name)
+                if branch_email:
+                    logger.info(f"  - Would send email to branch: {branch_email}")
+                    logger.info(f"  - Would update email_status to 2")
+                    steps.append(self._step('Branch email', 'info', 'Approval letter would be emailed to the branch'))
+                else:
+                    logger.warning(f"  - No branch email found for {branch_name}")
+                    steps.append(self._step('Branch email', 'info', 'No branch email found'))
 
             self.log_auto_approval(record, approver, current_datetime, approval_type, predictions, dry_run=True)
             return True, f"[DRY RUN] Would auto-approve {application_no}"
 
         # Normal mode: Execute the update
+        exec_pending_sql = (
+            "exec_approval_pending = 1, exec_approved_by = NULL, exec_approved_date = NULL,"
+            if third_level else ""
+        )
         update_query = f"""
             UPDATE tbl_pre_disbursement_temp
-            SET 
-                status = '2',
+            SET
+                status = '{new_status}',
+                {exec_pending_sql}
                 kft_approved_loan_limit = '{str(Approved_Amount)}',
                 approved_by = '{approver['user_id']}',
                 approved_date = '{formatted_datetime}',
@@ -1433,24 +1415,30 @@ class StudentFinanceAutoApprover:
 
         try:
             execute_command(update_query)
-            logger.info(f"Auto-approved application {application_no}")
+            logger.info(f"Auto-approved application {application_no} with status {new_status}")
 
-            self.log_auto_approval(record, approver, current_datetime, approval_type, predictions, dry_run=False)
-
-            # Send email to branch
-            branch_email = self.get_branch_email(branch_name)
-
-            if branch_email:
-                logger.info(f"Sending approval email to branch: {branch_email}")
-                email_success, email_message = self.send_approval_email(pre_disb_temp_id, approver['user_id'],
-                                                                        branch_email, application_no)
-
-                if email_success:
-                    logger.info(f"✓ Email sent successfully")
-                else:
-                    logger.warning(f"⚠️ Email sending failed: {email_message}")
+            if third_level:
+                # Executive bucket: the branch gets its email when an executive confirms the decision
+                exec_success, exec_message = self.send_executive_notification(record, exceptions)
+                steps.append(self._step('Third-level approval', 'info' if exec_success else 'fail',
+                                        'Sent to the Executive bucket - ' + exec_message))
             else:
-                logger.warning(f"No email found for branch {branch_name}, skipping email")
+                branch_email = self.get_branch_email(branch_name)
+                if branch_email:
+                    logger.info(f"Sending approval email to branch: {branch_email}")
+                    email_success, email_message = self.send_approval_email(pre_disb_temp_id, approver['user_id'],
+                                                                            branch_email, application_no)
+                    steps.append(self._step('Branch email', 'pass' if email_success else 'fail', email_message))
+                    if email_success:
+                        logger.info(f"✓ Email sent successfully")
+                    else:
+                        logger.warning(f"⚠️ Email sending failed: {email_message}")
+                else:
+                    logger.warning(f"No email found for branch {branch_name}, skipping email")
+                    steps.append(self._step('Branch email', 'info', 'No branch email found - not sent'))
+
+            # Logged last so the trail includes the email / executive steps
+            self.log_auto_approval(record, approver, current_datetime, approval_type, predictions, dry_run=False)
 
             return True, f"Successfully auto-approved {application_no}"
 
@@ -1460,12 +1448,25 @@ class StudentFinanceAutoApprover:
             return False, error_msg
 
     def log_auto_approval(self, record: Dict, approver: Dict, approved_datetime: datetime,
-                          approval_type: str, predictions: Dict, dry_run: bool = False):
-        """Log auto-approval details for audit trail"""
+                          approval_type: str, predictions: Dict, dry_run: bool = False,
+                          status: str = 'Approved', remarks: str = None):
+        """Log an auto-approval decision (approved, or left under review) with its step-by-step trail"""
         predicted_business_type = predictions.get('predicted_business_type', '').replace("'", "''")
         predicted_experience_level = predictions.get('predicted_experience_level', '').replace("'", "''")
         calculated_years = predictions.get('calculated_years', 0)
         gender = predictions.get('gender', '')
+        exceptions = predictions.get('exceptions') or []
+        challan = predictions.get('challan') or {}
+        approved = status == 'Approved'
+        third_level = approved and str(record.get('allow_exceptional_approval')) == '1'
+        steps_json = json.dumps(predictions.get('steps') or [], ensure_ascii=False).replace("'", "''")
+        if remarks is None:
+            remarks = f"Auto-approved by system - Type: {approval_type}, Gender: {gender}"
+        remarks = remarks.replace("'", "''")
+        challan_amount = challan.get('before_due')
+        challan_amount_sql = f"{challan_amount}" if challan_amount is not None else 'NULL'
+        approver_name = approver['name'] if approved else 'System'
+        approver_id = approver.get('user_id', 0) if approved else 'NULL'
 
         if dry_run:
             logger.info(f"🔍 [DRY RUN] Would insert into tbl_auto_approval_log:")
@@ -1479,8 +1480,17 @@ class StudentFinanceAutoApprover:
             logger.info(f"  predicted_business_type: {predicted_business_type}")
             logger.info(f"  predicted_experience_level: {predicted_experience_level}")
             logger.info(f"  approval_type: {approval_type}")
-            logger.info(f"  approved_by: {approver['name']}")
+            logger.info(f"  status: {status}")
+            logger.info(f"  exception: {' & '.join(exceptions) or 'none'}")
             return
+
+        if not approved:
+            # The job runs repeatedly: do not repeat the same "left under review" line every cycle
+            latest = fetch_records(
+                "SELECT status, remarks FROM tbl_auto_approval_log WHERE record_id = %s ORDER BY log_id DESC LIMIT 1",
+                params=(record.get('pre_disb_temp_id'),), is_print=False)
+            if latest and latest[0].get('status') == status and (latest[0].get('remarks') or '') == remarks.replace("''", "'"):
+                return
 
         log_query = f"""
             INSERT INTO tbl_auto_approval_log (
@@ -1502,7 +1512,12 @@ class StudentFinanceAutoApprover:
                 approved_by_id,
                 approved_date,
                 status,
-                remarks
+                remarks,
+                steps,
+                is_exception,
+                exception_reason,
+                challan_amount,
+                sent_to_executive
             ) VALUES (
                 {record.get('pre_disb_temp_id')},
                 'Student Finance',
@@ -1518,17 +1533,22 @@ class StudentFinanceAutoApprover:
                 '{predicted_experience_level}',
                 {calculated_years},
                 '{approval_type}',
-                '{approver['name'].replace("'", "''")}',
-                {approver.get('user_id', 0)},
+                '{approver_name.replace("'", "''")}',
+                {approver_id},
                 '{approved_datetime.strftime('%Y-%m-%d %H:%M:%S')}',
-                'Approved',
-                'Auto-approved by system - Type: {approval_type}, Gender: {gender}'
+                '{status}',
+                '{remarks}',
+                '{steps_json}',
+                {1 if exceptions else 0},
+                {"'" + ' & '.join(exceptions).replace("'", "''") + "'" if exceptions else 'NULL'},
+                {challan_amount_sql},
+                {1 if third_level else 0}
             )
         """
 
         try:
             execute_command(log_query)
-            logger.info(f"Logged auto-approval for record {record.get('pre_disb_temp_id')}")
+            logger.info(f"Logged auto-approval ({status}) for record {record.get('pre_disb_temp_id')}")
         except Exception as e:
             logger.error(f"Failed to log auto-approval: {str(e)}")
 
@@ -1548,6 +1568,8 @@ class StudentFinanceAutoApprover:
         metrics_approved = 0
         male_approved = 0
         female_approved = 0
+        exception_approved = 0
+        executive_sent = 0
 
         # Get eligible applications
         eligible_apps = self.get_eligible_applications()
@@ -1560,6 +1582,8 @@ class StudentFinanceAutoApprover:
                 'total_eligible': 0,
                 'total_approved': 0,
                 'total_failed': 0,
+                'exception_approved': 0,
+                'executive_sent': 0,
                 'salary_approved': 0,
                 'metrics_approved': 0,
                 'male_approved': 0,
@@ -1582,6 +1606,8 @@ class StudentFinanceAutoApprover:
                 'total_eligible': len(eligible_apps),
                 'total_approved': 0,
                 'total_failed': len(eligible_apps),
+                'exception_approved': 0,
+                'executive_sent': 0,
                 'salary_approved': 0,
                 'metrics_approved': 0,
                 'male_approved': 0,
@@ -1629,6 +1655,11 @@ class StudentFinanceAutoApprover:
                     else:
                         metrics_approved += 1
 
+                    if predictions.get('exceptions'):
+                        exception_approved += 1
+                    if str(app.get('allow_exceptional_approval')) == '1':
+                        executive_sent += 1
+
                     # Track by gender
                     if app.get('Gender', '').lower() == 'male':
                         male_approved += 1
@@ -1646,7 +1677,10 @@ class StudentFinanceAutoApprover:
                         'predicted_experience_level': predictions['predicted_experience_level'],
                         'approval_type': approval_type,
                         'approver': approver['name'],
-                        'messages': evaluation_messages
+                        'exceptions': predictions.get('exceptions') or [],
+                        'sent_to_executive': str(app.get('allow_exceptional_approval')) == '1',
+                        'messages': evaluation_messages,
+                        'steps': predictions.get('steps') or []
                     })
 
                     if self.dry_run:
@@ -1669,8 +1703,13 @@ class StudentFinanceAutoApprover:
                     'nature_of_business': app.get('Nature_Of_Business'),
                     'predicted_business_type': predictions['predicted_business_type'],
                     'predicted_experience_level': predictions['predicted_experience_level'],
-                    'reason': ' | '.join(evaluation_messages)
+                    'reason': ' | '.join(evaluation_messages),
+                    'steps': predictions.get('steps') or []
                 })
+                # Left under review: keep the trail so the monitor shows why
+                self.log_auto_approval(app, approver, datetime.now(), approval_type, predictions,
+                                       dry_run=self.dry_run, status='Pending Manual Review',
+                                       remarks=' | '.join(evaluation_messages))
                 logger.info(f"❌ NOT APPROVED: {app.get('Application_No')}")
 
         # Generate summary
@@ -1680,6 +1719,8 @@ class StudentFinanceAutoApprover:
             'total_eligible': len(eligible_apps),
             'total_approved': len(approved_applications),
             'total_failed': len(failed_applications),
+            'exception_approved': exception_approved,
+            'executive_sent': executive_sent,
             'salary_approved': salary_approved,
             'metrics_approved': metrics_approved,
             'male_approved': male_approved,
