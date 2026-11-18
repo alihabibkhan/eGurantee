@@ -58,6 +58,13 @@
         const kpi = (l, v, s, c) => `<div class="plar-kpi" style="--accent:${c || 'var(--c1)'}"><div class="lbl">${l}</div><div class="val">${v}</div><div class="sub">${s || ''}</div></div>`;
         const table = (head, rows) => rows.length ? `<div class="table-responsive"><table class="table table-sm mb-0"><thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : '<span class="plar-note">Nothing to show yet.</span>';
 
+        function drawTrend(trend) {
+            draw('d-trend', { type: 'bar', data: { labels: trend.map((t) => t.month), datasets: [
+                { label: 'Loans with automated exceptions', data: trend.map((t) => t.auto_exceptions), backgroundColor: css('--c2') },
+                { label: 'Sampled', data: trend.map((t) => t.sampled), backgroundColor: css('--c3') },
+                { label: 'Sample findings', data: trend.map((t) => t.issues), backgroundColor: css('--c5') }] },
+                options: { maintainAspectRatio: false, scales: { y: { ticks: { precision: 0 } } } } });
+        }
         function paint(d) {
             const s = d.summary, sm = d.sample, a = d.actions;
             const comp = sm.status['Compliant'] || 0, iss = sm.status['Issue Identified'] || 0, clar = sm.status['Clarification Required'] || 0;
@@ -72,11 +79,7 @@
                 kpi('Open actions', fmt(a.open), `${fmt(a.overdue)} overdue · ${fmt(a.escalated)} escalated`, 'var(--c5)') +
                 kpi('Resolved / closed', fmt(a.closed), 'with evidence');
 
-            draw('d-trend', { type: 'bar', data: { labels: d.trend.map((t) => t.month), datasets: [
-                { label: 'Loans with automated exceptions', data: d.trend.map((t) => t.auto_exceptions), backgroundColor: css('--c2') },
-                { label: 'Sampled', data: d.trend.map((t) => t.sampled), backgroundColor: css('--c3') },
-                { label: 'Sample findings', data: d.trend.map((t) => t.issues), backgroundColor: css('--c5') }] },
-                options: { maintainAspectRatio: false, scales: { y: { ticks: { precision: 0 } } } } });
+            if (d.trend) drawTrend(d.trend);
             const st = Object.entries(sm.status);
             draw('d-status', { type: 'doughnut', data: { labels: st.map((x) => x[0]), datasets: [{ data: st.map((x) => x[1]), borderWidth: 0,
                 backgroundColor: st.map((x) => css({ 'Compliant': '--c1', 'Issue Identified': '--c5', 'Clarification Required': '--c2', 'Review In Progress': '--c4' }[x[0]] || '--c3')) }] },
@@ -101,6 +104,11 @@
             postJson('{{ url_for("plar_dashboard_data") }}', { month: document.getElementById('d-month').value }).then((j) => {
                 if (!j.success) { alert(j.error || 'Could not load'); return; }
                 last = j; paint(j);
+                // The 6-month chart is slower (one query per month), so it loads after the rest is on screen.
+                const month = document.getElementById('d-month').value;
+                postJson('{{ url_for("plar_dashboard_trend") }}', { month }).then((t) => {
+                    if (t.success && last === j && document.getElementById('d-month').value === month) { j.trend = t.trend; drawTrend(t.trend); }
+                }).catch(() => {});
             }).finally(() => { document.getElementById('d-loading').hidden = true; });
         }
         document.getElementById('d-month').addEventListener('change', load);

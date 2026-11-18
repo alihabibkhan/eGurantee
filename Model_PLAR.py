@@ -829,19 +829,9 @@ def get_plar_dashboard(month_start):
         FROM tbl_plar_review rv LEFT JOIN tbl_users u ON u.user_id = rv.reviewed_by
         GROUP BY 1 ORDER BY 2 DESC""", is_print=False)
 
-    trend = []
-    runs = {r['mis_month']: r for r in fetch_records("SELECT * FROM tbl_plar_run", is_print=False)}
-    for i in range(5, -1, -1):
-        m = month_start
-        for _ in range(i):
-            m = date(m.year - (m.month == 1), (m.month - 2) % 12 + 1, 1)
-        st = _plar_month_stats(m)
-        rn = runs.get(m)
-        sm = fetch_records("""SELECT COUNT(*) AS sampled, COUNT(*) FILTER (WHERE rv.overall_status = 'Issue Identified') AS issues
-                              FROM tbl_plar_sample s LEFT JOIN tbl_plar_review rv ON rv.sample_id = s.sample_id
-                              WHERE s.run_id = %s""", is_print=False, params=(rn['run_id'],))[0] if rn else {'sampled': 0, 'issues': 0}
-        trend.append({'month': m.strftime('%Y-%m'), 'disbursed': st['loans'], 'auto_exceptions': st['with_exceptions'],
-                      'sampled': sm['sampled'], 'issues': sm['issues']})
+    # The 6-month trend needs one heavy population query per month, so it is served by get_plar_trend()
+    # (separate request) and this page no longer waits for it. Seed its cache with the month already loaded.
+    _TREND_CACHE[month_start] = (time.time(), {'loans': len(rows), 'with_exceptions': sum(1 for r in rows if r['exceptions'])})
 
     return {
         'summary': summary, 'cases': cases,
@@ -855,7 +845,25 @@ def get_plar_dashboard(month_start):
                     'closed': len(actions) - len(open_actions),
                     'escalated': sum(1 for a in actions if a['escalated']),
                     'by_severity': {s: sum(1 for a in open_actions if a['severity'] == s) for s in PLAR_SEVERITIES}},
-        'recurring': recurring_rows, 'reviewers': findings_by_reviewer, 'trend': trend}
+        'recurring': recurring_rows, 'reviewers': findings_by_reviewer}
+
+
+def get_plar_trend(month_start):
+    """Last 6 months (ending at month_start): auto-exception counts plus sample findings."""
+    trend = []
+    runs = {r['mis_month']: r for r in fetch_records("SELECT * FROM tbl_plar_run", is_print=False)}
+    for i in range(5, -1, -1):
+        m = month_start
+        for _ in range(i):
+            m = date(m.year - (m.month == 1), (m.month - 2) % 12 + 1, 1)
+        st = _plar_month_stats(m)
+        rn = runs.get(m)
+        sm = fetch_records("""SELECT COUNT(*) AS sampled, COUNT(*) FILTER (WHERE rv.overall_status = 'Issue Identified') AS issues
+                              FROM tbl_plar_sample s LEFT JOIN tbl_plar_review rv ON rv.sample_id = s.sample_id
+                              WHERE s.run_id = %s""", is_print=False, params=(rn['run_id'],))[0] if rn else {'sampled': 0, 'issues': 0}
+        trend.append({'month': m.strftime('%Y-%m'), 'disbursed': st['loans'], 'auto_exceptions': st['with_exceptions'],
+                      'sampled': sm['sampled'], 'issues': sm['issues']})
+    return trend
 
 
 # ---------------------------------------------------------------------------------------------

@@ -443,3 +443,16 @@ def plar_dashboard_data():
     except Exception as e:
         print('plar dashboard exception:- ', str(e))
         return jsonify({'success': False, 'error': 'Could not load the dashboard'}), 500
+
+
+@application.route('/plar/dashboard/trend', methods=['POST'])
+def plar_dashboard_trend():
+    """The 6-month chart is loaded after the rest of the dashboard because it needs one heavy query per month."""
+    if not plar_can_dashboard():
+        return jsonify({'success': False, 'error': 'Not allowed'}), 403
+    try:
+        month = plar_month_from_request(request.get_json(silent=True))
+        return jsonify(plar_json_safe({'success': True, 'month': month.strftime('%Y-%m'), 'trend': get_plar_trend(month)}))
+    except Exception as e:
+        print('plar dashboard trend exception:- ', str(e))
+        return jsonify({'success': False, 'error': 'Could not load the trend'}), 500
