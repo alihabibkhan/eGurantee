@@ -122,7 +122,7 @@ def build_kft_dashboard_data():
     def get_branch_idx(branch_code, fallback_name):
         code = (branch_code or '').strip()
         if code not in branch_index:
-            info = known_branches.get(code) or {
+            info = known_branches.get(_normalize_branch_code(code)) or {
                 'name': (fallback_name or code).replace(' BRANCH', '').strip(),
                 'region': UNASSIGNED_REGION,
             }
