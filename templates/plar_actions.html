@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLAR - Corrective actions</title>
+    {% include 'head.html' %}
+    <style>
+        .ca-ev a { display: block; font-size: 12.5px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ca-actions { display: flex; gap: 6px; align-items: center; }
+        .ca-actions .form-select { width: auto; padding: 2px 26px 2px 8px; font-size: 13px; }
+    </style>
+</head>
+<body>
+    {% include 'navbar.html' %}
+
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url":"", "label":'Assurance Review (PLAR)'}, {"url":"", "label":'Corrective actions'}]) }}
+
+    <div class="container mt-2">
+        {% include 'message_box.html' %}
+        <div class="kf-page-head">
+            <h1>Corrective actions</h1>
+            <p>Every PLAR finding has a responsible official and a deadline. An action can be marked Resolved or Closed only after evidence is uploaded. High and Critical actions that pass their deadline are escalated to KFT management.</p>
+        </div>
+        {% include 'plar_common.html' %}
+
+        <div class="plar-kpis" id="a-kpis"></div>
+        <div class="plar-bar">
+            <div class="plar-seg" id="a-tabs" role="group" aria-label="View">
+                <button type="button" class="on" data-v="open">Open</button>
+                <button type="button" data-v="overdue">Overdue</button>
+                <button type="button" data-v="escalate">Needs escalation</button>
+                <button type="button" data-v="closed">Resolved / closed</button>
+                <button type="button" data-v="all">All</button>
+            </div>
+            {% if result.can_review %}
+            <button type="button" class="btn btn-outline-secondary ms-auto" id="a-remind"><i class="bi bi-bell me-1"></i>Send reminders</button>
+            <button type="button" class="btn btn-primary" id="a-escalate"><i class="bi bi-arrow-up-circle me-1"></i>Escalate overdue high-risk</button>
+            {% endif %}
+        </div>
+        <div id="a-grid" class="mb-4"></div>
+        <input type="file" id="a-file" hidden>
+    </div>
+
+    <script>
+        const CAN_REVIEW = {{ 'true' if result.can_review else 'false' }};
+        const STATUSES = {{ result.statuses | tojson }};
+        let ROWS = [], VIEW = 'open', uploadFor = null;
+        const isOpen = (a) => a.status !== 'Resolved' && a.status !== 'Closed';
+        const needsEsc = (a) => a.overdue && (a.severity === 'High' || a.severity === 'Critical') && !a.escalated;
+        const statusPill = (s) => `<span class="kft-pill ${s === 'Closed' || s === 'Resolved' ? 'ok' : (s === 'In Progress' ? 'warn' : 'bad')}">${esc(s)}</span>`;
+
+        const cols = [
+            { key: 'action_id', label: 'ID', type: 'number', value: (r) => 'CA-' + r.action_id, render: (r) => 'CA-' + r.action_id },
+            { key: 'loan_no', label: 'Loan no.', className: 'strong',
+              render: (r) => r.sample_id ? `<a href="/plar/review?sample_id=${r.sample_id}">${esc(r.loan_no)}</a>` : esc(r.loan_no) },
+            { key: 'region_name', label: 'Region' }, { key: 'branch_name', label: 'Branch' },
+            { key: 'category', label: 'Category' },
+            { key: 'severity', label: 'Severity', render: (r) => sevPill(r.severity) },
+            { key: 'action_text', label: 'Finding / action', render: (r) => `<span title="${esc(r.action_text)}">${esc((r.action_text || '').slice(0, 70))}${(r.action_text || '').length > 70 ? '…' : ''}</span>` },
+            { key: 'owner_name', label: 'Responsible', value: (r) => r.owner_name || '' },
+            { key: 'due_date', label: 'Deadline', type: 'date', render: (r) => esc(fmtDate(r.due_date)) + (r.overdue ? ` <span class="kft-pill bad">${r.days_overdue}d overdue</span>` : '') + (r.escalated ? ' <span class="kft-pill gold">escalated</span>' : ''), exportValue: (r) => fmtDate(r.due_date) },
+            { key: 'status', label: 'Status', render: (r) => statusPill(r.status) },
+            { key: 'evidence', label: 'Evidence', sortable: false, value: (r) => r.evidence.map((e) => e.file_name).join('; '),
+              render: (r) => r.evidence.length ? `<div class="ca-ev">${r.evidence.map((e) => `<a href="/plar/actions/evidence/${e.evidence_id}" title="${esc(e.file_name)}"><i class="bi bi-paperclip"></i>${esc(e.file_name)}</a>`).join('')}</div>` : '<span class="kft-pill neutral">none</span>' },
+            { key: 'created_date', label: 'Opened', type: 'date', hidden: true, render: (r) => esc(fmtDate(r.created_date)), exportValue: (r) => fmtDate(r.created_date) },
+            { key: 'ctl', label: '', act: true, sortable: false, export: false, hidden: !CAN_REVIEW,
+              render: (r) => !CAN_REVIEW ? '' : `<div class="ca-actions"><select class="form-select form-select-sm" data-status="${r.action_id}" aria-label="Status">${STATUSES.map((s) => `<option ${s === r.status ? 'selected' : ''}>${s}</option>`).join('')}</select>` +
+                  `<button type="button" class="icon-btn" title="Attach evidence" data-evidence="${r.action_id}"><i class="bi bi-upload"></i></button></div>` }
+        ];
+        const grid = KFTGrid.create(document.getElementById('a-grid'), { columns: cols, storageKey: 'plar-actions', exportName: 'PLAR_Corrective_Actions',
+            pageSize: 25, title: 'Corrective actions', sort: { key: 'due_date', dir: 'asc' }, emptyText: 'No actions in this view',
+            searchPlaceholder: 'Search loan, branch or owner…' });
+
+        function filtered() {
+            return ROWS.filter((a) => VIEW === 'all' || (VIEW === 'open' && isOpen(a)) || (VIEW === 'overdue' && a.overdue) ||
+                (VIEW === 'escalate' && needsEsc(a)) || (VIEW === 'closed' && !isOpen(a)));
+        }
+        function paint() {
+            const open = ROWS.filter(isOpen);
+            const k = (l, v, s, c) => `<div class="plar-kpi" style="--accent:${c || 'var(--c1)'}"><div class="lbl">${l}</div><div class="val">${v}</div><div class="sub">${s || ''}</div></div>`;
+            document.getElementById('a-kpis').innerHTML =
+                k('Open / in progress', open.length, 'awaiting resolution') + k('Overdue', open.filter((a) => a.overdue).length, 'past the deadline', 'var(--c5)') +
+                k('Needs escalation', ROWS.filter(needsEsc).length, 'High / Critical and overdue', 'var(--c4)') +
+                k('Already escalated', ROWS.filter((a) => a.escalated).length, 'sent to management', 'var(--c2)') +
+                k('Resolved / closed', ROWS.length - open.length, 'with evidence');
+            grid.setRows(filtered());
+        }
+        function load() {
+            postJson('{{ url_for("plar_actions_data") }}', {}).then((j) => { if (j.success) { ROWS = j.actions; paint(); } else alert(j.error || 'Could not load'); });
+        }
+        document.getElementById('a-tabs').addEventListener('click', (e) => {
+            const b = e.target.closest('button'); if (!b) return;
+            document.querySelectorAll('#a-tabs button').forEach((x) => x.classList.toggle('on', x === b));
+            VIEW = b.dataset.v; grid.setRows(filtered());
+        });
+        grid.el.addEventListener('change', (e) => {
+            const s = e.target.closest('select[data-status]'); if (!s) return;
+            postJson('{{ url_for("plar_actions_status") }}', { action_id: s.dataset.status, status: s.value })
+                .then((j) => { if (!j.success) alert(j.error || 'Could not change the status'); load(); });
+        });
+        grid.el.addEventListener('click', (e) => {
+            const b = e.target.closest('[data-evidence]'); if (!b) return;
+            uploadFor = b.dataset.evidence; document.getElementById('a-file').click();
+        });
+        document.getElementById('a-file').addEventListener('change', (e) => {
+            const f = e.target.files[0]; if (!f || !uploadFor) return;
+            const fd = new FormData(); fd.append('file', f); fd.append('action_id', uploadFor);
+            fetch('{{ url_for("plar_actions_evidence_upload") }}', { method: 'POST', body: fd }).then((r) => r.json())
+                .then((j) => { if (!j.success) alert(j.error || 'Upload failed'); load(); })
+                .finally(() => { e.target.value = ''; uploadFor = null; });
+        });
+        const rem = document.getElementById('a-remind'), esc2 = document.getElementById('a-escalate');
+        if (rem) rem.addEventListener('click', () => {
+            if (!confirm('Email a reminder to every EGS user who owns an overdue or soon-due action?')) return;
+            rem.disabled = true;
+            postJson('{{ url_for("plar_actions_remind") }}', {}).then((j) => {
+                alert(j.success ? `${j.emails} email(s) sent covering ${j.actions} action(s).` + (j.no_user ? ` ${j.no_user} action(s) have no EGS user to remind.` : '') : (j.error || 'Failed'));
+                load();
+            }).finally(() => { rem.disabled = false; });
+        });
+        if (esc2) esc2.addEventListener('click', () => {
+            const n = ROWS.filter(needsEsc).length;
+            if (!n) { alert('Nothing needs escalation right now.'); return; }
+            if (!confirm(`Escalate ${n} overdue high-risk action(s) to KFT management by email?`)) return;
+            esc2.disabled = true;
+            postJson('{{ url_for("plar_actions_escalate") }}', {}).then((j) => {
+                alert(j.success ? `${j.count} action(s) escalated` + (j.emailed ? ` and ${j.recipients} manager(s) emailed.` : '. No email was sent (no manager email found).') : (j.error || 'Failed'));
+                load();
+            }).finally(() => { esc2.disabled = false; });
+        });
+        window.addEventListener('kft-theme-change', () => grid.refresh());
+        load();
+    </script>
+</body>
+</html>

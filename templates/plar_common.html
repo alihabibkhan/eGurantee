@@ -1,0 +1,58 @@
+{# Shared by every PLAR page: sub-navigation, KPI/segment styles and small JS helpers.
+   Expects `result.active`, `result.can_dashboard` (and `result.can_review`). #}
+<style>
+    .plar-nav { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
+    .plar-nav a { padding: 8px 14px; color: var(--ink-2); text-decoration: none; font-weight: 600; font-size: 13.5px; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+    .plar-nav a:hover { color: var(--ink); }
+    .plar-nav a.on { color: var(--c1); border-bottom-color: var(--c1); }
+    .plar-bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+    .plar-bar label { font-size: 12px; font-weight: 600; color: var(--ink-3); margin: 0 6px 0 0; }
+    .plar-bar .form-select { width: auto; min-width: 150px; }
+    .plar-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); flex-wrap: wrap; }
+    .plar-seg button { border: 0; background: transparent; color: var(--ink-2); font-size: 13px; padding: 7px 12px; white-space: nowrap; }
+    .plar-seg button + button { border-left: 1px solid var(--line); }
+    .plar-seg button.on { background: var(--c1); color: #fff; font-weight: 600; }
+    [data-theme="dark"] .plar-seg button.on { color: #0E1411; }
+    .plar-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 14px; }
+    .plar-kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow-1); position: relative; overflow: hidden; }
+    .plar-kpi::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent, var(--c1)); }
+    .plar-kpi .lbl { font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; color: var(--ink-3); }
+    .plar-kpi .val { font-size: 24px; font-weight: 700; color: var(--ink); margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
+    .plar-kpi .sub { font-size: 12px; color: var(--ink-3); }
+    .plar-panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow-1); padding: 14px 16px; min-width: 0; margin-bottom: 14px; }
+    .plar-panel h3 { font-size: 14px; font-weight: 600; margin: 0 0 8px; color: var(--ink); }
+    .plar-note { font-size: 12.5px; color: var(--ink-3); }
+    .plar-chart { position: relative; height: 250px; }
+    .plar-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 900px) { .plar-two { grid-template-columns: 1fr; } }
+</style>
+<div class="plar-nav" role="navigation" aria-label="Assurance review">
+    {% set tabs = [] %}
+    {% if result.can_dashboard %}{% set _ = tabs.append(('dashboard', 'Dashboard', '/plar/dashboard')) %}{% endif %}
+    {% set _ = tabs.append(('reconciliation', 'Reconciliation', '/plar/reconciliation')) %}
+    {% set _ = tabs.append(('exceptions', 'Exceptions', '/plar/exceptions')) %}
+    {% set _ = tabs.append(('sampling', 'Sampling', '/plar/sampling')) %}
+    {% set _ = tabs.append(('review', 'Case review', '/plar/review')) %}
+    {% set _ = tabs.append(('actions', 'Corrective actions', '/plar/actions')) %}
+    {% set _ = tabs.append(('audit', 'Audit trail', '/plar/audit')) %}
+    {% for key, label, url in tabs %}
+        <a href="{{ url }}" class="{{ 'on' if result.active == key else '' }}">{{ label }}</a>
+    {% endfor %}
+</div>
+<script>
+    const esc = KFTGrid.escape;
+    const n = (v) => (v === null || v === undefined || v === '' || isNaN(v)) ? 0 : Number(v);
+    const fmt = (v) => n(v).toLocaleString('en-US', { maximumFractionDigits: 0 });
+    const fmtK = (v) => { v = n(v); return v >= 1e6 ? (v / 1e6).toFixed(1) + 'M' : v >= 1e3 ? Math.round(v / 1e3).toLocaleString('en-US') + 'K' : fmt(v); };
+    const fmtDate = (v) => { const d = v ? new Date(v) : null; return d && !isNaN(d) ? d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ''; };
+    const cnicFmt = (v) => { const d = String(v || '').replace(/\D/g, ''); return d.length === 13 ? `${d.slice(0, 5)}-${d.slice(5, 12)}-${d.slice(12)}` : String(v || ''); };
+    const SEV_PILL = { Critical: 'bad', High: 'warn', Medium: 'gold', Low: 'neutral' };
+    const sevPill = (s) => s ? `<span class="kft-pill ${SEV_PILL[s] || 'neutral'}">${esc(s)}</span>` : '';
+    const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+    const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    const monthLabel = (m) => { const d = new Date(m + '-01T00:00:00'); return d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }); };
+    function postJson(url, body) {
+        return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) })
+            .then((r) => r.json().then((j) => ({ ok: r.ok, ...j })));
+    }
+</script>

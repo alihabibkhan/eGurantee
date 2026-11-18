@@ -161,6 +161,25 @@
           {% if session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/loan-matrix-exceptions-report") %}
             <li><a href="#" class="kft-link"><span class="label">Loan Matrix Exceptions Report</span></a></li>
           {% endif %}
+          {# Post Loan-Disbursement Assurance Review (PLAR) #}
+          {% set plar_dash = session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/plar-dashboard") %}
+          {% set plar_work = session['rights']|string in ['3', '4'] or PermissionHelper.has_permission(logged_in_user, "/plar-review") %}
+          {% if plar_dash or plar_work %}
+            <li class="kft-group">
+              <button type="button" class="kft-link"><span class="label">Assurance Review (PLAR)</span><span class="chev material-symbols-rounded">chevron_right</span></button>
+              <ul class="kft-sub">
+                {% if plar_dash %}<li><a href="/plar/dashboard" class="kft-link"><span class="label">PLAR Dashboard</span></a></li>{% endif %}
+                {% if plar_work %}
+                  <li><a href="/plar/reconciliation" class="kft-link"><span class="label">Reconciliation</span></a></li>
+                  <li><a href="/plar/exceptions" class="kft-link"><span class="label">Exceptions</span></a></li>
+                  <li><a href="/plar/sampling" class="kft-link"><span class="label">Sampling</span></a></li>
+                  <li><a href="/plar/review" class="kft-link"><span class="label">Case Review</span></a></li>
+                  <li><a href="/plar/actions" class="kft-link"><span class="label">Corrective Actions</span></a></li>
+                  <li><a href="/plar/audit" class="kft-link"><span class="label">Audit Trail</span></a></li>
+                {% endif %}
+              </ul>
+            </li>
+          {% endif %}
         </ul>
       </li>
 

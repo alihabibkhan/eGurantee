@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLAR - Audit trail</title>
+    {% include 'head.html' %}
+</head>
+<body>
+    {% include 'navbar.html' %}
+
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url":"", "label":'Assurance Review (PLAR)'}, {"url":"", "label":'Audit trail'}]) }}
+
+    <div class="container mt-2">
+        {% include 'message_box.html' %}
+        <div class="kf-page-head">
+            <h1>Audit trail</h1>
+            <p>Who changed what and when in the assurance review: samples, reviews, exception cases, corrective actions and evidence. The latest 1,000 entries are shown.</p>
+        </div>
+        {% include 'plar_common.html' %}
+        <div id="u-grid" class="mb-4"></div>
+    </div>
+    <script>
+        const fmtTime = (v) => { const d = v ? new Date(v) : null; return d && !isNaN(d) ? d.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''; };
+        const grid = KFTGrid.create(document.getElementById('u-grid'), { storageKey: 'plar-audit', exportName: 'PLAR_Audit_Trail', pageSize: 25,
+            title: 'Changes', sort: { key: 'created_date', dir: 'desc' }, emptyText: 'No changes recorded yet', searchPlaceholder: 'Search user, entity or change…',
+            columns: [
+                { key: 'created_date', label: 'When', type: 'date', render: (r) => esc(fmtTime(r.created_date)), exportValue: (r) => fmtTime(r.created_date) },
+                { key: 'user_name', label: 'User' },
+                { key: 'entity', label: 'Area' },
+                { key: 'entity_id', label: 'Reference' },
+                { key: 'action', label: 'Change', className: 'strong' },
+                { key: 'old_value', label: 'From' },
+                { key: 'new_value', label: 'To' }
+            ] });
+        postJson('{{ url_for("plar_audit_data") }}', {}).then((j) => { if (j.success) grid.setRows(j.rows); });
+        window.addEventListener('kft-theme-change', () => grid.refresh());
+    </script>
+</body>
+</html>

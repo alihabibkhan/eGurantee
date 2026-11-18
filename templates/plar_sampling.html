@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLAR - Sampling</title>
+    {% include 'head.html' %}
+</head>
+<body>
+    {% include 'navbar.html' %}
+
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url":"", "label":'Assurance Review (PLAR)'}, {"url":"", "label":'Sampling'}]) }}
+
+    <div class="container mt-2">
+        {% include 'message_box.html' %}
+        <div class="kf-page-head">
+            <h1>Monthly sample selection</h1>
+            <p>{{ result.min_pct }}-{{ result.max_pct }}% of each region's disbursements, at least {{ result.min_cases }} cases where the region has that many. Half of the sample is chosen by risk (high amount, repeat borrower, automated exceptions, unusual bookings) and half at random. Once generated the list is locked and cannot be redrawn.</p>
+        </div>
+        {% include 'plar_common.html' %}
+
+        <div class="plar-bar">
+            <div><label for="s-month">MIS month</label>
+                <select class="form-select d-inline-block" id="s-month">
+                    {% for m in result.months %}<option value="{{ m.month }}">{{ m.month }} ({{ m.loans }} loans)</option>{% endfor %}
+                </select></div>
+            <span id="s-state"></span>
+            {% if result.can_review %}
+            <button type="button" class="btn btn-primary ms-auto" id="s-generate"><i class="bi bi-shuffle me-1"></i>Generate &amp; lock sample</button>
+            {% endif %}
+        </div>
+
+        <div class="plar-panel">
+            <h3>Sample size by region</h3>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0" id="s-table">
+                    <thead><tr><th>Region</th><th class="text-end">MIS disbursed</th><th class="text-end">Sample %</th><th class="text-end">Target cases</th><th class="text-end">Risk-based</th><th class="text-end">Random</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="plar-note mt-2" id="s-note"></div>
+        </div>
+
+        <div id="s-grid" class="mb-4" hidden></div>
+    </div>
+
+    <script>
+        const CAN_REVIEW = {{ 'true' if result.can_review else 'false' }};
+        const MIN_PCT = {{ result.min_pct }}, MAX_PCT = {{ result.max_pct }};
+        let OV = null;
+        const cols = [
+            { key: 'region_name', label: 'Region' },
+            { key: 'branch_name', label: 'Branch' },
+            { key: 'loan_no', label: 'Loan no.', className: 'strong' },
+            { key: 'product_code', label: 'Product' },
+            { key: 'disbursed_amount', label: 'Disbursed', type: 'money', sum: true },
+            { key: 'basis', label: 'Basis', render: (r) => `<span class="kft-pill ${r.basis === 'Random' ? 'neutral' : 'gold'}">${esc(r.basis)}</span>` },
+            { key: 'why', label: 'Why selected' },
+            { key: 'overall_status', label: 'Review', value: (r) => r.overall_status || 'Not started',
+              render: (r) => r.overall_status ? `<span class="kft-pill ${r.overall_status === 'Compliant' ? 'ok' : (r.overall_status === 'Issue Identified' ? 'bad' : 'warn')}">${esc(r.overall_status)}</span>` : '<span class="kft-pill neutral">Not started</span>' },
+            { key: 'open', label: '', act: true, sortable: false, export: false,
+              render: (r) => `<a class="icon-btn" title="Open case review" href="/plar/review?sample_id=${r.sample_id}"><i class="bi bi-box-arrow-up-right"></i></a>` }
+        ];
+        const grid = KFTGrid.create(document.getElementById('s-grid'), { columns: cols, storageKey: 'plar-sample', exportName: 'PLAR_Sample',
+            pageSize: 25, title: 'Sampled cases', sort: { key: 'region_name', dir: 'asc' }, emptyText: 'No sample yet',
+            searchPlaceholder: 'Search loan no. or branch…' });
+
+        function paint() {
+            const tb = document.querySelector('#s-table tbody');
+            let tp = 0, tt = 0, tr = 0, trd = 0;
+            tb.innerHTML = OV.regions.map((r) => {
+                tp += r.population; tt += r.target; tr += r.risk; trd += r.random;
+                const opts = []; for (let p = MIN_PCT; p <= MAX_PCT; p++) opts.push(`<option ${Number(r.pct) === p ? 'selected' : ''}>${p}</option>`);
+                const sel = (CAN_REVIEW && !OV.locked)
+                    ? `<select class="form-select form-select-sm d-inline-block w-auto" data-region="${r.region_id}">${opts.join('')}</select> %`
+                    : `${r.pct} %`;
+                return `<tr><td><b>${esc(r.name)}</b></td><td class="text-end">${r.population}</td><td class="text-end">${sel}</td><td class="text-end">${r.target}</td><td class="text-end">${OV.locked ? r.risk : '-'}</td><td class="text-end">${OV.locked ? r.random : '-'}</td></tr>`;
+            }).join('') + `<tr class="fw-bold"><td>Total</td><td class="text-end">${tp}</td><td></td><td class="text-end">${tt}</td><td class="text-end">${OV.locked ? tr : '-'}</td><td class="text-end">${OV.locked ? trd : '-'}</td></tr>`;
+            document.getElementById('s-state').innerHTML = OV.locked
+                ? `<span class="kft-pill ok">Sample locked - ${OV.sample.length} cases</span>`
+                : '<span class="kft-pill neutral">Sample not generated yet</span>';
+            const gen = document.getElementById('s-generate');
+            if (gen) gen.hidden = OV.locked || !tt;
+            document.getElementById('s-note').textContent = OV.unmapped ? `${OV.unmapped} loan(s) are at a branch that is not mapped to a region and are left out of the sample - fix the branch mapping.` : '';
+            document.getElementById('s-grid').hidden = !OV.locked;
+            if (OV.locked) grid.setRows(OV.sample);
+        }
+        function load() {
+            postJson('{{ url_for("plar_sampling_data") }}', { month: document.getElementById('s-month').value }).then((j) => {
+                if (!j.success) { alert(j.error || 'Could not load'); return; }
+                OV = j; paint();
+            });
+        }
+        document.getElementById('s-month').addEventListener('change', load);
+        document.querySelector('#s-table tbody').addEventListener('change', (e) => {
+            const s = e.target.closest('select[data-region]'); if (!s) return;
+            postJson('{{ url_for("plar_sampling_pct") }}', { month: document.getElementById('s-month').value, region_id: s.dataset.region, pct: s.value })
+                .then((j) => { if (!j.success) alert(j.error || 'Could not save'); load(); });
+        });
+        const gen = document.getElementById('s-generate');
+        if (gen) gen.addEventListener('click', () => {
+            const month = document.getElementById('s-month').value;
+            if (!confirm(`Generate and lock the ${monthLabel(month)} sample? It cannot be redrawn afterwards.`)) return;
+            gen.disabled = true;
+            postJson('{{ url_for("plar_sampling_generate") }}', { month }).then((j) => { if (!j.success) alert(j.error || 'Could not generate'); load(); })
+                .finally(() => { gen.disabled = false; });
+        });
+        window.addEventListener('kft-theme-change', () => grid.refresh());
+        load();
+    </script>
+</body>
+</html>

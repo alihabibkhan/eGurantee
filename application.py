@@ -254,6 +254,7 @@ from Manage_Web_Permission import *
 from Manage_User_Permission import *
 from App_Application_Assistant import *
 from App_Report_Configuration import *
+from App_PLAR import *
 
 if __name__ == '__main__':
     application.run(debug=True, port=8000)

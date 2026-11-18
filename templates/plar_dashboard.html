@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLAR - Dashboard</title>
+    {% include 'head.html' %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    {% include 'navbar.html' %}
+
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url":"", "label":'Assurance Review (PLAR)'}, {"url":"", "label":'Dashboard'}]) }}
+
+    <div class="container mt-2">
+        {% include 'message_box.html' %}
+        <div class="kf-page-head">
+            <h1>Assurance dashboard</h1>
+            <p>Bank MIS &rarr; automated exceptions &rarr; monthly sample &rarr; EGS verification &rarr; corrective action.</p>
+        </div>
+        {% include 'plar_common.html' %}
+
+        <div class="plar-bar">
+            <div><label for="d-month">MIS month</label>
+                <select class="form-select d-inline-block" id="d-month">
+                    {% for m in result.months %}<option value="{{ m.month }}">{{ m.month }}</option>{% endfor %}
+                </select></div>
+            <span class="plar-note" id="d-loading">Loading…</span>
+        </div>
+
+        <div class="plar-kpis" id="d-kpis"></div>
+
+        <div class="plar-two">
+            <div class="plar-panel"><h3>Monthly trend (last 6 months)</h3><div class="plar-chart"><canvas id="d-trend" aria-label="Monthly trend"></canvas></div></div>
+            <div class="plar-panel"><h3>Reviewed cases: compliant vs findings</h3><div class="plar-chart"><canvas id="d-status" aria-label="Review status"></canvas></div></div>
+            <div class="plar-panel"><h3>Automated exceptions by region</h3><div class="plar-chart"><canvas id="d-region" aria-label="Exceptions by region"></canvas></div></div>
+            <div class="plar-panel"><h3>Automated exceptions by type</h3><div class="plar-chart"><canvas id="d-type" aria-label="Exceptions by type"></canvas></div></div>
+            <div class="plar-panel"><h3>Exception cases: pending vs resolved</h3><div class="plar-chart"><canvas id="d-cases" aria-label="Pending and resolved cases by type"></canvas></div></div>
+            <div class="plar-panel"><h3>Pending cases by age</h3><div class="plar-chart"><canvas id="d-ageing" aria-label="Pending cases by age"></canvas></div></div>
+            <div class="plar-panel"><h3>Exceptions by severity</h3><div class="plar-chart"><canvas id="d-sev" aria-label="Exceptions by severity"></canvas></div></div>
+            <div class="plar-panel"><h3>Top branches by exceptions</h3><div class="plar-chart"><canvas id="d-branch" aria-label="Exceptions by branch"></canvas></div></div>
+        </div>
+
+        <div class="plar-two">
+            <div class="plar-panel"><h3>Recurring control failures</h3><div class="plar-note mb-2">Branch and category with more than one corrective action.</div><div id="d-recurring"></div></div>
+            <div class="plar-panel"><h3>Findings by reviewer</h3><div id="d-reviewers"></div></div>
+        </div>
+    </div>
+
+    <script>
+        const charts = {};
+        const SEV_COL = { Critical: '--c5', High: '--c4', Medium: '--c2', Low: '--c3' };
+        function draw(id, cfg) { if (charts[id]) charts[id].destroy(); charts[id] = new Chart(document.getElementById(id), cfg); }
+        const entries = (o) => Object.entries(o || {}).sort((a, b) => b[1] - a[1]);
+        const hbar = (id, o, colour) => { const e = entries(o); draw(id, { type: 'bar', data: { labels: e.map((x) => x[0]), datasets: [{ data: e.map((x) => x[1]), backgroundColor: css(colour) }] },
+            options: { indexAxis: 'y', maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { precision: 0 } } } } }); };
+        const kpi = (l, v, s, c) => `<div class="plar-kpi" style="--accent:${c || 'var(--c1)'}"><div class="lbl">${l}</div><div class="val">${v}</div><div class="sub">${s || ''}</div></div>`;
+        const table = (head, rows) => rows.length ? `<div class="table-responsive"><table class="table table-sm mb-0"><thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : '<span class="plar-note">Nothing to show yet.</span>';
+
+        function paint(d) {
+            const s = d.summary, sm = d.sample, a = d.actions;
+            const comp = sm.status['Compliant'] || 0, iss = sm.status['Issue Identified'] || 0, clar = sm.status['Clarification Required'] || 0;
+            document.getElementById('d-kpis').innerHTML =
+                kpi('Approved vs disbursed', `${fmt(d.approved_count)} / ${fmt(s.mis_loans)}`, `EGS approvals in the month vs bank disbursements`) +
+                kpi('Disbursed amount', 'PKR ' + fmtK(s.mis_amount), `Outstanding portfolio PKR ${fmtK(d.outstanding_amount)} (${fmt(d.outstanding_loans)} loans)`, 'var(--c2)') +
+                kpi('Loans with exceptions', fmt(s.with_exceptions), `${s.mis_loans ? Math.round(s.with_exceptions / s.mis_loans * 100) : 0}% of disbursements`, 'var(--c4)') +
+                kpi('Missing authorization', fmt((s.by_code.NOAPPR || 0) + (s.by_code.NOLETTER || 0)), `lien confirmation pending: ${fmt(s.lien_pending)}`, 'var(--c5)') +
+                kpi('Exception cases', `${fmt(d.cases.pending)} pending`, `${fmt(d.cases.resolved)} resolved · ${fmt(d.cases.pending_critical)} critical pending`, 'var(--c4)') +
+                kpi('Sampled / reviewed', `${fmt(sm.sampled)} / ${fmt(sm.reviewed)}`, `${sm.pct_of_disbursed}% of disbursements sampled`) +
+                kpi('Compliant vs findings', `${fmt(comp)} / ${fmt(iss + clar)}`, sm.reviewed ? `${Math.round(comp / sm.reviewed * 100)}% compliant` : 'no reviews finished yet', 'var(--c1)') +
+                kpi('Open actions', fmt(a.open), `${fmt(a.overdue)} overdue · ${fmt(a.escalated)} escalated`, 'var(--c5)') +
+                kpi('Resolved / closed', fmt(a.closed), 'with evidence');
+
+            draw('d-trend', { type: 'bar', data: { labels: d.trend.map((t) => t.month), datasets: [
+                { label: 'Loans with automated exceptions', data: d.trend.map((t) => t.auto_exceptions), backgroundColor: css('--c2') },
+                { label: 'Sampled', data: d.trend.map((t) => t.sampled), backgroundColor: css('--c3') },
+                { label: 'Sample findings', data: d.trend.map((t) => t.issues), backgroundColor: css('--c5') }] },
+                options: { maintainAspectRatio: false, scales: { y: { ticks: { precision: 0 } } } } });
+            const st = Object.entries(sm.status);
+            draw('d-status', { type: 'doughnut', data: { labels: st.map((x) => x[0]), datasets: [{ data: st.map((x) => x[1]), borderWidth: 0,
+                backgroundColor: st.map((x) => css({ 'Compliant': '--c1', 'Issue Identified': '--c5', 'Clarification Required': '--c2', 'Review In Progress': '--c4' }[x[0]] || '--c3')) }] },
+                options: { maintainAspectRatio: false } });
+            const ct = Object.entries(d.cases.by_type).sort((a, b) => (b[1].pending + b[1].resolved) - (a[1].pending + a[1].resolved));
+            draw('d-cases', { type: 'bar', data: { labels: ct.map((x) => x[0]), datasets: [
+                { label: 'Pending', data: ct.map((x) => x[1].pending), backgroundColor: css('--c5') },
+                { label: 'Resolved', data: ct.map((x) => x[1].resolved), backgroundColor: css('--c1') }] },
+                options: { indexAxis: 'y', maintainAspectRatio: false, scales: { x: { stacked: true, ticks: { precision: 0 } }, y: { stacked: true } } } });
+            const ag = Object.entries(d.cases.ageing);
+            draw('d-ageing', { type: 'bar', data: { labels: ag.map((x) => x[0]), datasets: [{ data: ag.map((x) => x[1]), backgroundColor: [css('--c3'), css('--c2'), css('--c5')] }] },
+                options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { precision: 0 } } } } });
+            hbar('d-region', d.by_region, '--c1'); hbar('d-type', d.by_type, '--c2'); hbar('d-branch', d.by_branch, '--c4');
+            const sv = entries(d.by_severity);
+            draw('d-sev', { type: 'doughnut', data: { labels: sv.map((x) => x[0]), datasets: [{ data: sv.map((x) => x[1]), borderWidth: 0, backgroundColor: sv.map((x) => css(SEV_COL[x[0]] || '--c3')) }] }, options: { maintainAspectRatio: false } });
+            document.getElementById('d-recurring').innerHTML = table(['Branch', 'Category', 'Actions'], d.recurring.map((r) => [esc(r[0]), esc(r[1]), `<span class="kft-pill bad">${r[2]}</span>`]));
+            document.getElementById('d-reviewers').innerHTML = table(['Reviewer', 'Reviews', 'With findings'], d.reviewers.map((r) => [esc(r.reviewer), r.reviews, r.issues]));
+        }
+        let last = null;
+        function load() {
+            document.getElementById('d-loading').hidden = false;
+            postJson('{{ url_for("plar_dashboard_data") }}', { month: document.getElementById('d-month').value }).then((j) => {
+                if (!j.success) { alert(j.error || 'Could not load'); return; }
+                last = j; paint(j);
+            }).finally(() => { document.getElementById('d-loading').hidden = true; });
+        }
+        document.getElementById('d-month').addEventListener('change', load);
+        window.addEventListener('kft-theme-change', () => { if (last) paint(last); });
+        load();
+    </script>
+</body>
+</html>

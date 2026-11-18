@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLAR - Reconciliation</title>
+    {% include 'head.html' %}
+</head>
+<body>
+    {% include 'navbar.html' %}
+
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url":"", "label":'Assurance Review (PLAR)'}, {"url":"", "label":'Reconciliation'}]) }}
+
+    <div class="container mt-2">
+        {% include 'message_box.html' %}
+        <div class="kf-page-head">
+            <h1>EGS vs Bank MIS reconciliation</h1>
+            <p>Every loan the bank disbursed should trace to an authorized KFT approval. Loans are matched on the application number when the bank supplies it, otherwise on CNIC with the approval date within 150 days before the disbursement. The lien letter is the approval email EGS sends to the bank.</p>
+        </div>
+        {% include 'plar_common.html' %}
+
+        <div class="plar-bar">
+            <div><label for="r-month">MIS month</label>
+                <select class="form-select d-inline-block" id="r-month">
+                    {% for m in result.months %}<option value="{{ m.month }}">{{ m.month }} ({{ m.loans }} loans)</option>{% endfor %}
+                </select></div>
+            <div class="plar-seg" id="r-tabs" role="group" aria-label="View">
+                <button type="button" class="on" data-v="all">All loans</button>
+                <button type="button" data-v="noappr">Missing authorization</button>
+                <button type="button" data-v="amt">Amount mismatch</button>
+                <button type="button" data-v="dup">Duplicates</button>
+                <button type="button" data-v="nodisb">Lien confirmation pending</button>
+            </div>
+        </div>
+
+        <div class="plar-kpis" id="r-kpis"></div>
+        <div class="plar-note mb-2" id="r-match-note"></div>
+
+        <div id="r-grid" class="mb-4"></div>
+    </div>
+
+    <script>
+        let DATA = null, VIEW = 'all', gridLoans = null, gridND = null;
+        const exPills = (r) => r.exceptions.map((e) => `<span class="kft-pill ${SEV_PILL[e.severity] || 'neutral'}" title="${esc(e.detail)}">${esc(e.label)}</span>`).join(' ');
+        const hasCode = (r, c) => r.exceptions.some((e) => e.code === c);
+
+        const loanCols = [
+            { key: 'loan_no', label: 'Loan no.', className: 'strong' },
+            { key: 'application_no', label: 'EGS application', render: (r) => r.pre_disb_temp_id ? esc(r.application_no) : '<span class="kft-pill bad">none</span>' },
+            { key: 'borrower', label: 'Borrower', value: (r) => r.borrower_name || r.loan_title || '' },
+            { key: 'cnic', label: 'CNIC', render: (r) => esc(cnicFmt(r.cnic)), exportValue: (r) => cnicFmt(r.cnic) },
+            { key: 'region', label: 'Region', value: (r) => r.region || 'Unmapped' },
+            { key: 'mis_branch_name', label: 'Branch' },
+            { key: 'product_code', label: 'Product' },
+            { key: 'approved_amount', label: 'Approved', type: 'money', sum: true },
+            { key: 'disbursed_amount', label: 'Disbursed', type: 'money', sum: true },
+            { key: 'matrix_limit', label: 'Matrix limit', type: 'money', hidden: true },
+            { key: 'booked_on', label: 'Booked on', type: 'date', render: (r) => esc(fmtDate(r.booked_on)), exportValue: (r) => fmtDate(r.booked_on) },
+            { key: 'match_type', label: 'Match', render: (r) => !r.pre_disb_temp_id ? '' : (r.match_type === 'Fallback' ? '<span class="kft-pill gold" title="Matched on CNIC and date window - the bank sent no application number">CNIC + date</span>' : '<span class="kft-pill ok">Application no.</span>') },
+            { key: 'approved_by', label: 'Approved by', hidden: true },
+            { key: 'email_status', label: 'Lien letter', value: (r) => r.pre_disb_temp_id ? (r.email_status == 2 ? 'Sent' : 'Not sent') : '', render: (r) => !r.pre_disb_temp_id ? '' : (r.email_status == 2 ? '<span class="kft-pill ok">Sent</span>' : '<span class="kft-pill bad">Not sent</span>') },
+            { key: 'exceptions', label: 'Exceptions', value: (r) => r.exceptions.map((e) => e.label).join('; '), render: (r) => exPills(r) || '<span class="kft-pill ok">None</span>', exportValue: (r) => r.exceptions.map((e) => e.label + ' - ' + e.detail).join('; ') }
+        ];
+        const ndCols = [
+            { key: 'application_no', label: 'EGS application', className: 'strong' },
+            { key: 'borrower_name', label: 'Borrower' },
+            { key: 'cnic', label: 'CNIC', render: (r) => esc(cnicFmt(r.cnic)), exportValue: (r) => cnicFmt(r.cnic) },
+            { key: 'region', label: 'Region' },
+            { key: 'branch_name', label: 'Branch' },
+            { key: 'product', label: 'Product' },
+            { key: 'approved_amount', label: 'Approved', type: 'money', sum: true },
+            { key: 'approved_date', label: 'Approved on', type: 'date', render: (r) => esc(fmtDate(r.approved_date)), exportValue: (r) => fmtDate(r.approved_date) },
+            { key: 'days_waiting', label: 'Days since approval', type: 'number' },
+            { key: 'conclusive', label: 'Status', value: (r) => r.conclusive ? 'Pending' : 'Awaiting next MIS',
+              render: (r) => r.conclusive ? '<span class="kft-pill bad" title="The following month\'s bank MIS is loaded and this approval is not in it">Pending</span>' : '<span class="kft-pill neutral" title="The bank MIS for the month after approval has not been loaded yet">Awaiting next MIS</span>' }
+        ];
+
+        const host = document.getElementById('r-grid');
+        function mount(kind) {
+            host.innerHTML = '';
+            if (kind === 'nodisb') {
+                gridND = KFTGrid.create(host, { columns: ndCols, storageKey: 'plar-nodisb', exportName: 'PLAR_Lien_Confirmation_Pending', pageSize: 25,
+                    title: 'Lien confirmation pending', sort: { key: 'approved_date', dir: 'asc' }, emptyText: 'No approvals are waiting for disbursement' });
+                gridND.setRows(DATA ? DATA.not_disbursed : []);
+            } else {
+                gridLoans = KFTGrid.create(host, { columns: loanCols, storageKey: 'plar-loans', exportName: 'PLAR_Reconciliation', pageSize: 25,
+                    title: 'Bank disbursements', sort: { key: 'booked_on', dir: 'asc' }, searchPlaceholder: 'Search loan no., borrower or CNIC…',
+                    emptyText: 'No loans in this view' });
+                gridLoans.setRows(filterLoans());
+            }
+        }
+        function filterLoans() {
+            if (!DATA) return [];
+            const rows = DATA.rows;
+            if (VIEW === 'noappr') return rows.filter((r) => hasCode(r, 'NOAPPR') || hasCode(r, 'NOLETTER') || hasCode(r, 'NOFINAL'));
+            if (VIEW === 'amt') return rows.filter((r) => hasCode(r, 'AMTDIFF') || hasCode(r, 'MATRIX'));
+            if (VIEW === 'dup') return rows.filter((r) => hasCode(r, 'DUP') || hasCode(r, 'DUPDISB'));
+            return rows;
+        }
+        function kpi(label, val, sub, accent) {
+            return `<div class="plar-kpi" style="--accent:${accent || 'var(--c1)'}"><div class="lbl">${label}</div><div class="val">${val}</div><div class="sub">${sub || ''}</div></div>`;
+        }
+        function paint() {
+            const s = DATA.summary;
+            document.getElementById('r-kpis').innerHTML =
+                kpi('Bank disbursements', fmt(s.mis_loans), 'PKR ' + fmtK(s.mis_amount)) +
+                kpi('Matched to an approval', fmt(s.matched), `${s.mis_loans ? Math.round(s.matched / s.mis_loans * 100) : 0}% of disbursements`) +
+                kpi('Missing authorization', fmt(s.by_code.NOAPPR || 0), (s.by_code.NOLETTER || 0) + ' with lien letter not sent', 'var(--c5)') +
+                kpi('Lien confirmation pending', fmt(s.lien_pending), `letter sent, not in the next month's MIS · ${fmt(s.lien_awaiting)} awaiting next MIS`, 'var(--c2)') +
+                kpi('Loans with exceptions', fmt(s.with_exceptions), `${s.mis_loans ? Math.round(s.with_exceptions / s.mis_loans * 100) : 0}% of disbursements`, 'var(--c4)');
+            document.getElementById('r-match-note').textContent =
+                `Matched by application number: ${s.matched_app_no}; by CNIC and date window: ${s.matched_fallback}. ` +
+                (s.matched_app_no === 0 ? 'The bank MIS currently sends no application numbers, so every match uses the CNIC rule.' : '');
+        }
+        function load() {
+            const month = document.getElementById('r-month').value;
+            if (!month) return;
+            postJson('{{ url_for("plar_reconciliation_data") }}', { month }).then((j) => {
+                if (!j.success) { alert(j.error || 'Could not load'); return; }
+                DATA = j; paint(); mount(VIEW === 'nodisb' ? 'nodisb' : 'loans');
+            });
+        }
+        document.getElementById('r-month').addEventListener('change', load);
+        document.getElementById('r-tabs').addEventListener('click', (e) => {
+            const b = e.target.closest('button'); if (!b) return;
+            document.querySelectorAll('#r-tabs button').forEach((x) => x.classList.toggle('on', x === b));
+            const was = VIEW; VIEW = b.dataset.v;
+            if (!DATA) return;
+            if (VIEW === 'nodisb' || was === 'nodisb') mount(VIEW === 'nodisb' ? 'nodisb' : 'loans');
+            else gridLoans.setRows(filterLoans());
+        });
+        window.addEventListener('kft-theme-change', () => { if (gridLoans) gridLoans.refresh(); });
+        load();
+    </script>
+</body>
+</html>

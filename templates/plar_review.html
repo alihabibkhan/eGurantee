@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLAR - Case review</title>
+    {% include 'head.html' %}
+    <style>
+        .rv-split { display: grid; grid-template-columns: minmax(320px, 2fr) 3fr; gap: 14px; align-items: start; }
+        @media (max-width: 1000px) { .rv-split { grid-template-columns: 1fr; } }
+        dl.rv-kv { display: grid; grid-template-columns: 140px 1fr; gap: 6px 12px; margin: 0; font-size: 13.5px; }
+        dl.rv-kv dt { color: var(--ink-3); font-weight: 500; }
+        dl.rv-kv dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
+        .rv-tl { border-left: 2px solid var(--line); margin-left: 6px; padding-left: 16px; }
+        .rv-tl div { position: relative; margin-bottom: 10px; font-size: 13.5px; }
+        .rv-tl div::before { content: ''; position: absolute; left: -22px; top: 6px; width: 10px; height: 10px; border-radius: 50%; background: var(--c1); }
+        .rv-tl small { display: block; color: var(--ink-3); }
+        .rv-checks { display: grid; grid-template-columns: 1fr 200px; gap: 8px 12px; align-items: center; }
+        .rv-auto { font-size: 11px; color: var(--info, var(--c1)); margin-left: 6px; font-weight: 600; }
+        .rv-msg .alert { margin: 10px 0 0; padding: 8px 12px; font-size: 13px; }
+    </style>
+</head>
+<body>
+    {% include 'navbar.html' %}
+
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url":"", "label":'Assurance Review (PLAR)'}, {"url":"", "label":'Case review'}]) }}
+
+    <div class="container mt-2">
+        {% include 'message_box.html' %}
+        <div class="kf-page-head">
+            <h1>Case review</h1>
+            <p>Verify a sampled loan against its EGS approval. PLAR is a quality check, not a second loan approval. You cannot review a case you approved or reviewed in EGS.</p>
+        </div>
+        {% include 'plar_common.html' %}
+
+        <div class="plar-bar">
+            <div><label for="v-month">MIS month</label>
+                <select class="form-select d-inline-block" id="v-month">
+                    {% for m in result.months %}<option value="{{ m.month }}" {{ 'selected' if result.month == m.month else '' }}>{{ m.month }}</option>{% endfor %}
+                </select></div>
+            <div><label for="v-filter">Show</label>
+                <select class="form-select d-inline-block" id="v-filter">
+                    <option value="all">All sampled cases</option><option value="todo">Not reviewed yet</option><option value="issues">With findings</option>
+                </select></div>
+            <div class="flex-grow-1" style="min-width:260px"><select class="form-select" id="v-case" aria-label="Sampled case"></select></div>
+            <span class="plar-note" id="v-progress"></span>
+        </div>
+        <div id="v-empty" class="plar-panel" hidden>The sample for this month has not been generated yet. Open <a href="/plar/sampling">Sampling</a> first.</div>
+
+        <div class="rv-split" id="v-body" hidden>
+            <div>
+                <div class="plar-panel"><h3>Bank record and EGS approval</h3><dl class="rv-kv" id="v-facts"></dl></div>
+                <div class="plar-panel"><h3>Approval history</h3><div class="rv-tl" id="v-history"></div></div>
+                <div class="plar-panel"><h3>Automated findings</h3><div id="v-auto"></div></div>
+            </div>
+            <div class="plar-panel">
+                <h3>PLAR checks <span class="plar-note">(<span class="rv-auto">auto</span> values come from the system rules; change them if the evidence says otherwise)</span></h3>
+                <div id="v-lock"></div>
+                <div class="rv-checks" id="v-checks"></div>
+                <hr>
+                <div class="row g-2">
+                    <div class="col-md-4"><label class="form-label small fw-semibold" for="v-status">Overall review status</label>
+                        <select class="form-select" id="v-status">{% for s in result.statuses %}<option>{{ s }}</option>{% endfor %}</select></div>
+                    <div class="col-md-4"><label class="form-label small fw-semibold" for="v-cat">Issue category</label>
+                        <select class="form-select" id="v-cat"><option value=""></option>{% for s in result.categories %}<option>{{ s }}</option>{% endfor %}</select></div>
+                    <div class="col-md-4"><label class="form-label small fw-semibold" for="v-sev">Severity</label>
+                        <select class="form-select" id="v-sev"><option value=""></option>{% for s in result.severities %}<option>{{ s }}</option>{% endfor %}</select></div>
+                    <div class="col-12"><label class="form-label small fw-semibold" for="v-obs">Observation</label>
+                        <textarea class="form-control" id="v-obs" rows="3"></textarea></div>
+                </div>
+                <div id="v-action-new" class="row g-2 mt-1" hidden>
+                    <div class="col-12 plar-note">A corrective action is opened when you save a finding.</div>
+                    <div class="col-md-5"><label class="form-label small fw-semibold" for="v-owner">Responsible official (KFT or bank)</label>
+                        <input class="form-control" id="v-owner" placeholder="Name or role"></div>
+                    <div class="col-md-4"><label class="form-label small fw-semibold" for="v-owner-user">EGS user to remind (optional)</label>
+                        <select class="form-select" id="v-owner-user"><option value=""></option>{% for u in result.users %}<option value="{{ u.user_id }}">{{ u.name }}</option>{% endfor %}</select></div>
+                    <div class="col-md-3"><label class="form-label small fw-semibold" for="v-due">Deadline</label>
+                        <input type="date" class="form-control" id="v-due"></div>
+                </div>
+                <div id="v-action-old" class="plar-note mt-2"></div>
+                <div class="rv-msg" id="v-msg"></div>
+                <div class="d-flex gap-2 align-items-center mt-3 flex-wrap">
+                    <button type="button" class="btn btn-primary" id="v-save"><i class="bi bi-check2-circle me-1"></i>Save review</button>
+                    <button type="button" class="btn btn-outline-secondary" id="v-next">Save &amp; next case</button>
+                    <span class="plar-note" id="v-saved"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CHECKS = {{ result.checks | tojson }};
+        const INITIAL = '{{ result.sample_id }}';
+        let LIST = [], CASE = null;
+        const statusPill = (s) => s ? `<span class="kft-pill ${s === 'Compliant' ? 'ok' : (s === 'Issue Identified' ? 'bad' : 'warn')}">${esc(s)}</span>` : '';
+        const el = (id) => document.getElementById(id);
+
+        function visibleList() {
+            const f = el('v-filter').value;
+            return LIST.filter((s) => f === 'all' || (f === 'todo' && !s.overall_status) || (f === 'issues' && s.overall_status && s.overall_status !== 'Compliant'));
+        }
+        function paintList(selectId) {
+            const rows = visibleList();
+            el('v-case').innerHTML = rows.map((s) => `<option value="${s.sample_id}">${esc(s.loan_no)} · ${esc(s.branch_name || '')} · ${esc(s.product_code)}${s.overall_status ? ' · ' + esc(s.overall_status) : ''}</option>`).join('');
+            const done = LIST.filter((s) => s.overall_status && s.overall_status !== 'Review In Progress').length;
+            el('v-progress').textContent = LIST.length ? `${done} of ${LIST.length} reviewed` : '';
+            el('v-empty').hidden = LIST.length > 0;
+            el('v-body').hidden = !rows.length;
+            if (rows.length) {
+                const pick = rows.find((s) => String(s.sample_id) === String(selectId)) || rows[0];
+                el('v-case').value = pick.sample_id;
+                loadCase(pick.sample_id);
+            }
+        }
+        function loadList(selectId) {
+            postJson('{{ url_for("plar_review_list") }}', { month: el('v-month').value }).then((j) => {
+                if (!j.success) { alert(j.error || 'Could not load'); return; }
+                LIST = j.sample; paintList(selectId);
+            });
+        }
+        function fact(k, v) { return `<dt>${k}</dt><dd>${v === null || v === undefined || v === '' ? '-' : v}</dd>`; }
+        function paintCase(c) {
+            CASE = c; const s = c.sample, l = c.loan, a = c.app;
+            const money = (v) => v === null || v === undefined ? '-' : 'PKR ' + fmt(v);
+            el('v-facts').innerHTML =
+                fact('Loan no.', esc(s.loan_no)) + fact('Borrower', esc((a && a.borrower_name) || (l && l.loan_title) || '')) +
+                fact('CNIC', esc(cnicFmt(l ? l.cnic : (a ? a.cnic : '')))) + fact('Region / branch', esc(s.region_name || 'Unmapped') + ' / ' + esc(s.branch_name || '')) +
+                fact('Product', esc(s.product_code)) + fact('EGS application', a ? esc(a.application_no) + ' <span class="plar-note">(' + (l && l.match_type === 'Fallback' ? 'matched on CNIC + date - confirm identity' : 'matched on application no.') + ')</span>' : '<span class="kft-pill bad">no approved application</span>') +
+                fact('Loan cycle', a ? esc(a.loan_cycle) + (l ? ` <span class="plar-note">(bank history: ${Number(l.prior_loans || 0) + 1})</span>` : '') : '') +
+                fact('Requested', a ? money(a.requested_amount) : '') + fact('Approved', a ? money(a.approved_amount) : '') +
+                fact('Matrix limit', a ? money(a.matrix_limit) : '') + fact('Disbursed', l ? money(l.disbursed_amount) + ' on ' + esc(fmtDate(l.booked_on)) : '') +
+                fact('Lien letter', a ? (a.email_status == 2 ? '<span class="kft-pill ok">emailed to the bank</span>' : '<span class="kft-pill bad">not sent</span>') : '') +
+                fact('EGS status', a ? esc(a.status) + (a.exec_approval_pending == 1 ? ' <span class="kft-pill gold">executive approval pending</span>' : '') : '') +
+                fact('ECIB / credit', a ? esc(a.ecib || '') : '') + fact('Approval notes', a ? esc(a.notes || '') : '') +
+                fact('Sampled as', `<span class="kft-pill ${s.basis === 'Random' ? 'neutral' : 'gold'}">${esc(s.basis)}</span> ${esc(s.why || '')}`);
+            el('v-history').innerHTML = c.history.length ? c.history.map((h) => `<div>${esc(h[0])}<small>${esc(fmtDate(h[1]))}${h[2] ? ' · ' + esc(h[2]) : ''}</small></div>`).join('') : '<div class="plar-note">No approval history</div>';
+            const ex = l ? l.exceptions : [];
+            el('v-auto').innerHTML = ex.length ? ex.map((e) => `<div class="mb-2">${sevPill(e.severity)} <b>${esc(e.label)}</b><div class="plar-note">${esc(e.detail)}</div></div>`).join('') : '<span class="kft-pill ok">No automated exceptions</span>';
+
+            const rv = c.review, saved = rv ? rv.checks : c.auto_checks;
+            const editable = c.can_edit;
+            el('v-checks').innerHTML = CHECKS.map((k) => {
+                const auto = (c.auto_checks[k.key] || '') !== '';
+                const opts = ['', 'Verified', 'Issue Identified', 'Clarification Required', 'Not Applicable'].map((o) => `<option ${((saved && saved[k.key]) || '') === o ? 'selected' : ''}>${o}</option>`).join('');
+                return `<div>${esc(k.label)}${auto ? '<span class="rv-auto">auto</span>' : ''}${k.optional ? ' <span class="plar-note">(optional)</span>' : ''}</div><select class="form-select form-select-sm" data-check="${k.key}" ${editable ? '' : 'disabled'}>${opts}</select>`;
+            }).join('');
+            el('v-status').value = rv ? rv.overall_status : 'Review In Progress';
+            el('v-cat').value = rv && rv.issue_category ? rv.issue_category : '';
+            el('v-sev').value = rv && rv.issue_severity ? rv.issue_severity : '';
+            el('v-obs').value = rv && rv.observation ? rv.observation : '';
+            ['v-status', 'v-cat', 'v-sev', 'v-obs', 'v-owner', 'v-owner-user', 'v-due'].forEach((id) => { el(id).disabled = !editable; });
+            el('v-owner').value = ''; el('v-owner-user').value = '';
+            const d = new Date(); d.setDate(d.getDate() + 14); el('v-due').value = d.toISOString().slice(0, 10);
+            el('v-save').disabled = !editable; el('v-next').disabled = !editable;
+            el('v-lock').innerHTML = c.conflict ? '<div class="alert alert-danger py-2">You approved or reviewed this case in EGS, so you cannot review it. Ask another PLAR reviewer.</div>'
+                : (!c.can_edit ? '<div class="alert alert-info py-2">You can view this case but only a PLAR reviewer can record a review.</div>' : '');
+            el('v-action-old').innerHTML = c.actions.length ? 'Corrective action: ' + c.actions.map((a) => `${esc(a.owner_name)} · due ${esc(fmtDate(a.due_date))} · <b>${esc(a.status)}</b>`).join('; ') + ' - <a href="/plar/actions">open Corrective actions</a>' : '';
+            el('v-saved').textContent = rv ? `Last saved by ${rv.reviewed_by_name || ''} on ${fmtDate(rv.modified_date || rv.reviewed_date)}` : '';
+            el('v-msg').innerHTML = '';
+            syncAction();
+        }
+        function syncAction() {
+            const st = el('v-status').value;
+            el('v-action-new').hidden = !((st === 'Issue Identified' || st === 'Clarification Required') && CASE && CASE.actions.length === 0 && CASE.can_edit);
+        }
+        function loadCase(id) {
+            postJson('{{ url_for("plar_review_case") }}', { sample_id: id }).then((j) => { if (j.success) paintCase(j); else alert(j.error || 'Could not load the case'); });
+        }
+        function save(goNext) {
+            const checks = {}; document.querySelectorAll('[data-check]').forEach((s) => { checks[s.dataset.check] = s.value; });
+            const body = { sample_id: CASE.sample.sample_id, checks, status: el('v-status').value, category: el('v-cat').value, severity: el('v-sev').value,
+                observation: el('v-obs').value, owner_name: el('v-owner').value, owner_user_id: el('v-owner-user').value, due_date: el('v-due').value };
+            const btns = [el('v-save'), el('v-next')]; btns.forEach((b) => { b.disabled = true; });
+            postJson('{{ url_for("plar_review_save") }}', body).then((j) => {
+                if (!j.success) { el('v-msg').innerHTML = `<div class="alert alert-danger">${esc(j.error || 'Could not save')}</div>`; return; }
+                const cur = CASE.sample.sample_id;
+                postJson('{{ url_for("plar_review_list") }}', { month: el('v-month').value }).then((l) => {
+                    LIST = l.sample;
+                    const rows = visibleList(); const i = rows.findIndex((s) => s.sample_id === cur);
+                    const target = goNext && rows[i + 1] ? rows[i + 1].sample_id : cur;
+                    paintList(target);
+                    el('v-msg').innerHTML = `<div class="alert alert-success">Review saved${j.action_id ? ' and a corrective action was opened' : ''}.</div>`;
+                });
+            }).finally(() => { btns.forEach((b) => { b.disabled = !(CASE && CASE.can_edit); }); });
+        }
+        el('v-month').addEventListener('change', () => loadList());
+        el('v-filter').addEventListener('change', () => paintList(el('v-case').value));
+        el('v-case').addEventListener('change', () => loadCase(el('v-case').value));
+        el('v-status').addEventListener('change', syncAction);
+        el('v-save').addEventListener('click', () => save(false));
+        el('v-next').addEventListener('click', () => save(true));
+        loadList(INITIAL);
+    </script>
+</body>
+</html>

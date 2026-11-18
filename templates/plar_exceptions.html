@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLAR - Exceptions</title>
+    {% include 'head.html' %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    {% include 'navbar.html' %}
+
+    {% import 'breadcrumbs.html' as brd %}
+    {{ brd.render_Breadcrumbs([{"url":"", "label":'Assurance Review (PLAR)'}, {"url":"", "label":'Exceptions'}]) }}
+
+    <div class="container mt-2">
+        {% include 'message_box.html' %}
+        <div class="kf-page-head">
+            <h1>Automated exception report</h1>
+            <p>Rules run on every loan the bank disbursed in the month. Each exception stays <b>Pending</b> until a PLAR reviewer resolves it with a note (and, if available, a supporting file).</p>
+        </div>
+        {% include 'plar_common.html' %}
+
+        <div class="plar-bar">
+            <div><label for="x-month">MIS month</label>
+                <select class="form-select d-inline-block" id="x-month">
+                    {% for m in result.months %}<option value="{{ m.month }}">{{ m.month }}</option>{% endfor %}
+                </select></div>
+            <div><label for="x-type">Exception</label>
+                <select class="form-select d-inline-block" id="x-type">
+                    <option value="">All types</option>
+                    {% for c in result.codes %}<option value="{{ c.code }}">{{ c.name }}</option>{% endfor %}
+                </select></div>
+            <div><label for="x-sev">Severity</label>
+                <select class="form-select d-inline-block" id="x-sev">
+                    <option value="">All</option><option>Critical</option><option>High</option><option>Medium</option><option>Low</option>
+                </select></div>
+            <div class="plar-seg" id="x-case" role="group" aria-label="Case status">
+                <button type="button" class="on" data-v="">All</button>
+                <button type="button" data-v="Pending">Pending</button>
+                <button type="button" data-v="Resolved">Resolved</button>
+            </div>
+        </div>
+
+        <div class="plar-kpis" id="x-kpis"></div>
+        <div class="plar-two">
+            <div class="plar-panel"><h3>By exception type</h3><div class="plar-chart"><canvas id="x-c1" aria-label="Exceptions by type"></canvas></div></div>
+            <div class="plar-panel"><h3>By region</h3><div class="plar-chart"><canvas id="x-c2" aria-label="Exceptions by region"></canvas></div></div>
+        </div>
+        <div id="x-grid" class="mb-4"></div>
+    </div>
+
+    <div class="modal fade" id="x-modal" tabindex="-1" aria-labelledby="x-modal-title" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title" id="x-modal-title">Exception</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                <div class="modal-body">
+                    <div id="x-modal-info" class="mb-3"></div>
+                    <div id="x-modal-history" class="mb-3"></div>
+                    <div id="x-modal-form">
+                        <label class="form-label small fw-semibold" for="x-note">Resolution note</label>
+                        <textarea class="form-control" id="x-note" rows="3" placeholder="How was this exception resolved?"></textarea>
+                        <label class="form-label small fw-semibold mt-2" for="x-file">Supporting file (optional)</label>
+                        <input type="file" class="form-control" id="x-file">
+                        <div id="x-modal-msg" class="mt-2"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-outline-danger" id="x-reopen" hidden>Reopen as pending</button>
+                    <button type="button" class="btn btn-primary" id="x-resolve" hidden>Mark resolved</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CAN_REVIEW = {{ 'true' if result.can_review else 'false' }};
+        let RECS = [], charts = {}, POP = 0, CUR = null, CASE = '';
+        const casePill = (r) => r.case_status === 'Resolved' ? '<span class="kft-pill ok">Resolved</span>' : '<span class="kft-pill bad">Pending</span>';
+        const cols = [
+            { key: 'exception', label: 'Exception', className: 'strong' },
+            { key: 'severity', label: 'Severity', render: (r) => sevPill(r.severity) },
+            { key: 'case_status', label: 'Case', render: casePill },
+            { key: 'detail', label: 'Detail', render: (r) => `<span title="${esc(r.detail)}">${esc(r.detail)}</span>` },
+            { key: 'loan_no', label: 'Loan no.' },
+            { key: 'application_no', label: 'EGS application', hidden: true },
+            { key: 'borrower', label: 'Borrower' },
+            { key: 'cnic', label: 'CNIC', render: (r) => esc(cnicFmt(r.cnic)), exportValue: (r) => cnicFmt(r.cnic), hidden: true },
+            { key: 'region', label: 'Region', value: (r) => r.region || 'Unmapped' },
+            { key: 'branch', label: 'Branch' },
+            { key: 'product', label: 'Product' },
+            { key: 'approved', label: 'Approved', type: 'money' },
+            { key: 'disbursed', label: 'Disbursed', type: 'money' },
+            { key: 'booked_on', label: 'Booked on', type: 'date', render: (r) => esc(fmtDate(r.booked_on)), exportValue: (r) => fmtDate(r.booked_on) },
+            { key: 'days_open', label: 'Days open', type: 'number', hidden: true },
+            { key: 'resolution_note', label: 'Resolution note', hidden: true },
+            { key: 'resolved_by', label: 'Resolved by', hidden: true },
+            { key: 'open', label: '', act: true, sortable: false, export: false,
+              render: (r) => `<button type="button" class="icon-btn" title="${r.case_status === 'Resolved' ? 'View resolution' : 'Review / resolve'}" data-case="${esc(r.code + '|' + r.case_key)}"><i class="bi ${r.case_status === 'Resolved' ? 'bi-eye' : 'bi-pencil-square'}"></i></button>` }
+        ];
+        const grid = KFTGrid.create(document.getElementById('x-grid'), { columns: cols, storageKey: 'plar-exceptions-v2', exportName: 'PLAR_Exceptions',
+            pageSize: 25, title: 'Exceptions', sort: { key: 'severity', dir: 'asc' }, emptyText: 'No exceptions for these filters',
+            searchPlaceholder: 'Search loan no., borrower or branch…' });
+
+        function filtered() {
+            const t = document.getElementById('x-type').value, s = document.getElementById('x-sev').value;
+            return RECS.filter((r) => (!t || r.code === t) && (!s || r.severity === s) && (!CASE || r.case_status === CASE));
+        }
+        function bar(id, labels, values, color) {
+            if (charts[id]) charts[id].destroy();
+            charts[id] = new Chart(document.getElementById(id), { type: 'bar',
+                data: { labels, datasets: [{ data: values, backgroundColor: css(color) }] },
+                options: { indexAxis: 'y', maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { precision: 0 } } } } });
+        }
+        function count(rows, fn) { const m = {}; rows.forEach((r) => { const k = fn(r) || 'Unmapped'; m[k] = (m[k] || 0) + 1; }); return Object.entries(m).sort((a, b) => b[1] - a[1]); }
+        function paint() {
+            const rows = filtered();
+            const pend = rows.filter((r) => r.case_status !== 'Resolved');
+            document.getElementById('x-kpis').innerHTML =
+                `<div class="plar-kpi" style="--accent:var(--c5)"><div class="lbl">Pending</div><div class="val">${pend.length}</div><div class="sub">${pend.filter((r) => r.severity === 'Critical').length} critical</div></div>` +
+                `<div class="plar-kpi" style="--accent:var(--c1)"><div class="lbl">Resolved</div><div class="val">${rows.length - pend.length}</div><div class="sub">with a note</div></div>` +
+                `<div class="plar-kpi" style="--accent:var(--c4)"><div class="lbl">Critical + High</div><div class="val">${rows.filter((r) => r.severity === 'Critical' || r.severity === 'High').length}</div></div>` +
+                `<div class="plar-kpi"><div class="lbl">Loans affected</div><div class="val">${new Set(rows.filter((r) => r.loan_no).map((r) => r.loan_no)).size}</div><div class="sub">of ${fmt(POP)} disbursed</div></div>`;
+            const t = count(rows, (r) => r.exception), g = count(rows, (r) => r.region);
+            bar('x-c1', t.map((x) => x[0]), t.map((x) => x[1]), '--c1');
+            bar('x-c2', g.map((x) => x[0]), g.map((x) => x[1]), '--c2');
+            grid.setRows(rows);
+        }
+        function load() {
+            postJson('{{ url_for("plar_exceptions_data") }}', { month: document.getElementById('x-month').value }).then((j) => {
+                if (!j.success) { alert(j.error || 'Could not load'); return; }
+                RECS = j.records; POP = j.population; paint();
+            });
+        }
+
+        // ---- resolve / reopen
+        const modal = new bootstrap.Modal(document.getElementById('x-modal'));
+        grid.el.addEventListener('click', (e) => {
+            const b = e.target.closest('[data-case]'); if (!b) return;
+            CUR = RECS.find((r) => (r.code + '|' + r.case_key) === b.dataset.case); if (!CUR) return;
+            document.getElementById('x-modal-title').textContent = CUR.exception;
+            document.getElementById('x-modal-info').innerHTML = `${sevPill(CUR.severity)} ${casePill(CUR)}<p class="mt-2 mb-1">${esc(CUR.detail)}</p>` +
+                `<div class="plar-note">${CUR.loan_no ? 'Loan ' + esc(CUR.loan_no) + ' · ' : ''}${esc(CUR.borrower || '')} · ${esc(CUR.region || 'Unmapped')} · ${esc(CUR.branch || '')}</div>`;
+            const resolved = CUR.case_status === 'Resolved';
+            document.getElementById('x-modal-history').innerHTML = resolved
+                ? `<div class="plar-panel mb-0"><b>Resolved</b> by ${esc(CUR.resolved_by || '')} on ${esc(fmtDate(CUR.resolved_date))}<div class="mt-1">${esc(CUR.resolution_note || '')}</div>` +
+                  (CUR.evidence.length ? '<div class="mt-2">' + CUR.evidence.map((x) => `<a href="/plar/exceptions/evidence/${x.evidence_id}"><i class="bi bi-paperclip"></i>${esc(x.file_name)}</a>`).join('<br>') + '</div>' : '') + '</div>' : '';
+            document.getElementById('x-modal-form').hidden = resolved || !CAN_REVIEW;
+            document.getElementById('x-resolve').hidden = resolved || !CAN_REVIEW;
+            document.getElementById('x-reopen').hidden = !resolved || !CAN_REVIEW;
+            document.getElementById('x-note').value = ''; document.getElementById('x-file').value = ''; document.getElementById('x-modal-msg').innerHTML = '';
+            modal.show();
+        });
+        function submitCase(status) {
+            const fd = new FormData();
+            fd.append('month', document.getElementById('x-month').value); fd.append('code', CUR.code); fd.append('loan_no', CUR.loan_no || '');
+            fd.append('pre_disb_temp_id', CUR.pre_disb_temp_id || ''); fd.append('status', status);
+            fd.append('note', status === 'Resolved' ? document.getElementById('x-note').value : (CUR.resolution_note || ''));
+            const f = document.getElementById('x-file').files[0]; if (f && status === 'Resolved') fd.append('file', f);
+            fetch('{{ url_for("plar_exceptions_resolve") }}', { method: 'POST', body: fd }).then((r) => r.json()).then((j) => {
+                if (!j.success) { document.getElementById('x-modal-msg').innerHTML = `<div class="alert alert-danger py-2">${esc(j.error || 'Could not save')}</div>`; return; }
+                modal.hide(); load();
+            });
+        }
+        document.getElementById('x-resolve').addEventListener('click', () => submitCase('Resolved'));
+        document.getElementById('x-reopen').addEventListener('click', () => { if (confirm('Reopen this exception as pending?')) submitCase('Pending'); });
+
+        document.getElementById('x-case').addEventListener('click', (e) => {
+            const b = e.target.closest('button'); if (!b) return;
+            document.querySelectorAll('#x-case button').forEach((x) => x.classList.toggle('on', x === b));
+            CASE = b.dataset.v; paint();
+        });
+        ['x-month', 'x-type', 'x-sev'].forEach((id) => document.getElementById(id).addEventListener('change', () => id === 'x-month' ? load() : paint()));
+        window.addEventListener('kft-theme-change', () => { grid.refresh(); paint(); });
+        load();
+    </script>
+</body>
+</html>
